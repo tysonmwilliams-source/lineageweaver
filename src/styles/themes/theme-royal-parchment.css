@@ -1,0 +1,304 @@
+/**
+ * Lineageweaver - Royal Parchment Theme (Dark Mode)
+ * 
+ * A warm, medieval-inspired dark theme evoking candlelit manuscript reading
+ * in castle libraries. Uses aged parchment tones with desaturated colors
+ * to reduce eye strain while maintaining historical authenticity.
+ */
+
+[data-theme="royal-parchment"] {
+  /* ============================================
+     SURFACE & BACKGROUND COLORS
+     ============================================ */
+  
+  /* Primary surfaces */
+  --bg-primary: #1a1410;           /* Deep charcoal-brown (main background) */
+  --bg-secondary: #2a2018;         /* Elevated surface - lighter brown-grey */
+  --bg-tertiary: #3a3028;          /* Card/modal background */
+  --bg-elevated: #4a4038;          /* Highest elevation (dropdowns, tooltips) */
+
+  /* Parchment tones for special surfaces */
+  --parchment-dark: #3d3426;       /* Aged vellum dark variant */
+  --parchment-base: #4d4436;       /* Primary parchment tone */
+  --parchment-light: #5d5446;      /* Lighter parchment for contrast */
+
+  /* ============================================
+     TEXT COLORS
+     ============================================ */
+  
+  --text-primary: #e8d5b7;         /* Primary text - warm off-white (aged ink) */
+  --text-secondary: #c4b5a0;       /* Secondary text - muted tan */
+  --text-tertiary: #9d8d78;        /* Tertiary text - desaturated brown */
+  --text-disabled: #6d5d48;        /* Disabled state */
+  --text-inverse: #2d2419;         /* Text on light backgrounds */
+
+  /* ============================================
+     BORDERS & DIVIDERS
+     ============================================ */
+  
+  --border-primary: #4a3d2e;       /* Primary borders (subtle) */
+  --border-secondary: #5a4d3e;     /* Secondary borders (moderate) */
+  --border-heavy: #6a5d4e;         /* Heavy dividers */
+  --border-focus: #d4a574;         /* Focus state border */
+
+  /* ============================================
+     SEMANTIC COLORS (Desaturated for dark mode)
+     ============================================ */
+  
+  --color-success: #6b8e5f;        /* Muted sage green */
+  --color-success-light: #7a9d6e;
+  --color-success-dark: #5a7d4f;
+  --color-success-bg: #3a4535;
+  
+  --color-warning: #b8935f;        /* Desaturated amber */
+  --color-warning-light: #c7a270;
+  --color-warning-dark: #a7835f;
+  --color-warning-bg: #453d2f;
+  
+  --color-error: #b85f5f;          /* Muted crimson */
+  --color-error-light: #c76f6f;
+  --color-error-dark: #a74f4f;
+  --color-error-bg: #4a3535;
+  
+  --color-info: #5f7b9e;           /* Slate blue */
+  --color-info-light: #6e8aad;
+  --color-info-dark: #4f6b8e;
+  --color-info-bg: #353d4a;
+
+  /* ============================================
+     INTERACTIVE STATES
+     ============================================ */
+  
+  --interactive-default: #8d7a5f;  /* Default interactive elements */
+  --interactive-hover: #a89175;    /* Hover state */
+  --interactive-active: #c4b090;   /* Active/pressed state */
+  --interactive-disabled: #5d4d3e; /* Disabled state */
+
+  /* ============================================
+     FOCUS INDICATORS
+     ============================================ */
+  
+  --focus-ring: #d4a574;           /* Focus outline - warm gold */
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+  --focus-ring-opacity: 0.15;
+
+  /* ============================================
+     RELATIONSHIP TYPE COLORS (Desaturated)
+     ============================================ */
+  
+  /* Legitimate children */
+  --legitimate-primary: #6b8e5f;   /* Muted forest green */
+  --legitimate-light: #7a9d6e;     /* Lighter variant */
+  --legitimate-dark: #5a7d4f;      /* Darker variant */
+  --legitimate-bg: #3a4535;        /* Background tint */
+  
+  /* Bastard/Illegitimate children */
+  --bastard-primary: #b8935f;      /* Desaturated amber/gold */
+  --bastard-light: #c7a270;        /* Lighter variant */
+  --bastard-dark: #a7835f;         /* Darker variant */
+  --bastard-bg: #453d2f;           /* Background tint */
+  
+  /* Adopted children */
+  --adopted-primary: #5f7b9e;      /* Slate blue */
+  --adopted-light: #6e8aad;        /* Lighter variant */
+  --adopted-dark: #4f6b8e;         /* Darker variant */
+  --adopted-bg: #353d4a;           /* Background tint */
+  
+  /* Unknown/Uncertain */
+  --unknown-primary: #7d7d7d;      /* Neutral grey */
+  --unknown-light: #8d8d8d;        /* Lighter variant */
+  --unknown-dark: #6d6d6d;         /* Darker variant */
+  --unknown-bg: #3a3a3a;           /* Background tint */
+
+  /* ============================================
+     HOUSE COLOR PALETTE (Desaturated for dark mode)
+     Traditional heraldic colors muted for comfortable viewing
+     ============================================ */
+  
+  --house-red: #9e5f5f;            /* Muted crimson (Gules) */
+  --house-blue: #5f7b9e;           /* Slate blue (Azure) */
+  --house-green: #6b8e5f;          /* Sage green (Vert) */
+  --house-purple: #8e5f9e;         /* Muted purple (Purpure) */
+  --house-gold: #b8935f;           /* Antique gold (Or) */
+  --house-orange: #b8835f;         /* Terra cotta */
+  --house-teal: #5f9e8e;           /* Muted teal */
+  --house-burgundy: #8e5f6b;       /* Dusty burgundy */
+  --house-navy: #5f6b8e;           /* Dusty navy */
+  --house-olive: #8e8e5f;          /* Olive */
+  --house-brown: #8e7a5f;          /* Warm brown */
+  --house-grey: #7d7d7d;           /* Cool grey (Argent) */
+  --house-maroon: #9e5f7b;         /* Dusty maroon */
+  --house-forest: #5f8e6b;         /* Forest green */
+  --house-amber: #b8a35f;          /* Warm amber */
+  --house-slate: #6b7d8e;          /* Slate grey */
+
+  /* ============================================
+     SHADOWS & ELEVATION
+     Stronger shadows for depth in dark mode
+     ============================================ */
+  
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 16px 32px rgba(0, 0, 0, 0.6);
+  --shadow-2xl: 0 24px 48px rgba(0, 0, 0, 0.7);
+  
+  /* Focus shadows */
+  --shadow-focus: 0 0 0 3px rgba(212, 165, 116, 0.15);
+  
+  /* Card hover */
+  --shadow-card-hover: 0 6px 12px rgba(0, 0, 0, 0.5);
+
+  /* ============================================
+     TYPOGRAPHY
+     ============================================ */
+  
+  /* Font families */
+  --font-display: 'Cinzel', 'Garamond', 'Georgia', serif;
+  --font-body: 'Crimson Text', 'Garamond', 'Georgia', serif;
+  --font-mono: 'Courier New', 'Courier', monospace;
+  
+  /* Font sizes */
+  --text-xs: 11px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-lg: 16px;
+  --text-xl: 18px;
+  --text-2xl: 20px;
+  --text-3xl: 24px;
+  --text-4xl: 28px;
+  
+  /* Line heights */
+  --leading-tight: 1.2;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.75;
+  
+  /* Letter spacing */
+  --tracking-tight: -0.5px;
+  --tracking-normal: 0;
+  --tracking-wide: 0.5px;
+  --tracking-wider: 1px;
+
+  /* ============================================
+     SPACING SCALE (4px base unit)
+     ============================================ */
+  
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+
+  /* ============================================
+     BORDER RADIUS SCALE
+     ============================================ */
+  
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-full: 9999px;
+
+  /* ============================================
+     TRANSITIONS & ANIMATIONS
+     ============================================ */
+  
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 350ms;
+  
+  --ease-standard: cubic-bezier(0.4, 0.0, 0.2, 1);
+  --ease-decelerate: cubic-bezier(0.0, 0.0, 0.2, 1);
+  --ease-accelerate: cubic-bezier(0.4, 0.0, 1, 1);
+
+  /* ============================================
+     Z-INDEX SCALE
+     ============================================ */
+  
+  --z-base: 0;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-fixed: 300;
+  --z-modal-backdrop: 1000;
+  --z-modal: 1001;
+  --z-popover: 1100;
+  --z-tooltip: 1200;
+
+  /* ============================================
+     COMPONENT-SPECIFIC VARIABLES
+     ============================================ */
+  
+  /* Person Cards */
+  --card-border-width: 3px;
+  --card-border-width-selected: 4px;
+  --card-padding: var(--space-3);
+  --card-min-width: 180px;
+  --card-max-width: 220px;
+  
+  /* Relationship Lines */
+  --line-width: 2px;
+  --line-width-thick: 2.5px;
+  --line-width-hover: 3.5px;
+  
+  /* Modals */
+  --modal-max-width: 600px;
+  --modal-padding: var(--space-6);
+  --modal-backdrop-blur: 4px;
+  
+  /* Navigation */
+  --nav-height: 64px;
+  --nav-padding: var(--space-3) var(--space-6);
+}
+
+/* ============================================
+   GLOBAL BASE STYLES FOR ROYAL PARCHMENT
+   ============================================ */
+
+[data-theme="royal-parchment"] body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+}
+
+/* Selection highlight */
+[data-theme="royal-parchment"] ::selection {
+  background-color: var(--focus-ring);
+  color: var(--bg-primary);
+}
+
+/* Scrollbar styling (WebKit browsers) */
+[data-theme="royal-parchment"] ::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+[data-theme="royal-parchment"] ::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+}
+
+[data-theme="royal-parchment"] ::-webkit-scrollbar-thumb {
+  background: var(--border-heavy);
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--bg-secondary);
+}
+
+[data-theme="royal-parchment"] ::-webkit-scrollbar-thumb:hover {
+  background: var(--interactive-default);
+}
+
+/* Focus visible (keyboard navigation) */
+[data-theme="royal-parchment"] :focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xl="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="125 179 362 434" width="362" height="434">
+  <defs>
+    <clipPath id="artboard_clip_path">
+      <path d="M 125 179 L 487 179 L 487 613 L 125 613 Z"/>
+    </clipPath>
+  </defs>
+  <g id="Engrailed_Heater_(2)" fill="none" stroke-opacity="1" stroke-dasharray="none" stroke="none" fill-opacity="1">
+    <title>Engrailed Heater (2)</title>
+    <g id="Engrailed_Heater_(2)_Layer_2" clip-path="url(#artboard_clip_path)">
+      <title>Layer 2</title>
+      <g id="Graphic_71">
+        <path d="M 306 180 C 356.4 224.22622 420.19974 247.27427 483.09356 247.1086 C 484.9979 261.7408 486 276.99366 486 292.87565 C 486 472.5192 408.988 570.5759 306 612 C 203.01202 570.5759 126 472.5192 126 292.87565 C 126 276.99366 127.00212 261.7408 128.90644 247.1086 C 191.80026 247.27427 255.6 224.22622 306 180 Z" fill="white"/>
+        <path d="M 306 180 C 356.4 224.22622 420.19974 247.27427 483.09356 247.1086 C 484.9979 261.7408 486 276.99366 486 292.87565 C 486 472.5192 408.988 570.5759 306 612 C 203.01202 570.5759 126 472.5192 126 292.87565 C 126 276.99366 127.00212 261.7408 128.90644 247.1086 C 191.80026 247.27427 255.6 224.22622 306 180 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+      </g>
+    </g>
+  </g>
+</svg>

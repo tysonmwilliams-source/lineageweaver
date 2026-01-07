@@ -1,0 +1,326 @@
+/**
+ * Home.css - Styles for Home Page
+ * 
+ * Uses CSS custom properties from the theme system for consistent medieval aesthetic.
+ * All colors and spacing reference theme variables.
+ */
+
+/* ============================================
+   LAYOUT & CONTAINER
+   ============================================ */
+
+.home-page {
+  min-height: 100vh;
+  background: var(--bg-primary);
+  position: relative;
+}
+
+.theme-selector-container {
+  position: fixed;
+  top: var(--space-4);
+  right: var(--space-4);
+  z-index: var(--z-fixed);
+}
+
+.home-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--space-16) var(--space-4);
+}
+
+.home-content {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* ============================================
+   HEADER
+   ============================================ */
+
+.home-header {
+  text-align: center;
+  margin-bottom: var(--space-12);
+}
+
+.home-title {
+  font-family: var(--font-display);
+  font-size: 48px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 var(--space-3) 0;
+  letter-spacing: var(--tracking-wide);
+  text-shadow: var(--shadow-sm);
+}
+
+.home-subtitle {
+  font-family: var(--font-body);
+  font-size: var(--text-xl);
+  color: var(--text-secondary);
+  margin: 0;
+  letter-spacing: var(--tracking-normal);
+}
+
+/* ============================================
+   WILFREY QUICK LOAD CARD
+   ============================================ */
+
+.wilfrey-card {
+  background: var(--bg-tertiary);
+  border: 2px solid var(--border-secondary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  margin-bottom: var(--space-8);
+  box-shadow: var(--shadow-md);
+  text-align: center;
+  transition: box-shadow var(--duration-normal) var(--ease-standard);
+}
+
+.wilfrey-card:hover {
+  box-shadow: var(--shadow-lg);
+}
+
+.wilfrey-title {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 var(--space-3) 0;
+}
+
+.wilfrey-description {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  color: var(--text-secondary);
+  margin: 0 0 var(--space-4) 0;
+  line-height: var(--leading-relaxed);
+}
+
+.wilfrey-button {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--text-inverse);
+  background: var(--interactive-default);
+  border: 2px solid var(--border-heavy);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-8);
+  cursor: pointer;
+  transition: all var(--duration-normal) var(--ease-standard);
+  box-shadow: var(--shadow-sm);
+}
+
+.wilfrey-button:hover:not(:disabled) {
+  background: var(--interactive-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.wilfrey-button:active:not(:disabled) {
+  background: var(--interactive-active);
+  transform: translateY(0);
+}
+
+.wilfrey-button:disabled {
+  background: var(--interactive-disabled);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.import-status {
+  margin-top: var(--space-4);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  border: 1px solid transparent;
+}
+
+.status-success {
+  background: var(--color-success-bg);
+  color: var(--color-success-dark);
+  border-color: var(--color-success);
+}
+
+.status-error {
+  background: var(--color-error-bg);
+  color: var(--color-error-dark);
+  border-color: var(--color-error);
+}
+
+.status-info {
+  background: var(--color-info-bg);
+  color: var(--color-info-dark);
+  border-color: var(--color-info);
+}
+
+/* ============================================
+   NAVIGATION CARDS
+   ============================================ */
+
+.nav-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-6);
+  margin-bottom: var(--space-8);
+}
+
+.nav-card {
+  background: var(--bg-tertiary);
+  border: 2px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-md);
+  transition: all var(--duration-normal) var(--ease-standard);
+  display: flex;
+  flex-direction: column;
+}
+
+.nav-card:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-4px);
+  border-color: var(--border-secondary);
+}
+
+.nav-card-title {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 var(--space-3) 0;
+}
+
+.nav-card-description {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  color: var(--text-secondary);
+  margin: 0 0 var(--space-4) 0;
+  line-height: var(--leading-relaxed);
+  flex-grow: 1;
+}
+
+.nav-card-button {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-6);
+  transition: all var(--duration-normal) var(--ease-standard);
+  display: inline-block;
+  border: 2px solid transparent;
+  box-shadow: var(--shadow-sm);
+}
+
+.nav-card-button:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.button-primary {
+  background: var(--color-info);
+  color: var(--text-inverse);
+  border-color: var(--color-info-dark);
+}
+
+.button-primary:hover {
+  background: var(--color-info-dark);
+}
+
+.button-secondary {
+  background: var(--color-success);
+  color: var(--text-inverse);
+  border-color: var(--color-success-dark);
+}
+
+.button-secondary:hover {
+  background: var(--color-success-dark);
+}
+
+/* ============================================
+   INFO CARD
+   ============================================ */
+
+.info-card {
+  background: var(--bg-tertiary);
+  border: 2px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-8);
+  box-shadow: var(--shadow-md);
+  margin-bottom: var(--space-8);
+}
+
+.info-card-title {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 var(--space-4) 0;
+  text-align: center;
+}
+
+.info-card-content {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  color: var(--text-secondary);
+  line-height: var(--leading-relaxed);
+}
+
+.info-card-content p {
+  margin: 0 0 var(--space-3) 0;
+}
+
+.info-card-content p:last-child {
+  margin-bottom: 0;
+}
+
+.info-card-content strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* ============================================
+   FOOTER
+   ============================================ */
+
+.home-footer {
+  text-align: center;
+  margin-top: var(--space-12);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border-primary);
+}
+
+.home-footer p {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+  margin: 0;
+  font-style: italic;
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
+@media (max-width: 768px) {
+  .home-title {
+    font-size: 36px;
+  }
+
+  .home-subtitle {
+    font-size: var(--text-lg);
+  }
+
+  .nav-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .home-container {
+    padding: var(--space-8) var(--space-4);
+  }
+
+  .theme-selector-container {
+    top: var(--space-2);
+    right: var(--space-2);
+  }
+}

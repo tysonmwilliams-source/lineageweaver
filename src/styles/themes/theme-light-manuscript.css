@@ -1,0 +1,304 @@
+/**
+ * Lineageweaver - Light Manuscript Theme (Light Mode)
+ * 
+ * Inspired by fresh vellum and illuminated manuscripts viewed in natural
+ * daylight. Uses warm, creamy tones rather than stark white to evoke aged
+ * parchment while maintaining excellent readability.
+ */
+
+[data-theme="light-manuscript"] {
+  /* ============================================
+     SURFACE & BACKGROUND COLORS
+     ============================================ */
+  
+  /* Primary surfaces */
+  --bg-primary: #f9f6f0;           /* Warm cream (main background) */
+  --bg-secondary: #f3ede3;         /* Slightly darker cream */
+  --bg-tertiary: #ede4d6;          /* Card/modal background */
+  --bg-elevated: #e7dcc9;          /* Highest elevation surfaces */
+
+  /* Parchment tones */
+  --parchment-light: #faf8f2;      /* Fresh parchment */
+  --parchment-base: #f3ede3;       /* Primary parchment */
+  --parchment-dark: #ede4d6;       /* Aged parchment edge */
+
+  /* ============================================
+     TEXT COLORS
+     ============================================ */
+  
+  --text-primary: #2d2419;         /* Primary text - dark sepia (iron gall ink) */
+  --text-secondary: #4d3d2e;       /* Secondary text - warm brown */
+  --text-tertiary: #6d5d4e;        /* Tertiary text */
+  --text-disabled: #9d8d78;        /* Disabled state */
+  --text-inverse: #e8d5b7;         /* Text on dark backgrounds */
+
+  /* ============================================
+     BORDERS & DIVIDERS
+     ============================================ */
+  
+  --border-primary: #d4c4a4;       /* Primary borders (subtle) */
+  --border-secondary: #c4b494;     /* Secondary borders (moderate) */
+  --border-heavy: #b4a484;         /* Heavy dividers */
+  --border-focus: #c4943c;         /* Focus state border */
+
+  /* ============================================
+     SEMANTIC COLORS (Full saturation for light mode)
+     ============================================ */
+  
+  --color-success: #4a7c3c;        /* Forest green */
+  --color-success-light: #5a8c4c;
+  --color-success-dark: #3a6c2c;
+  --color-success-bg: #e8f4e4;
+  
+  --color-warning: #d4a034;        /* Rich amber */
+  --color-warning-light: #e4b044;
+  --color-warning-dark: #c49024;
+  --color-warning-bg: #f9f2e4;
+  
+  --color-error: #c44444;          /* Clear red */
+  --color-error-light: #d45454;
+  --color-error-dark: #b43434;
+  --color-error-bg: #f9e4e4;
+  
+  --color-info: #3c5c8c;           /* Deep blue */
+  --color-info-light: #4c6c9c;
+  --color-info-dark: #2c4c7c;
+  --color-info-bg: #e4ecf4;
+
+  /* ============================================
+     INTERACTIVE STATES
+     ============================================ */
+  
+  --interactive-default: #6d5d4e;  /* Default interactive */
+  --interactive-hover: #5d4d3e;    /* Hover state (darker) */
+  --interactive-active: #4d3d2e;   /* Active/pressed state (darkest) */
+  --interactive-disabled: #b4a484; /* Disabled state */
+
+  /* ============================================
+     FOCUS INDICATORS
+     ============================================ */
+  
+  --focus-ring: #c4943c;           /* Focus outline - rich gold */
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+  --focus-ring-opacity: 0.15;
+
+  /* ============================================
+     RELATIONSHIP TYPE COLORS (Full saturation)
+     ============================================ */
+  
+  /* Legitimate children */
+  --legitimate-primary: #4a7c3c;   /* Forest green */
+  --legitimate-light: #5a8c4c;     /* Lighter variant */
+  --legitimate-dark: #3a6c2c;      /* Darker variant */
+  --legitimate-bg: #e8f4e4;        /* Background tint */
+  
+  /* Bastard/Illegitimate children */
+  --bastard-primary: #d4a034;      /* Rich amber */
+  --bastard-light: #e4b044;        /* Lighter variant */
+  --bastard-dark: #c49024;         /* Darker variant */
+  --bastard-bg: #f9f2e4;           /* Background tint */
+  
+  /* Adopted children */
+  --adopted-primary: #3c5c8c;      /* Deep blue */
+  --adopted-light: #4c6c9c;        /* Lighter variant */
+  --adopted-dark: #2c4c7c;         /* Darker variant */
+  --adopted-bg: #e4ecf4;           /* Background tint */
+  
+  /* Unknown/Uncertain */
+  --unknown-primary: #6d6d6d;      /* Neutral grey */
+  --unknown-light: #7d7d7d;        /* Lighter variant */
+  --unknown-dark: #5d5d5d;         /* Darker variant */
+  --unknown-bg: #ebebeb;           /* Background tint */
+
+  /* ============================================
+     HOUSE COLOR PALETTE (Full saturation)
+     Traditional heraldic colors at full intensity
+     ============================================ */
+  
+  --house-red: #c44444;            /* Heraldic red (Gules) */
+  --house-blue: #3c5c8c;           /* Azure */
+  --house-green: #4a7c3c;          /* Vert */
+  --house-purple: #8c3c8c;         /* Purpure */
+  --house-gold: #d4a034;           /* Or (gold) */
+  --house-orange: #d47c34;         /* Orange */
+  --house-teal: #3c8c7c;           /* Teal */
+  --house-burgundy: #8c3c4c;       /* Burgundy */
+  --house-navy: #3c4c7c;           /* Navy */
+  --house-olive: #7c7c3c;          /* Olive */
+  --house-brown: #8c6d3c;          /* Brown */
+  --house-grey: #6d6d6d;           /* Grey (Argent) */
+  --house-maroon: #9c3c5c;         /* Maroon */
+  --house-forest: #3c7c4c;         /* Forest green */
+  --house-amber: #d4b034;          /* Amber */
+  --house-slate: #5c6d8c;          /* Slate */
+
+  /* ============================================
+     SHADOWS & ELEVATION
+     Lighter shadows for depth in light mode
+     ============================================ */
+  
+  --shadow-sm: 0 2px 4px rgba(45, 36, 25, 0.1);
+  --shadow-md: 0 4px 8px rgba(45, 36, 25, 0.15);
+  --shadow-lg: 0 8px 16px rgba(45, 36, 25, 0.2);
+  --shadow-xl: 0 16px 32px rgba(45, 36, 25, 0.25);
+  --shadow-2xl: 0 24px 48px rgba(45, 36, 25, 0.3);
+  
+  /* Focus shadows */
+  --shadow-focus: 0 0 0 3px rgba(196, 148, 60, 0.15);
+  
+  /* Card hover */
+  --shadow-card-hover: 0 4px 8px rgba(45, 36, 25, 0.2);
+
+  /* ============================================
+     TYPOGRAPHY
+     ============================================ */
+  
+  /* Font families */
+  --font-display: 'Cinzel', 'Garamond', 'Georgia', serif;
+  --font-body: 'Crimson Text', 'Garamond', 'Georgia', serif;
+  --font-mono: 'Courier New', 'Courier', monospace;
+  
+  /* Font sizes */
+  --text-xs: 11px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-lg: 16px;
+  --text-xl: 18px;
+  --text-2xl: 20px;
+  --text-3xl: 24px;
+  --text-4xl: 28px;
+  
+  /* Line heights */
+  --leading-tight: 1.2;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.75;
+  
+  /* Letter spacing */
+  --tracking-tight: -0.5px;
+  --tracking-normal: 0;
+  --tracking-wide: 0.5px;
+  --tracking-wider: 1px;
+
+  /* ============================================
+     SPACING SCALE (4px base unit)
+     ============================================ */
+  
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+
+  /* ============================================
+     BORDER RADIUS SCALE
+     ============================================ */
+  
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-full: 9999px;
+
+  /* ============================================
+     TRANSITIONS & ANIMATIONS
+     ============================================ */
+  
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 350ms;
+  
+  --ease-standard: cubic-bezier(0.4, 0.0, 0.2, 1);
+  --ease-decelerate: cubic-bezier(0.0, 0.0, 0.2, 1);
+  --ease-accelerate: cubic-bezier(0.4, 0.0, 1, 1);
+
+  /* ============================================
+     Z-INDEX SCALE
+     ============================================ */
+  
+  --z-base: 0;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-fixed: 300;
+  --z-modal-backdrop: 1000;
+  --z-modal: 1001;
+  --z-popover: 1100;
+  --z-tooltip: 1200;
+
+  /* ============================================
+     COMPONENT-SPECIFIC VARIABLES
+     ============================================ */
+  
+  /* Person Cards */
+  --card-border-width: 3px;
+  --card-border-width-selected: 4px;
+  --card-padding: var(--space-3);
+  --card-min-width: 180px;
+  --card-max-width: 220px;
+  
+  /* Relationship Lines */
+  --line-width: 2px;
+  --line-width-thick: 2.5px;
+  --line-width-hover: 3.5px;
+  
+  /* Modals */
+  --modal-max-width: 600px;
+  --modal-padding: var(--space-6);
+  --modal-backdrop-blur: 4px;
+  
+  /* Navigation */
+  --nav-height: 64px;
+  --nav-padding: var(--space-3) var(--space-6);
+}
+
+/* ============================================
+   GLOBAL BASE STYLES FOR LIGHT MANUSCRIPT
+   ============================================ */
+
+[data-theme="light-manuscript"] body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+}
+
+/* Selection highlight */
+[data-theme="light-manuscript"] ::selection {
+  background-color: var(--focus-ring);
+  color: var(--bg-primary);
+}
+
+/* Scrollbar styling (WebKit browsers) */
+[data-theme="light-manuscript"] ::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+[data-theme="light-manuscript"] ::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+}
+
+[data-theme="light-manuscript"] ::-webkit-scrollbar-thumb {
+  background: var(--border-heavy);
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--bg-secondary);
+}
+
+[data-theme="light-manuscript"] ::-webkit-scrollbar-thumb:hover {
+  background: var(--interactive-default);
+}
+
+/* Focus visible (keyboard navigation) */
+[data-theme="light-manuscript"] :focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}

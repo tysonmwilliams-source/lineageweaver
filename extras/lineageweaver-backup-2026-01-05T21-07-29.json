@@ -1,0 +1,1902 @@
+{
+  "version": "v2.0.0",
+  "exportDate": "2026-01-05T21:07:29.908Z",
+  "metadata": {
+    "personCount": 36,
+    "houseCount": 9,
+    "relationshipCount": 68
+  },
+  "people": [
+    {
+      "id": 11,
+      "firstName": "Steffan",
+      "lastName": "Wilfrey",
+      "dateOfBirth": "1951",
+      "dateOfDeath": null,
+      "gender": "male",
+      "houseId": 5,
+      "maidenName": null,
+      "legitimacyStatus": "legitimate",
+      "notes": "",
+      "codexEntryId": null
+    },
+    {
+      "id": 12,
+      "firstName": "Cáir",
+      "lastName": "Wilfrey",
+      "dateOfBirth": "1963",
+      "dateOfDeath": null,
+      "gender": "male",
+      "houseId": 7,
+      "maidenName": "Salomon",
+      "legitimacyStatus": "legitimate",
+      "notes": "",
+      "codexEntryId": null
+    },
+    {
+      "id": 13,
+      "firstName": "Steffan II",
+      "lastName": "Wilfrey",
+      "dateOfBirth": "1987",
+      "dateOfDeath": null,
+      "gender": "male",
+      "houseId": 5,
+      "maidenName": null,
+      "legitimacyStatus": "legitimate",
+      "notes": "",
+      "codexEntryId": null
+    },
+    {
+      "id": 14,
+      "firstName": "Mychal ",
+      "lastName": "Wilfrey",
+      "dateOfBirth": "1989",
+      "dateOfDeath": null,
+      "gender": "male",
+      "houseId": 5,
+      "maidenName": null,
+      "legitimacyStatus": "legitimate",
+      "notes": "",
+      "codexEntryId": null
+    },
+    {
+      "id": 15,
+      "firstName": "Salomon ",
+      "lastName": "Wilfrey",
+      "dateOfBirth": "1994",
+      "dateOfDeath": null,
+      "houseId": 5,
+      "maidenName": null,
+      "legitimacyStatus": "legitimate",
+      "codexEntryId": null
+    },
+    {
+      "id": 16,
+      "firstName": "Serenne",
+      "lastName": "Wilfrey",
+      "dateOfBirth": "1995",
+      "dateOfDeath": null,
+      "houseId": 5,
+      "maidenName": null,
+      "legitimacyStatus": "legitimate",
+      "codexEntryId": null
+    },
+    {
+      "id": 17,
+      "firstName": "Isabela",
+      "lastName": "Wilfrey",
+      "dateOfBirth": "2003",
+      "dateOfDeath": null,
+      "houseId": 5,
+      "maidenName": null,
+      "legitimacyStatus": "adopted",
+      "codexEntryId": null
+    },
+    {
+      "id": 19,
+      "firstName": "Ioanna",
+      "lastName": "Wilfrey",
+      "dateOfBirth": "2002",
+      "dateOfDeath": null,
+      "gender": "male",
+      "houseId": 9,
+      "maidenName": "Vespen",
+      "legitimacyStatus": "legitimate",
+      "notes": "",
+      "codexEntryId": null
+    },
+    {
+      "id": 20,
+      "firstName": "Grennett",
+      "lastName": "Hendry",
+      "dateOfBirth": "1954",
+      "dateOfDeath": null,
+      "houseId": 11,
+      "maidenName": "Carlyle",
+      "legitimacyStatus": "legitimate",
+      "codexEntryId": null
+    },
+    {
+      "id": 21,
+      "firstName": "Sylar",
+      "lastName": "Hendry",
+      "dateOfBirth": "1953",
+      "dateOfDeath": null,
+      "houseId": 10,
+      "maidenName": null,
+      "legitimacyStatus": "legitimate",
+      "codexEntryId": null
+    },
+    {
+      "id": 22,
+      "firstName": "Zoia ",
+      "lastName": "Wilfrey",
+      "dateOfBirth": "1989",
+      "dateOfDeath": null,
+      "houseId": 10,
+      "maidenName": "Hendry ",
+      "legitimacyStatus": "legitimate",
+      "codexEntryId": null
+    },
+    {
+      "id": 23,
+      "firstName": "Marcus",
+      "lastName": "Wilfrey",
+      "dateOfBirth": "2006",
+      "dateOfDeath": null,
+      "gender": "male",
+      "houseId": 5,
+      "maidenName": null,
+      "legitimacyStatus": "legitimate",
+      "notes": "",
+      "codexEntryId": null
+    },
+    {
+      "id": 24,
+      "firstName": "Vernot",
+      "lastName": "Wilfrey",
+      "dateOfBirth": "2007",
+      "dateOfDeath": null,
+      "gender": "male",
+      "houseId": 5,
+      "maidenName": null,
+      "legitimacyStatus": "legitimate",
+      "notes": "",
+      "codexEntryId": null
+    },
+    {
+      "id": 25,
+      "firstName": "Signa",
+      "lastName": "Wilfrey",
+      "dateOfBirth": "2005",
+      "dateOfDeath": null,
+      "gender": "female",
+      "houseId": 5,
+      "maidenName": null,
+      "legitimacyStatus": "legitimate",
+      "notes": "",
+      "codexEntryId": null
+    },
+    {
+      "id": 26,
+      "firstName": "Marta",
+      "lastName": "Wilfrey",
+      "dateOfBirth": "2008",
+      "dateOfDeath": null,
+      "gender": "female",
+      "houseId": 5,
+      "maidenName": null,
+      "legitimacyStatus": "legitimate",
+      "notes": "",
+      "codexEntryId": null
+    },
+    {
+      "id": 27,
+      "firstName": "Ronnin",
+      "lastName": "Wilfrey",
+      "dateOfBirth": "2009",
+      "dateOfDeath": null,
+      "gender": "male",
+      "houseId": 5,
+      "maidenName": null,
+      "legitimacyStatus": "legitimate",
+      "notes": "",
+      "codexEntryId": null
+    },
+    {
+      "id": 28,
+      "firstName": "Bennett",
+      "lastName": "Wilfrey",
+      "dateOfBirth": "2010",
+      "dateOfDeath": null,
+      "gender": "male",
+      "houseId": 5,
+      "maidenName": null,
+      "legitimacyStatus": "legitimate",
+      "notes": "",
+      "codexEntryId": null
+    },
+    {
+      "id": 32,
+      "firstName": "Maisie",
+      "lastName": "Wilfrey",
+      "dateOfBirth": "2009",
+      "dateOfDeath": null,
+      "gender": "female",
+      "houseId": 5,
+      "maidenName": null,
+      "legitimacyStatus": "legitimate",
+      "notes": "",
+      "codexEntryId": null
+    },
+    {
+      "id": 33,
+      "firstName": "Càir",
+      "lastName": "Wilfrey",
+      "dateOfBirth": "2010",
+      "dateOfDeath": null,
+      "houseId": 5,
+      "maidenName": null,
+      "legitimacyStatus": "legitimate",
+      "codexEntryId": null
+    },
+    {
+      "id": 34,
+      "firstName": "Livia",
+      "lastName": "Wilfrey",
+      "dateOfBirth": "2011",
+      "dateOfDeath": null,
+      "houseId": 5,
+      "maidenName": null,
+      "legitimacyStatus": "legitimate",
+      "codexEntryId": null
+    },
+    {
+      "id": 35,
+      "firstName": "Sarai",
+      "lastName": "Wilfrey",
+      "dateOfBirth": "1992",
+      "dateOfDeath": null,
+      "gender": "female",
+      "houseId": 8,
+      "maidenName": "Wentburn",
+      "legitimacyStatus": "legitimate",
+      "notes": "",
+      "codexEntryId": null
+    },
+    {
+      "id": 39,
+      "firstName": "Vernus ",
+      "lastName": "Wilfrey",
+      "dateOfBirth": "1923",
+      "dateOfDeath": "1986",
+      "houseId": 5,
+      "maidenName": null,
+      "legitimacyStatus": "legitimate",
+      "codexEntryId": null
+    },
+    {
+      "id": 40,
+      "firstName": "Maisie",
+      "lastName": "Wilfrey",
+      "dateOfBirth": "1930",
+      "dateOfDeath": "2012",
+      "houseId": 14,
+      "maidenName": "Forpine",
+      "legitimacyStatus": "legitimate",
+      "codexEntryId": null
+    },
+    {
+      "id": 41,
+      "firstName": "Wenton",
+      "lastName": "Wilfrey",
+      "dateOfBirth": "1950",
+      "dateOfDeath": null,
+      "houseId": 5,
+      "maidenName": null,
+      "legitimacyStatus": "legitimate",
+      "codexEntryId": null
+    },
+    {
+      "id": 42,
+      "firstName": "Bronnis",
+      "lastName": "Wilfrey",
+      "dateOfBirth": "1952",
+      "dateOfDeath": null,
+      "houseId": 5,
+      "maidenName": null,
+      "legitimacyStatus": "legitimate",
+      "codexEntryId": null
+    },
+    {
+      "id": 43,
+      "firstName": "Penny",
+      "lastName": "Elks",
+      "dateOfBirth": "1953",
+      "dateOfDeath": null,
+      "houseId": 5,
+      "maidenName": "Wilfrey",
+      "legitimacyStatus": "legitimate",
+      "codexEntryId": null
+    },
+    {
+      "id": 44,
+      "firstName": "Livia",
+      "lastName": "Wentburn",
+      "dateOfBirth": "1955",
+      "dateOfDeath": null,
+      "houseId": 5,
+      "maidenName": "Wilfrey",
+      "legitimacyStatus": "legitimate",
+      "codexEntryId": null
+    },
+    {
+      "id": 45,
+      "firstName": "Thoroness",
+      "lastName": "Wilfrey",
+      "dateOfBirth": "1957",
+      "dateOfDeath": null,
+      "gender": "male",
+      "houseId": 5,
+      "maidenName": null,
+      "legitimacyStatus": "legitimate",
+      "notes": "",
+      "codexEntryId": null
+    },
+    {
+      "id": 46,
+      "firstName": "Visla ",
+      "lastName": "Paynter",
+      "dateOfBirth": "1957",
+      "dateOfDeath": null,
+      "gender": "female",
+      "houseId": 5,
+      "maidenName": "Wilfrey",
+      "legitimacyStatus": "legitimate",
+      "notes": "",
+      "codexEntryId": null
+    },
+    {
+      "id": 47,
+      "firstName": "Ilaria",
+      "lastName": "Silver",
+      "dateOfBirth": "1959",
+      "dateOfDeath": null,
+      "gender": "male",
+      "houseId": 5,
+      "maidenName": "Wilfrey",
+      "legitimacyStatus": "legitimate",
+      "notes": "",
+      "codexEntryId": null
+    },
+    {
+      "id": 50,
+      "firstName": "Wenton II",
+      "lastName": "Wilfrey",
+      "dateOfBirth": "1972",
+      "dateOfDeath": null,
+      "gender": "male",
+      "houseId": 5,
+      "maidenName": null,
+      "legitimacyStatus": "bastard",
+      "notes": "",
+      "codexEntryId": null
+    },
+    {
+      "id": 51,
+      "firstName": "Lochlann",
+      "lastName": "Wilfrey",
+      "dateOfBirth": "1971",
+      "dateOfDeath": null,
+      "gender": "male",
+      "houseId": 5,
+      "maidenName": null,
+      "legitimacyStatus": "bastard",
+      "notes": "",
+      "codexEntryId": null
+    },
+    {
+      "id": 52,
+      "firstName": "Douvin ",
+      "lastName": "Wilfrey",
+      "dateOfBirth": "2007",
+      "dateOfDeath": null,
+      "gender": "male",
+      "houseId": 5,
+      "maidenName": null,
+      "legitimacyStatus": "bastard",
+      "notes": ""
+    },
+    {
+      "id": 53,
+      "firstName": "Ayselot",
+      "lastName": "Wilfrey",
+      "dateOfBirth": "2006",
+      "dateOfDeath": null,
+      "gender": "female",
+      "houseId": 5,
+      "maidenName": null,
+      "legitimacyStatus": "bastard",
+      "notes": ""
+    },
+    {
+      "id": 54,
+      "firstName": "Hyric",
+      "lastName": "Wilfrey",
+      "dateOfBirth": "2005",
+      "dateOfDeath": null,
+      "gender": "male",
+      "houseId": 5,
+      "maidenName": null,
+      "legitimacyStatus": "bastard",
+      "notes": ""
+    },
+    {
+      "id": 55,
+      "firstName": "Jusel",
+      "lastName": "Wilfrey",
+      "dateOfBirth": "1872",
+      "dateOfDeath": "1960",
+      "gender": "male",
+      "houseId": 5,
+      "maidenName": null,
+      "legitimacyStatus": "legitimate",
+      "notes": ""
+    }
+  ],
+  "houses": [
+    {
+      "id": 5,
+      "houseName": "House Wilfrey",
+      "colorCode": "#0011ff",
+      "codexEntryId": null
+    },
+    {
+      "id": 7,
+      "houseName": "House Salomon",
+      "colorCode": "#ff1a7d",
+      "codexEntryId": null
+    },
+    {
+      "id": 8,
+      "houseName": "House Wentburn",
+      "colorCode": "#4c0174",
+      "codexEntryId": null
+    },
+    {
+      "id": 9,
+      "houseName": "House Vespen",
+      "colorCode": "#8492a9",
+      "codexEntryId": null
+    },
+    {
+      "id": 10,
+      "houseName": "House Hendry",
+      "colorCode": "#56815e",
+      "codexEntryId": null
+    },
+    {
+      "id": 11,
+      "houseName": "House Carlyle",
+      "colorCode": "#fbff00",
+      "codexEntryId": null
+    },
+    {
+      "id": 12,
+      "houseName": "House Wilfson",
+      "colorCode": "#6670ff",
+      "codexEntryId": null
+    },
+    {
+      "id": 13,
+      "houseName": "House Wilford",
+      "colorCode": "#6670ff",
+      "codexEntryId": null
+    },
+    {
+      "id": 14,
+      "houseName": "House Forpine",
+      "colorCode": "#fba123",
+      "codexEntryId": null
+    }
+  ],
+  "relationships": [
+    {
+      "id": 13,
+      "person1Id": 11,
+      "person2Id": 12,
+      "relationshipType": "spouse"
+    },
+    {
+      "id": 14,
+      "person1Id": 11,
+      "person2Id": 13,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 15,
+      "person1Id": 12,
+      "person2Id": 13,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 16,
+      "person1Id": 11,
+      "person2Id": 14,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 17,
+      "person1Id": 11,
+      "person2Id": 15,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 18,
+      "person1Id": 11,
+      "person2Id": 16,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 19,
+      "person1Id": 12,
+      "person2Id": 14,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 20,
+      "person1Id": 12,
+      "person2Id": 15,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 21,
+      "person1Id": 12,
+      "person2Id": 16,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 22,
+      "person1Id": 11,
+      "person2Id": 17,
+      "relationshipType": "adopted-parent"
+    },
+    {
+      "id": 23,
+      "person1Id": 12,
+      "person2Id": 17,
+      "relationshipType": "adopted-parent"
+    },
+    {
+      "id": 24,
+      "person1Id": 11,
+      "person2Id": 18,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 25,
+      "person1Id": 15,
+      "person2Id": 19,
+      "relationshipType": "spouse"
+    },
+    {
+      "id": 26,
+      "person1Id": 20,
+      "person2Id": 21,
+      "relationshipType": "spouse"
+    },
+    {
+      "id": 27,
+      "person1Id": 21,
+      "person2Id": 22,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 29,
+      "person1Id": 20,
+      "person2Id": 22,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 30,
+      "person1Id": 22,
+      "person2Id": 14,
+      "relationshipType": "spouse"
+    },
+    {
+      "id": 31,
+      "person1Id": 14,
+      "person2Id": 23,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 32,
+      "person1Id": 14,
+      "person2Id": 24,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 33,
+      "person1Id": 14,
+      "person2Id": 25,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 34,
+      "person1Id": 14,
+      "person2Id": 26,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 35,
+      "person1Id": 14,
+      "person2Id": 27,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 37,
+      "person1Id": 14,
+      "person2Id": 28,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 38,
+      "person1Id": 22,
+      "person2Id": 23,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 39,
+      "person1Id": 22,
+      "person2Id": 24,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 40,
+      "person1Id": 22,
+      "person2Id": 25,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 41,
+      "person1Id": 22,
+      "person2Id": 26,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 42,
+      "person1Id": 22,
+      "person2Id": 27,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 43,
+      "person1Id": 22,
+      "person2Id": 28,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 44,
+      "person1Id": 13,
+      "person2Id": 29,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 45,
+      "person1Id": 13,
+      "person2Id": 30,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 46,
+      "person1Id": 13,
+      "person2Id": 31,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 47,
+      "person1Id": 13,
+      "person2Id": 32,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 48,
+      "person1Id": 13,
+      "person2Id": 33,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 49,
+      "person1Id": 13,
+      "person2Id": 34,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 50,
+      "person1Id": 13,
+      "person2Id": 35,
+      "relationshipType": "spouse"
+    },
+    {
+      "id": 51,
+      "person1Id": 35,
+      "person2Id": 32,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 52,
+      "person1Id": 35,
+      "person2Id": 33,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 53,
+      "person1Id": 35,
+      "person2Id": 34,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 54,
+      "person1Id": 36,
+      "person2Id": 18,
+      "relationshipType": "spouse"
+    },
+    {
+      "id": 55,
+      "person1Id": 18,
+      "person2Id": 37,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 56,
+      "person1Id": 18,
+      "person2Id": 38,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 57,
+      "person1Id": 36,
+      "person2Id": 37,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 58,
+      "person1Id": 36,
+      "person2Id": 38,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 59,
+      "person1Id": 39,
+      "person2Id": 11,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 60,
+      "person1Id": 40,
+      "person2Id": 39,
+      "relationshipType": "spouse"
+    },
+    {
+      "id": 61,
+      "person1Id": 40,
+      "person2Id": 11,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 62,
+      "person1Id": 39,
+      "person2Id": 41,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 63,
+      "person1Id": 39,
+      "person2Id": 42,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 64,
+      "person1Id": 39,
+      "person2Id": 43,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 65,
+      "person1Id": 39,
+      "person2Id": 44,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 66,
+      "person1Id": 39,
+      "person2Id": 45,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 67,
+      "person1Id": 39,
+      "person2Id": 46,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 69,
+      "person1Id": 40,
+      "person2Id": 47,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 70,
+      "person1Id": 40,
+      "person2Id": 41,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 71,
+      "person1Id": 40,
+      "person2Id": 42,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 72,
+      "person1Id": 40,
+      "person2Id": 43,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 73,
+      "person1Id": 40,
+      "person2Id": 44,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 74,
+      "person1Id": 40,
+      "person2Id": 45,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 75,
+      "person1Id": 40,
+      "person2Id": 46,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 76,
+      "person1Id": 39,
+      "person2Id": 47,
+      "relationshipType": "adopted-parent"
+    },
+    {
+      "id": 78,
+      "person1Id": 41,
+      "person2Id": 49,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "id": 79,
+      "person1Id": 41,
+      "person2Id": 50,
+      "relationshipType": "parent",
+      "biologicalParent": true,
+      "marriageDate": null,
+      "divorceDate": null,
+      "marriageStatus": null
+    },
+    {
+      "id": 80,
+      "person1Id": 11,
+      "person2Id": 51,
+      "relationshipType": "parent",
+      "biologicalParent": true,
+      "marriageDate": null,
+      "divorceDate": null,
+      "marriageStatus": null
+    },
+    {
+      "id": 84,
+      "person1Id": 50,
+      "person2Id": 52,
+      "relationshipType": "parent",
+      "biologicalParent": true,
+      "marriageDate": null,
+      "divorceDate": null,
+      "marriageStatus": null
+    },
+    {
+      "id": 85,
+      "person1Id": 50,
+      "person2Id": 53,
+      "relationshipType": "parent",
+      "biologicalParent": true,
+      "marriageDate": null,
+      "divorceDate": null,
+      "marriageStatus": null
+    },
+    {
+      "id": 86,
+      "person1Id": 50,
+      "person2Id": 54,
+      "relationshipType": "parent",
+      "biologicalParent": false,
+      "marriageDate": null,
+      "divorceDate": null,
+      "marriageStatus": null
+    },
+    {
+      "id": 87,
+      "person1Id": 55,
+      "person2Id": 39,
+      "relationshipType": "parent",
+      "biologicalParent": true,
+      "marriageDate": null,
+      "divorceDate": null,
+      "marriageStatus": null
+    }
+  ],
+  "codexEntries": [
+    {
+      "type": "house",
+      "title": "House Wilfrey",
+      "subtitle": "The High Lords of Four Seats",
+      "content": "**House Wilfrey** is a high-ranking noble family ruling over a massive landmass divided into four main seats of power. Their wealth derives primarily from silver mines and semi-precious metal deposits at their principal seat, [[Breakmount Castle]].\n\n## The Four Seats\n\nHouse Wilfrey's power is distributed across four regional seats, each with distinct characteristics and resources:\n\n### [[Breakmount Castle]] (Principal Seat)\nThe ancestral seat built into [[Night Mountain]], controlling the silver mines that have kept House Wilfrey wealthy for generations. Center of the [[Fostering System]] and seat of the Lord of House Wilfrey.\n\n### [[Bramblehall]]\nA massive wooden holdfast on the forest's edge, home to woodsmen and woods folk. The most insular of the four seats, maintaining old traditions disconnected from wider politics.\n\n### [[Riverhead]]\nStrategic castle commanding a major river bend and controlling a crucial bridge. Supplies half the food for House Wilfrey's entire region, giving the Riverhead Wilfreys significant political leverage.\n\n### [[Fourhearth Castle]]\nCoastal castle with major port town. The most cosmopolitan of the four seats, connected to wider world through trade and seafaring.\n\n## Governance Structure\n\nThe four seats operate with significant autonomy while bound together through:\n- **[[The Fostering System]]**: Heirs from all seats raised together at Breakmount\n- **Economic Interdependence**: No single seat is self-sufficient\n- **[[House Wilfson]]**: Premier cadet branch serving as Master of Silver Mines and Castellan\n- **Council Authority**: Joint decisions on major house matters\n\n## Cadet Branches\n\nHouse Wilfrey has spawned numerous cadet branches, following the naming pattern \"Wilf-\" + descriptor. These include:\n\n**Breakmount Region:**\n- [[House Wilfson]] (Premier cadet branch)\n- [[House Wilfriend]]\n- [[House Wilfsbane]]\n\n**Bramblehall Region:**\n- [[House Wilfbauer]]\n- [[House Wilfbole]]\n- [[House Wilfbark]]\n\n**Riverhead Region:**\n- [[House Wilfriver]]\n\n**Fourhearth Region:**\n- [[House Wilfour]]\n- [[House Wilfsands]]\n\n## Historical Significance\n\nHouse Wilfrey's history is marked by both unity and division. The most famous schism occurred with the scandal, which led to the founding of [[House Wilson]] approximately 250 years ago. This event still shapes house politics and serves as a cautionary tale about the tension between loyalty and love.\n\n## Political Dynamics\n\nInternal tensions arise from:\n- Riverhead's food production used as political leverage\n- Bramblehall's isolation vs. Fourhearth's cosmopolitanism\n- Cadet branches competing for marriages and influence\n- Debates over centralized vs. regional authority\n\nDespite these tensions, the fostering system and economic interdependence have kept House Wilfrey unified for centuries.",
+      "sections": [
+        {
+          "heading": "The Four Seats",
+          "content": "Geographic distribution of power across mountain, forest, river, and coast",
+          "order": 1
+        },
+        {
+          "heading": "Cadet Branches",
+          "content": "Nine named cadet houses with regional variants",
+          "order": 2
+        },
+        {
+          "heading": "Historical Events",
+          "content": "The Old Right scandal and House Wilson founding",
+          "order": 3
+        }
+      ],
+      "category": "Major Houses",
+      "tags": [
+        "wilfrey",
+        "major-house",
+        "silver",
+        "breakmount"
+      ],
+      "era": "Current Era",
+      "personId": null,
+      "houseId": null,
+      "created": "2026-01-03T23:53:39.540Z",
+      "updated": "2026-01-04T17:57:38.013Z",
+      "wordCount": 352,
+      "version": 1,
+      "changelog": [],
+      "id": 3
+    },
+    {
+      "type": "house",
+      "title": "House Wilfson",
+      "subtitle": "Premier Cadet Branch - Masters of the Silver Mines",
+      "content": "**House Wilfson** (\"Wilf-Son\" = \"Son of Wilf\") is the original and premier cadet branch of [[House Wilfrey]], holding preeminence over all other cadet branches.\n\n## Hereditary Positions\n\nHouse Wilfson holds two critical hereditary titles that make them essential to House Wilfrey's power:\n\n### Master of the Silver Mines\nControl over House Wilfrey's primary wealth source - the silver mines of [[Breakmount Castle]]. This position gives House Wilfson significant economic influence despite being a cadet branch.\n\n### Castellan of Breakmount\nResponsible for day-to-day governance of [[Breakmount Castle]] when the Lord is absent or during minorities. This makes House Wilfson the de facto administrators of the principal seat.\n\n## The Burden of Loyalty\n\nHouse Wilfson's history is forever marked by the scandal and the tragedy of [[Baudin Wilfson]]. The choice made by [[Colard Wilfson]] to kill his brother and maintain loyalty to House Wilfrey was vindicated - 250 years later, House Wilfson still serves in their hereditary positions.\n\nThey are forever marked as both:\n- **Loyal Servants**: Proof that loyalty to the main house is rewarded with continuity and trust\n- **Kinslayers**: The stain of brother killing brother for duty's sake\n\n## Current Status\n\nHouse Wilfson continues to serve House Wilfrey faithfully, their loyalty purchased at the price of blood. They stand as living proof that choosing duty over family bonds - no matter how agonizing - can preserve a house's position for centuries.\n\nThe choice stands as both warning and example to all cadet branches: loyalty is rewarded, but the price may be your soul.",
+      "sections": [
+        {
+          "heading": "Hereditary Positions",
+          "content": "Master of Silver Mines and Castellan of Breakmount",
+          "order": 1
+        },
+        {
+          "heading": "Historical Tragedy",
+          "content": "The Old Right and the kinslaying that defined the house",
+          "order": 2
+        }
+      ],
+      "category": "Cadet Houses",
+      "tags": [
+        "wilfson",
+        "cadet-house",
+        "breakmount",
+        "silver-mines"
+      ],
+      "era": "Current Era",
+      "personId": null,
+      "houseId": null,
+      "created": "2026-01-03T23:53:39.558Z",
+      "updated": "2026-01-04T17:57:38.015Z",
+      "wordCount": 242,
+      "version": 1,
+      "changelog": [],
+      "id": 4
+    },
+    {
+      "type": "house",
+      "title": "House Wilfriend",
+      "subtitle": "Cadet Branch of Breakmount",
+      "content": "**House Wilfriend** is a cadet branch of [[House Wilfrey]] based in the Breakmount region.\n\n*Further details to be documented.*",
+      "sections": [],
+      "category": "Cadet Houses",
+      "tags": [
+        "wilfriend",
+        "cadet-house",
+        "breakmount"
+      ],
+      "era": "Current Era",
+      "personId": null,
+      "houseId": null,
+      "created": "2026-01-03T23:53:39.560Z",
+      "updated": "2026-01-03T23:53:39.560Z",
+      "wordCount": 17,
+      "version": 1,
+      "changelog": [],
+      "id": 5
+    },
+    {
+      "type": "house",
+      "title": "House Wilfsbane",
+      "subtitle": "Cadet Branch of Breakmount",
+      "content": "**House Wilfsbane** is a cadet branch of [[House Wilfrey]] based in the Breakmount region.\n\n*Further details to be documented.*",
+      "sections": [],
+      "category": "Cadet Houses",
+      "tags": [
+        "wilfsbane",
+        "cadet-house",
+        "breakmount"
+      ],
+      "era": "Current Era",
+      "personId": null,
+      "houseId": null,
+      "created": "2026-01-03T23:53:39.561Z",
+      "updated": "2026-01-03T23:53:39.561Z",
+      "wordCount": 17,
+      "version": 1,
+      "changelog": [],
+      "id": 6
+    },
+    {
+      "type": "house",
+      "title": "House Wilfbauer",
+      "subtitle": "Woodland Cadet Branch",
+      "content": "**House Wilfbauer** is a cadet branch of [[House Wilfrey]] based in the [[Bramblehall]] region. Like all Bramblehall cadet branches, their name reflects the woodland culture of the region.\n\n*Further details to be documented.*",
+      "sections": [],
+      "category": "Cadet Houses",
+      "tags": [
+        "wilfbauer",
+        "cadet-house",
+        "bramblehall",
+        "woodland"
+      ],
+      "era": "Current Era",
+      "personId": null,
+      "houseId": null,
+      "created": "2026-01-03T23:53:39.562Z",
+      "updated": "2026-01-03T23:53:39.562Z",
+      "wordCount": 30,
+      "version": 1,
+      "changelog": [],
+      "id": 7
+    },
+    {
+      "type": "house",
+      "title": "House Wilfbole",
+      "subtitle": "Woodland Cadet Branch",
+      "content": "**House Wilfbole** (bole = tree trunk) is a cadet branch of [[House Wilfrey]] based in the [[Bramblehall]] region. Like all Bramblehall cadet branches, their name reflects the woodland culture of the region.\n\n*Further details to be documented.*",
+      "sections": [],
+      "category": "Cadet Houses",
+      "tags": [
+        "wilfbole",
+        "cadet-house",
+        "bramblehall",
+        "woodland"
+      ],
+      "era": "Current Era",
+      "personId": null,
+      "houseId": null,
+      "created": "2026-01-03T23:53:39.564Z",
+      "updated": "2026-01-03T23:53:39.564Z",
+      "wordCount": 34,
+      "version": 1,
+      "changelog": [],
+      "id": 8
+    },
+    {
+      "type": "house",
+      "title": "House Wilfbark",
+      "subtitle": "Woodland Cadet Branch",
+      "content": "**House Wilfbark** is a cadet branch of [[House Wilfrey]] based in the [[Bramblehall]] region. Like all Bramblehall cadet branches, their name reflects the woodland culture of the region.\n\n*Further details to be documented.*",
+      "sections": [],
+      "category": "Cadet Houses",
+      "tags": [
+        "wilfbark",
+        "cadet-house",
+        "bramblehall",
+        "woodland"
+      ],
+      "era": "Current Era",
+      "personId": null,
+      "houseId": null,
+      "created": "2026-01-03T23:53:39.565Z",
+      "updated": "2026-01-03T23:53:39.565Z",
+      "wordCount": 30,
+      "version": 1,
+      "changelog": [],
+      "id": 9
+    },
+    {
+      "type": "house",
+      "title": "House Wilfriver",
+      "subtitle": "Riverhead Cadet Branch",
+      "content": "**House Wilfriver** is a cadet branch of [[House Wilfrey]] based in the [[Riverhead]] region.\n\n## Reputation\n\nHouse Wilfriver holds moderate political standing but bears ill repute generally within House Wilfrey's lands. The specific reasons for this poor reputation remain to be documented.\n\n*Further details to be documented.*",
+      "sections": [],
+      "category": "Cadet Houses",
+      "tags": [
+        "wilfriver",
+        "cadet-house",
+        "riverhead"
+      ],
+      "era": "Current Era",
+      "personId": null,
+      "houseId": null,
+      "created": "2026-01-03T23:53:39.566Z",
+      "updated": "2026-01-03T23:53:39.566Z",
+      "wordCount": 43,
+      "version": 1,
+      "changelog": [],
+      "id": 10
+    },
+    {
+      "type": "house",
+      "title": "House Wilfour",
+      "subtitle": "Coastal Cadet Branch",
+      "content": "**House Wilfour** is a cadet branch of [[House Wilfrey]] based in the [[Fourhearth Castle]] region. Their name plays on \"four\" from Fourhearth, reflecting coastal naming traditions.\n\n*Further details to be documented.*",
+      "sections": [],
+      "category": "Cadet Houses",
+      "tags": [
+        "wilfour",
+        "cadet-house",
+        "fourhearth",
+        "coastal"
+      ],
+      "era": "Current Era",
+      "personId": null,
+      "houseId": null,
+      "created": "2026-01-03T23:53:39.567Z",
+      "updated": "2026-01-03T23:53:39.567Z",
+      "wordCount": 27,
+      "version": 1,
+      "changelog": [],
+      "id": 11
+    },
+    {
+      "type": "house",
+      "title": "House Wilfsands",
+      "subtitle": "Coastal Cadet Branch",
+      "content": "**House Wilfsands** is a cadet branch of [[House Wilfrey]] based in the [[Fourhearth Castle]] region. Their coastal-themed name reflects the maritime culture of Fourhearth.\n\n*Further details to be documented.*",
+      "sections": [],
+      "category": "Cadet Houses",
+      "tags": [
+        "wilfsands",
+        "cadet-house",
+        "fourhearth",
+        "coastal"
+      ],
+      "era": "Current Era",
+      "personId": null,
+      "houseId": null,
+      "created": "2026-01-03T23:53:39.569Z",
+      "updated": "2026-01-03T23:53:39.569Z",
+      "wordCount": 25,
+      "version": 1,
+      "changelog": [],
+      "id": 12
+    },
+    {
+      "type": "location",
+      "title": "Breakmount Castle",
+      "subtitle": "Principal Seat of House Wilfrey",
+      "content": "**Breakmount Castle** is the principal seat of [[House Wilfrey]], built into and upon [[Night Mountain]] (also called \"the Nightmount\" in local usage).\n\n## Architecture\n\nThis massive and ancient castle appears to be cut into the mountain itself, a feat of engineering that speaks to its extreme age and the ambition of its builders. The integration of natural rock formations with constructed fortifications makes Breakmount highly defensible.\n\n## The Silver Mines\n\nConnected to the castle in various ways, the silver mines have kept [[House Wilfrey]] consistently wealthy for many generations. Control of these mines is the hereditary right of [[House Wilfson]] through their title of Master of the Silver Mines.\n\n## Semi-Precious Metals\n\nBeyond silver, the surrounding mountainous area yields copper and tin deposits, providing additional economic resources and raw materials for metalworking.\n\n## Strategic Importance\n\nAs the principal seat, Breakmount serves multiple critical functions:\n\n### Seat of the Lord\nThe Lord of House Wilfrey rules from Breakmount, making it the political center of all Wilfrey lands.\n\n### Center of the Fostering System\nAll heirs of the four seats and cadet branches are sent to Breakmount at age 5 to be fostered together until age 16. This makes Breakmount the social and educational center that binds House Wilfrey's far-flung territories together.\n\n### Economic Heart\nThe silver wealth flowing from Breakmount funds House Wilfrey's power and influence throughout the realm.\n\n### Day-to-Day Governance\nWhen the Lord is absent or during minorities, [[House Wilfson]] serves as Castellan, managing the castle's operations.\n\n## Historical Significance\n\n[[Night Mountain]] has its own storied history (details to be developed), suggesting Breakmount may have been built on a site of ancient importance.\n\nThe castle has witnessed pivotal moments in House Wilfrey's history, including the scandal that led to [[Baudin Wilfson]]'s death and the founding of [[House Wilson]].",
+      "sections": [
+        {
+          "heading": "The Silver Mines",
+          "content": "Source of House Wilfrey wealth for generations",
+          "order": 1
+        },
+        {
+          "heading": "The Fostering System",
+          "content": "Educational and political center for all heirs",
+          "order": 2
+        },
+        {
+          "heading": "Strategic Functions",
+          "content": "Political, economic, and social hub",
+          "order": 3
+        }
+      ],
+      "category": "Castles & Fortifications",
+      "tags": [
+        "breakmount",
+        "castle",
+        "silver",
+        "night-mountain",
+        "principal-seat"
+      ],
+      "era": "Ancient - Current",
+      "personId": null,
+      "houseId": null,
+      "created": "2026-01-03T23:53:39.570Z",
+      "updated": "2026-01-04T17:57:38.019Z",
+      "wordCount": 277,
+      "version": 1,
+      "changelog": [],
+      "id": 13
+    },
+    {
+      "type": "location",
+      "title": "Bramblehall",
+      "subtitle": "Woodland Seat of House Wilfrey",
+      "content": "**Bramblehall** (also considered: Hardwood Hall) is a regional seat of [[House Wilfrey]], located at the edge of a vast forest.\n\n## Architecture\n\nA huge wooden holdfast with some stone elements, Bramblehall is built in harmony with its forest environment. The primary use of timber reflects both the available resources and the woodland culture of its people.\n\n## The People\n\nThe seat is home to woodsmen and general woods folk - an insular population somewhat disconnected from the wider context of [[House Wilfrey]]'s realm. Of all four seats, Bramblehall maintains the strongest connection to old traditions and ways.\n\n## Resources\n\n- **Timber**: Primary export and building material\n- **Forestry**: Sustainable woodland management\n- **Hunting**: Both subsistence and sport\n\n## Culture\n\nBramblehall stands in stark contrast to cosmopolitan [[Fourhearth Castle]]. While Fourhearth connects to the wider world, Bramblehall deliberately maintains its isolation and traditional ways.\n\nThis cultural independence sometimes creates tension with the other seats, but also preserves knowledge and customs that might otherwise be lost to time.\n\n## The Fostering System\n\nHeirs sent to do a season at Bramblehall learn:\n- Forestry and timber management\n- Hunting and woodland survival\n- Leading insular, independent-minded people\n- Woodland warfare tactics\n\n**Best Seasons**: Spring and autumn for logging; winter for hunting\n\n## Cadet Branches\n\nAll Bramblehall-region cadet branches bear woodland-themed names:\n- [[House Wilfbauer]]\n- [[House Wilfbole]] (bole = tree trunk)\n- [[House Wilfbark]]",
+      "sections": [
+        {
+          "heading": "Woodland Culture",
+          "content": "Insular traditions and forest-based economy",
+          "order": 1
+        },
+        {
+          "heading": "Strategic Learning",
+          "content": "Training ground for future lords in woodland leadership",
+          "order": 2
+        }
+      ],
+      "category": "Castles & Fortifications",
+      "tags": [
+        "bramblehall",
+        "holdfast",
+        "forest",
+        "woodland",
+        "regional-seat"
+      ],
+      "era": "Ancient - Current",
+      "personId": null,
+      "houseId": null,
+      "created": "2026-01-03T23:53:39.571Z",
+      "updated": "2026-01-03T23:53:39.571Z",
+      "wordCount": 216,
+      "version": 1,
+      "changelog": [],
+      "id": 14
+    },
+    {
+      "type": "location",
+      "title": "Riverhead",
+      "subtitle": "Strategic River Seat of House Wilfrey",
+      "content": "**Riverhead** is a regional seat of [[House Wilfrey]], a large castle situated on a landmass at a major bend in a large (yet unnamed) river that borders House Wilfrey's lands.\n\n## Strategic Importance\n\nRiverhead's position makes it one of the most strategically critical of the four seats:\n\n### Commanding Views\nThe castle's location provides strategic views in all directions, making it nearly impossible to approach unseen.\n\n### The Bridge\nControls a large defensible bridge spanning the river at its narrowest point (though still significantly wide). This bridge serves as:\n- Key defensive chokepoint for House Wilfrey's borders\n- Major trade route Critical infrastructure for moving armies and supplies\n\n### Border Defense\nAs a border castle on a major river, Riverhead serves as House Wilfrey's first line of defense against external threats from that direction.\n\n## Economic Power\n\nRiverhead's true strength lies in its agricultural output:\n\n### Food Production\n- Rich arable farmland surrounds the castle\n- The river itself serves as a major food source\n- **Supplies half the food for House Wilfrey's entire region**\n- Generates surplus for trade\n\n### Political Leverage\n\nThe Riverhead Wilfreys are keenly aware that food is power. During times of plenty, they leverage their agricultural dominance for political influence, often straining relationships with the wider house.\n\nThis creates ongoing tension - Riverhead is indispensable (you cannot rule without feeding your people), but their willingness to use food as leverage makes them simultaneously essential and resented.\n\n## The Fostering System\n\nHeirs sent to do a season at Riverhead learn:\n- Harvest management\n- Food storage and supply chain logistics\n- Water management\n- Bridge defense\n\n**Best Seasons**: Late summer/autumn for harvest experience; winter for managing stores\n\n## Political Dynamics\n\nThe paradox of Riverhead:\n- **Indispensable**: No single seat can match their food production\n- **Problematic**: Their political maneuvering creates friction\n- **Vulnerable**: Despite their leverage, they require support from other seats\n- **Connected**: The fostering system ensures Riverhead heirs form bonds with other seats\n\nThis tension between independence and interdependence defines Riverhead's role in House Wilfrey's politics.",
+      "sections": [
+        {
+          "heading": "Strategic Position",
+          "content": "River bend, bridge control, border defense",
+          "order": 1
+        },
+        {
+          "heading": "Food as Power",
+          "content": "Agricultural dominance and political leverage",
+          "order": 2
+        },
+        {
+          "heading": "Internal Tensions",
+          "content": "Essential but difficult political relationship",
+          "order": 3
+        }
+      ],
+      "category": "Castles & Fortifications",
+      "tags": [
+        "riverhead",
+        "castle",
+        "river",
+        "food",
+        "strategic",
+        "regional-seat"
+      ],
+      "era": "Ancient - Current",
+      "personId": null,
+      "houseId": null,
+      "created": "2026-01-03T23:53:39.573Z",
+      "updated": "2026-01-04T17:57:38.022Z",
+      "wordCount": 332,
+      "version": 1,
+      "changelog": [],
+      "id": 15
+    },
+    {
+      "type": "location",
+      "title": "Fourhearth Castle",
+      "subtitle": "Coastal Seat of House Wilfrey",
+      "content": "**Fourhearth Castle** is a regional seat of [[House Wilfrey]], a large castle on the coastline with a major surrounding port town.\n\n## Origin of the Name\n\nThe castle derives its humble name from its historical beginning as a small hall with four hearths. This modest origin story is deliberately maintained despite the castle's current grandeur - a reminder that even great powers have small beginnings.\n\n## The Port Town\n\nFourhearth is distinguished from the other seats by its extensive urban development. The port town surrounding the castle is a bustling center of:\n- Maritime trade\n- Shipbuilding\n- International commerce\n- Cultural exchange\n\n## The People\n\nThe Fourhearth Wilfreys are captains and traders - seafaring folk connected to the wider world. They represent the cosmopolitan face of [[House Wilfrey]], often serving as diplomats and traders due to their experience with foreign customs and languages.\n\n## Culture\n\nOf all four seats, Fourhearth is the **most connected to the wider world and current events** - the exact opposite of [[Bramblehall]]'s deliberate insularity.\n\nThis creates both opportunities and tensions:\n- **Opportunities**: Access to foreign goods, news, alliances, and innovations\n- **Tensions**: Sometimes viewed with suspicion by more traditional Wilfreys; their cosmopolitan outlook can conflict with old ways\n\n## Strengths\n\n- **Trade Networks**: Extensive connections across seas\n- **Naval Power**: Fleet of trading vessels that can be converted for war\n- **Information**: First to hear news from abroad\n- **Wealth**: Port duties and trade profits supplement House Wilfrey's silver wealth\n\n## The Fostering System\n\nHeirs sent to do a season at Fourhearth learn:\n- Sailing and ship captaincy\n- Trade negotiations\n- Port management\n- Navigation and weather reading\n\n**Best Seasons**: Spring/summer for active sailing; autumn for trade winds\n\n## Historical Significance\n\nFourhearth was the seat of [[Lennis Wilfrey]], whose love for [[Nivette Wilfson]] and defiance of the council led to the scandal. This connection to such a pivotal house tragedy adds layers to Fourhearth's history.\n\n## Cadet Branches\n\nFourhearth cadet branches bear coastal-themed names:\n- [[House Wilfour]] (playing on \"four\")\n- [[House Wilfsands]]",
+      "sections": [
+        {
+          "heading": "Maritime Power",
+          "content": "Trade, seafaring, and naval capabilities",
+          "order": 1
+        },
+        {
+          "heading": "Cosmopolitan Culture",
+          "content": "Most worldly of the four seats",
+          "order": 2
+        },
+        {
+          "heading": "Historical Connection",
+          "content": "Seat of Lennis during The Old Right",
+          "order": 3
+        }
+      ],
+      "category": "Castles & Fortifications",
+      "tags": [
+        "fourhearth",
+        "castle",
+        "port",
+        "trade",
+        "coastal",
+        "regional-seat"
+      ],
+      "era": "Ancient - Current",
+      "personId": null,
+      "houseId": null,
+      "created": "2026-01-03T23:53:39.575Z",
+      "updated": "2026-01-04T17:57:38.027Z",
+      "wordCount": 323,
+      "version": 1,
+      "changelog": [],
+      "id": 16
+    },
+    {
+      "type": "location",
+      "title": "Night Mountain",
+      "subtitle": "The Nightmount",
+      "content": "**Night Mountain** (also called \"the Nightmount\" in local usage) is the mountain upon which [[Breakmount Castle]] is built.\n\n## Ancient Significance\n\nThe mountain has its own storied history that predates [[House Wilfrey]]'s castle. While these tales remain to be fully documented, their existence suggests Night Mountain held importance long before the Wilfreys claimed it.\n\n## The Castle Integration\n\n[[Breakmount Castle]] is not merely built on the mountain but appears to be cut into the mountain itself, suggesting either:\n- Extremely skilled stonemasons working over generations\n- Ancient foundations predating current construction\n- Natural cave systems expanded and fortified\n- Some combination of all three\n\n## The Silver Mines\n\nThe silver deposits that have enriched House Wilfrey for generations run through Night Mountain's depths. The mines connect to [[Breakmount Castle]] in various ways, creating a complex network beneath the mountain.\n\n## Local Culture\n\nThe local name \"Nightmount\" suggests the mountain holds significance in regional folklore and daily life beyond its role as the site of the castle.\n\n*Further historical details to be documented.*",
+      "sections": [
+        {
+          "heading": "Ancient History",
+          "content": "Predates House Wilfrey; storied past to be explored",
+          "order": 1
+        },
+        {
+          "heading": "The Silver Veins",
+          "content": "Source of House Wilfrey wealth",
+          "order": 2
+        }
+      ],
+      "category": "Geographic Features",
+      "tags": [
+        "night-mountain",
+        "nightmount",
+        "mountain",
+        "breakmount",
+        "ancient"
+      ],
+      "era": "Ancient - Current",
+      "personId": null,
+      "houseId": null,
+      "created": "2026-01-03T23:53:39.577Z",
+      "updated": "2026-01-04T17:57:38.030Z",
+      "wordCount": 161,
+      "version": 1,
+      "changelog": [],
+      "id": 17
+    },
+    {
+      "type": "event",
+      "title": "The Founding of House Wilson",
+      "subtitle": "Born of Blood and Defiance",
+      "content": "**The Founding of House Wilson** occurred approximately 250 years ago as the direct consequence of the scandal. The house was established by [[Lennis Wilfrey]] and [[Nivette Wilfson]] after their banishment from [[House Wilfrey]] lands.\n\n\n\n## The Scandal at Bramblehall\n\nThe events leading to the founding began during [[Lennis Wilfrey]]'s fostering season at [[Bramblehall]]. [[Raylegh]], daughter of [[Lord Constann]], disguised herself as a serving wench and spent a night with Lennis. When she revealed her identity and her betrothal to an aging knight, she begged Lennis to marry her instead.\n\n### The Riverhead Council\n\nShortly after [[Baudin Wilfson]]'s succession to his father [[Faramund Wilfson]]'s position, the Lord of [[Riverhead]] died. A mandatory council was convened at Riverhead. [[Lord Constann]] raised the matter of his daughter's dishonor, demanding Lennis marry Raylegh or face consequences.\n\n## The Exile\n\nFollowing the discovery of their secret marriage and the death of [[Baudin Wilfson]] in a duel with his brother:\n\n### The Flight\n- Lennis and Nivette fled north, carrying nothing but each other\n- They bore the weight of Baudin's sacrifice - he had died defending their marriage\n- They were houseless, landless, with only their names and the clothes on their backs\n\n## Royal Favor\n\n### The King's Grant\n\nThe couple found welcome at the royal court. The king, hearing their tale (or perhaps seeing political opportunity), granted them:\n- Leave to establish a new noble house\n- Lands outside of House Wilfrey's traditional territory\n- Royal recognition and protection\n\n## The Name \"Wilson\"\n\nThe choice of name was deliberate and meaningful:\n\n**Wilson** = Close enough to \"Wilfson\" to:\n- Claim their lineage as descendants of Wilfrey\n- Maintain connection to their heritage\n- Assert legitimacy through blood\n\n**Wilson** = Different enough to:\n- Mark their independence from House Wilfrey\n- Signal a break from the main house\n- Establish a new identity\n\n## The Foundation\n\nThe house was founded on:\n- **Scandal**: Born from defiance of council authority\n- **Blood**: [[Baudin Wilfson]]'s death made the founding possible\n- **Sacrifice**: The price paid by a fostering brother\n- **Defiance**: Rejection of forced marriage and council control\n- **Love**: The relationship between Lennis and Nivette\n\n## 250 Years Later\n\n### Success and Survival\n- Established themselves as independent lords\n- Gained their own lands, resources, and influence\n- Exist as both rival and reminder of Breakmount's power limits\n- Continued existence proves that defiance, while costly, can succeed\n\n### The Relationship with House Wilfrey\n\nCurrent relationships between House Wilfrey and House Wilson remain undefined. Questions include:\n- Do they maintain diplomatic relations?\n- Has there been conflict in the intervening centuries?\n- Have there been marriages or alliances?\n- Do they still view each other as kin, or as separate houses entirely?\n\n## The Meaning\n\nHouse Wilson's founding represents a fundamental tension in feudal society:\n- **Individual vs. Institution**: Personal desire against house authority\n- **Love vs. Duty**: Heart against obligation\n- **Loyalty vs. Obedience**: Supporting a friend against the system\n- **Authority vs. Autonomy**: Who has the right to command marriage?\n\nThe fact that House Wilson survived and thrived suggests that defiance of unjust authority - even when it costs everything - can ultimately succeed.\n\n## See Also\n\n- the scandal: The scandal that led to the founding\n- [[Baudin Wilfson]]: The brother who died defending the marriage\n- [[Lennis Wilfrey]]: Founder and first Lord of House Wilson\n- [[Nivette Wilfson]]: Co-founder and first Lady of House Wilson\n- [[Colard Wilfson]]: The kinslayer whose choice preserved House Wilfson",
+      "sections": [
+        {
+          "heading": "The Exile",
+          "content": "Flight north with nothing",
+          "order": 1
+        },
+        {
+          "heading": "Royal Grant",
+          "content": "King establishes the new house",
+          "order": 2
+        },
+        {
+          "heading": "The Name",
+          "content": "Wilson - connection and independence",
+          "order": 3
+        },
+        {
+          "heading": "250 Years of Success",
+          "content": "Proof that defiance can prevail",
+          "order": 4
+        }
+      ],
+      "category": "Historical Events",
+      "tags": [
+        "house-wilson",
+        "founding",
+        "exile",
+        "lennis",
+        "nivette",
+        "old-right"
+      ],
+      "era": "~250 Years Ago",
+      "personId": null,
+      "houseId": null,
+      "created": "2026-01-03T23:53:39.580Z",
+      "updated": "2026-01-04T17:57:38.034Z",
+      "wordCount": 551,
+      "version": 1,
+      "changelog": [],
+      "id": 19
+    },
+    {
+      "type": "personage",
+      "title": "Lennis Wilfrey",
+      "subtitle": "Founder of House Wilson",
+      "content": "**Lennis Wilfrey** was the young heir to [[Fourhearth Castle]] approximately 250 years ago, whose defiance of council authority led to the scandal and the founding of [[House Wilson]].\n\n## The Fateful Night\n\nDuring his fostering season at [[Bramblehall]], Lennis encountered a woman who appeared to be a serving wench in the kitchens where the young lords gathered. They spoke through the night, and before dawn, they shared a bed. This single night would alter the course of two noble houses.\n\n## The Woman's Revelation\n\nThe woman revealed herself as [[Raylegh]], betrothed to an old knight she did not love. She claimed she was being forced into marriage with a man three times her age, feared dying in childbirth, and begged Lennis to marry her instead - claiming he was her only hope for escape.\n\n## The Council's Investigation\n\nWhen Lennis sought approval to marry Raylegh:\n- The council investigated and found her claims about the betrothal were true\n- However, they concluded she had deliberately seduced Lennis knowing he was heir to Fourhearth\n- They believed she was manipulating him to escape her arranged marriage\n- Ancient law was invoked: Lennis must marry Raylegh or be stripped of his position as heir\n\n## The Central Mystery\n\n**Did Lennis know Raylegh's true identity that night, or was he genuinely deceived?**\n\nThis question remains unanswered. Was he:\n- A victim of calculated seduction?\n- A willing participant who later denied knowledge?\n- Truly ignorant of her situation until morning?\n\nThe truth died with those who were there.\n\n## The Defiance\n\nRather than marry Raylegh as commanded, Lennis:\n- Accepted his fostering brother [[Baudin Wilfson]]'s support\n- Married [[Nivette Wilfson]] in secret, defying the council\n- Was banished from all House Wilfrey lands when discovered\n- Fled north with Nivette, bearing the weight of Baudin's death\n\n## Founder of House Wilson\n\nWith royal favor, Lennis established [[House Wilson]] with [[Nivette Wilfson]]:\n- Granted lands outside House Wilfrey territory\n- Chose the name \"Wilson\" to claim lineage while marking independence\n- Built a new house from nothing, founded on scandal and blood\n\n## The Questions That Remain\n\nSongs and stories still debate Lennis's character:\n- **Was he deceived?** A victim of Raylegh's manipulation under false pretenses?\n- **Was he irresponsible?** A youth who refused to face the consequences of his actions?\n- **Did he know?** Was his claim of ignorance a convenient lie?\n- **Was he principled?** Standing against forced marriage regardless of the cost?\n\n## Legacy\n\n250 years later, [[House Wilson]] still exists, proof that Lennis's defiance - whatever its motivation - succeeded in establishing an independent house. His choice to defy the council rather than accept their command continues to inspire debate about authority, love, and duty.\n\n## See Also\n- the scandal: The scandal he triggered\n- [[Raylegh]]: The woman whose revelation changed everything\n- [[Nivette Wilfson]]: His wife and co-founder of House Wilson\n- [[Baudin Wilfson]]: The fostering brother who died for his choice\n- [[The Founding of House Wilson]]: The aftermath of his exile",
+      "sections": [
+        {
+          "heading": "The Scandal",
+          "content": "One night that changed two houses",
+          "order": 1
+        },
+        {
+          "heading": "The Mystery",
+          "content": "What did he know, and when?",
+          "order": 2
+        },
+        {
+          "heading": "The Founding",
+          "content": "Exile to establishment of House Wilson",
+          "order": 3
+        }
+      ],
+      "category": "Historical Figures",
+      "tags": [
+        "lennis",
+        "wilfrey",
+        "wilson",
+        "founder",
+        "old-right",
+        "fourhearth"
+      ],
+      "era": "~250 Years Ago",
+      "personId": null,
+      "houseId": null,
+      "created": "2026-01-03T23:53:39.582Z",
+      "updated": "2026-01-04T17:57:38.036Z",
+      "wordCount": 479,
+      "version": 1,
+      "changelog": [],
+      "id": 20
+    },
+    {
+      "type": "personage",
+      "title": "Raylegh",
+      "subtitle": "Daughter of Lord Constann of Bramblehall",
+      "content": "**Raylegh** was a daughter of [[Lord Constann]] of [[Bramblehall]] approximately 250 years ago. Her night with [[Lennis Wilfrey]] triggered the scandal that led to the founding of [[House Wilson]].\n\n## Lord Constann's Daughter\n\nRaylegh was one of the younger or less important daughters of [[Lord Constann]], who legend says had ten daughters, \"all the most beautiful maidens in the entire land.\"\n\nShe was betrothed to an aging knight - a famous warrior now old and overweight. His previous wife had died screaming in childbirth. Raylegh understood her likely fate: the birthing bed was a gamble she might not survive.\n\n## The Night at Bramblehall\n\nDuring [[Lennis Wilfrey]]'s fostering season at [[Bramblehall]], desperate to escape her fate, Raylegh disguised herself as a serving wench. She stole to the kitchens where the young lords were.\n\nShe and Lennis spent the night together.\n\n### The Circumstances Remain Unclear\n\nThe canonical text explicitly notes: **Did he know who she was? Did she deliberately deceive him? Or did they simply find each other in a moment of youth and desire?**\n\nThe truth remains unknown. After their night together, Raylegh revealed:\n- Her true identity as Lord Constann's daughter\n- Her betrothal to the aging knight\n- Her fear of dying in childbirth\n- She begged Lennis to marry her\n\nRaylegh became pregnant.\n\n## The Council's Investigation\n\nWhen the council investigated, they confirmed:\n- Her betrothal to the old knight was real\n- The age difference and circumstances were as she claimed\n\nHowever, they also concluded she had seduced Lennis knowing he was heir to [[Fourhearth Castle]], using him as a means of escape from her arranged marriage.\n\n## The Great Mystery\n\n**Was Raylegh:**\n- A desperate woman grasping at life with the only agency she had?\n- A calculating schemer who destroyed houses for her own benefit?\n- A frightened girl making the best choice available to her?\n- All of these at once?\n\nThe answer depends on questions we cannot answer:\n- Did she know Lennis was the Fourhearth heir when she approached him?\n- Was her fear of childbirth genuine or manipulative?\n- Was the aging knight truly as terrible as she claimed?\n\n## What Happened to Her?\n\nThe songs and histories do not say.\n\nPossible fates debated across 250 years:\n- Did she marry the aging knight anyway?\n- Did she die in childbirth as she feared?\n- Did she survive and marry someone else?\n- **Does her child by Lennis exist somewhere with a potential claim?**\n- Did she disappear from history entirely?\n\n## The Child\n\nIf Raylegh was pregnant from her night with Lennis, questions multiply:\n- Was the child raised as the aging knight's heir?\n- Does a bastard line exist with blood claim to both houses?\n- Could this become a succession crisis centuries later?\n\n## Legacy\n\nRaylegh's single night created:\n- The death of [[Baudin Wilfson]]\n- The founding of [[House Wilson]]\n- The kinslaying of [[Colard Wilfson]]\n- Eternal debate about consent, manipulation, and agency\n\nWhether victim or villain, desperate or calculating, her actions irrevocably changed [[House Wilfrey]]'s history.\n\n## See Also\n- [[Lord Constann]]: Her father, Lord of Bramblehall\n- [[Lennis Wilfrey]]: The heir she spent the night with\n- [[The Founding of House Wilson]]: The scandal she triggered\n- [[Bramblehall]]: Where the fateful night occurred",
+      "sections": [
+        {
+          "heading": "The Revelation",
+          "content": "Forced betrothal and plea for help",
+          "order": 1
+        },
+        {
+          "heading": "The Mystery",
+          "content": "Victim or manipulator?",
+          "order": 2
+        },
+        {
+          "heading": "The Unknown Fate",
+          "content": "What happened after?",
+          "order": 3
+        },
+        {
+          "heading": "The Potential Child",
+          "content": "Unresolved bloodline questions",
+          "order": 4
+        }
+      ],
+      "category": "Historical Figures",
+      "tags": [
+        "raylegh",
+        "mystery",
+        "old-right",
+        "scandal"
+      ],
+      "era": "~250 Years Ago",
+      "personId": null,
+      "houseId": null,
+      "created": "2026-01-03T23:53:39.583Z",
+      "updated": "2026-01-04T17:57:38.039Z",
+      "wordCount": 520,
+      "version": 1,
+      "changelog": [],
+      "id": 21
+    },
+    {
+      "type": "personage",
+      "title": "Baudin Wilfson",
+      "subtitle": "The Brother Who Chose Love Over Duty",
+      "content": "**Baudin Wilfson** was Lord of [[House Wilfson]] approximately 250 years ago, less than a year into his lordship when the scandal erupted. His choice to support his fostering brother over house authority cost him everything.\n\n\n\n## Succession from Faramund\n\n[[Faramund Wilfson]], Baudin's father, died peacefully with clean succession. Baudin inherited his father's titles and positions as Lord of [[House Wilfson]], Master of the Silver Mines, and Castellan of [[Breakmount Castle]].\n\nBaudin had ruled for **less than a year** when the crisis erupted.\n\n## The Fostering Bond\n\nBaudin (3 years older) and [[Lennis Wilfrey]] were fostering brothers, raised together at [[Breakmount Castle]] from age 5 to 16 as part of [[The Fostering System]]. These bonds, forged over 11 years of shared childhood, were meant to unite House Wilfrey's leadership.\n\nThe system worked - perhaps too well.\n\n## The Scandal Erupts\n\n\n\n## The Riverhead Council\n\nShortly after Baudin's succession, the Lord of [[Riverhead]] died, triggering a mandatory council at Riverhead for succession matters. All four lords attended in person as required by tradition.\n\nAt this council, [[Lord Constann]] of [[Bramblehall]] raised the matter of his daughter [[Raylegh]]'s dishonor.\n\nWhen the council commanded Lennis to marry [[Raylegh]] or lose his inheritance, Baudin publicly supported his fostering brother:\n- Argued that no council could command a man's heart\n- Claimed that honor had many faces\n- Declared the council's decision was tyranny dressed in tradition\n- When the council would not bend, **chose defiance over duty**\n\n## The Secret Marriage\n\nIn an act of tremendous defiance, Baudin:\n- Arranged for his sister [[Nivette Wilfson]] to marry Lennis in secret\n- Performed the marriage beyond the council's knowledge\n- Knowingly brought disgrace upon [[House Wilfson]]\n- Chose love and loyalty to his fostering brother over his house's position\n\nSome say Nivette loved Lennis already. Others claim she went willingly for her brother's sake. Either way, the vows were spoken in defiance of the council's authority.\n\n## The Consequences\n\nWhen the secret marriage was discovered:\n- The council's rage was absolute\n- All three-Lennis, Baudin, and Nivette-were banished from all House Wilfrey lands\n- Their names were struck from the rolls of kinship\n- They were given no time to gather resources or support\n\n## The Duel\n\nBaudin's younger brother [[Colard Wilfson]] challenged him for the dishonor brought to House Wilfson.\n\n**The motivations remain debated:**\n- Loyalty to House Wilfrey?\n- Ambition for his brother's position?\n- Genuine outrage at the betrayal of house trust?\n\n**The outcome was swift:**\n- Colard's blade found his brother's heart\n- Baudin Wilfson fell, having ruled as Lord for **less than two years**\n- He died having sacrificed his house, his title, and ultimately his life for the bonds of fostering\n\n## The Questions\n\n**Was Baudin:**\n- **A true brother unto death** who honored fostering bonds above all else?\n- **A fool** who threw away his house and life for pride?\n- **A man of principle** standing against forced marriage and council tyranny?\n- **A young lord** who didn't understand the consequences of his choices?\n\n## The Tragedy\n\nBaudin's death represents the ultimate failure and success of [[The Fostering System]]:\n\n**Failure:**\n- Created bonds so strong they defied house authority\n- Led to kinslaying within House Wilfson\n- Caused schism and founding of rival house\n\n**Success:**\n- Proved the bonds formed were unbreakable\n- Demonstrated that fostering brothers truly become brothers\n- Showed that love and loyalty could transcend political calculation\n\n## Legacy\n\n250 years later, [[House Wilfson]] still serves House Wilfrey faithfully - their loyalty purchased at the price of Baudin's blood. His choice stands as eternal reminder:\n- Loyalty to the main house is rewarded with continuity\n- Defiance, even for love, ends in death\n- The fostering system creates bonds that can both unite and destroy\n\nBaudin died defending his fostering brother's right to marry for love. Whether that makes him a hero or a fool depends on who tells the story.\n\n## See Also\n- the scandal: The scandal that led to his death\n- [[Colard Wilfson]]: The brother who killed him\n- [[Lennis Wilfrey]]: The fostering brother he died defending\n- [[Nivette Wilfson]]: His sister, married to Lennis\n- [[House Wilfson]]: The house that survived his death\n- [[The Fostering System]]: The bonds that led to tragedy",
+      "sections": [
+        {
+          "heading": "The Fostering Bond",
+          "content": "Brothers raised together at Breakmount",
+          "order": 1
+        },
+        {
+          "heading": "The Defiance",
+          "content": "Chose love over duty",
+          "order": 2
+        },
+        {
+          "heading": "The Death",
+          "content": "Killed by his brother after less than two years as Lord",
+          "order": 3
+        },
+        {
+          "heading": "The Legacy",
+          "content": "Hero or fool? The debate continues",
+          "order": 4
+        }
+      ],
+      "category": "Historical Figures",
+      "tags": [
+        "baudin",
+        "wilfson",
+        "tragedy",
+        "old-right",
+        "kinslaying",
+        "loyalty"
+      ],
+      "era": "~250 Years Ago",
+      "personId": null,
+      "houseId": null,
+      "created": "2026-01-03T23:53:39.585Z",
+      "updated": "2026-01-04T17:57:38.041Z",
+      "wordCount": 669,
+      "version": 1,
+      "changelog": [],
+      "id": 22
+    },
+    {
+      "type": "personage",
+      "title": "Nivette Wilfson",
+      "subtitle": "Co-Founder of House Wilson",
+      "content": "**Nivette Wilfson** was the sister of [[Baudin Wilfson]], approximately 250 years ago. Her secret marriage to [[Lennis Wilfrey]] defied the council, led to her brother's death, and resulted in the founding of [[House Wilson]].\n\n## The Secret Marriage\n\nWhen the council commanded Lennis to marry [[Raylegh]] or lose his inheritance, Nivette's brother [[Baudin Wilfson]] arranged for her to marry Lennis in secret instead.\n\n**The great mystery:** Did she go willingly?\n- Some say Nivette loved Lennis already, having known him through the fostering system\n- Others claim she went willingly for her brother Baudin's sake, sacrificing herself to save his fostering brother\n- The truth, like so much about the scandal, remains unclear\n\nEither way, the vows were spoken in defiance of the council's authority.\n\n## The Banishment\n\nWhen the secret marriage was discovered:\n- All three-Lennis, Baudin, and Nivette-were banished from all House Wilfrey lands\n- Their names were struck from the rolls of kinship\n- They were given no time to gather resources or support\n- They became houseless and landless\n\n## The Flight\n\nAfter Baudin's death in a duel with his brother [[Colard Wilfson]], Nivette and Lennis fled north:\n- Carrying nothing but each other\n- Bearing the weight of Baudin's sacrifice-he had died defending their marriage\n- Houseless, landless, with only their names and the clothes on their backs\n\n## Co-Founder of House Wilson\n\nWith royal favor, Nivette and Lennis established [[House Wilson]]:\n- Granted lands outside House Wilfrey territory\n- Given leave to establish a new noble house\n- Chose the name \"Wilson\" to claim lineage while marking independence\n\nNivette became the first Lady of House Wilson, co-founder of a house born from scandal, defiance, blood, and the sacrifice of a brother.\n\n## Legacy\n\n250 years later, [[House Wilson]] still exists - proof that Nivette and Lennis's defiance succeeded in establishing an independent house.\n\nNivette's story raises questions that echo through the centuries:\n- **Was she a willing participant** in the secret marriage, or a pawn in her brother's defiance?\n- **Did she love Lennis**, or did she love her brother Baudin enough to sacrifice her own future?\n- **How did she bear the weight** of knowing Baudin died for her marriage?\n- **What kind of Lady** did she become, founding a house on such tragedy?\n\n## See Also\n- the scandal: The scandal that changed her life\n- [[Baudin Wilfson]]: Her brother who died defending her marriage\n- [[Lennis Wilfrey]]: Her husband and co-founder\n- [[The Founding of House Wilson]]: The house she helped establish\n- [[Colard Wilfson]]: Her younger brother who killed Baudin",
+      "sections": [
+        {
+          "heading": "The Secret Marriage",
+          "content": "Love or duty to her brother?",
+          "order": 1
+        },
+        {
+          "heading": "The Flight",
+          "content": "Exile after Baudin's death",
+          "order": 2
+        },
+        {
+          "heading": "The Founding",
+          "content": "First Lady of House Wilson",
+          "order": 3
+        }
+      ],
+      "category": "Historical Figures",
+      "tags": [
+        "nivette",
+        "wilfson",
+        "wilson",
+        "founder",
+        "old-right"
+      ],
+      "era": "~250 Years Ago",
+      "personId": null,
+      "houseId": null,
+      "created": "2026-01-03T23:53:39.586Z",
+      "updated": "2026-01-04T17:57:38.043Z",
+      "wordCount": 406,
+      "version": 1,
+      "changelog": [],
+      "id": 23
+    },
+    {
+      "type": "personage",
+      "title": "Colard Wilfson",
+      "subtitle": "The Kinslayer Who Saved His House",
+      "content": "**Colard Wilfson** was the younger brother of [[Baudin Wilfson]] approximately 250 years ago. His choice to kill his brother and restore [[House Wilfson]]'s loyalty to [[House Wilfrey]] was vindicated-250 years later, House Wilfson still serves in their hereditary positions.\n\n## The Challenge\n\nWhen [[Baudin Wilfson]]'s secret marriage of his sister [[Nivette Wilfson]] to [[Lennis Wilfrey]] was discovered and all three were banished, Colard challenged his brother to a duel for the dishonor brought to House Wilfson.\n\n## The Unanswerable Question\n\n**Why did Colard challenge his brother?**\n\nThe motivations remain debated 250 years later:\n- **Loyalty to House Wilfrey?** Believing the council was right and Baudin wrong?\n- **Ambition for his brother's position?** Seeing an opportunity to become Lord Wilfson?\n- **Genuine outrage at the betrayal?** Truly believing Baudin had destroyed their house?\n- **Some combination of all three?** Human motivation is rarely pure\n\nThe truth died with the brothers.\n\n## The Duel\n\nThe duel was swift:\n- Colard's blade found his brother's heart\n- Baudin Wilfson fell, having ruled as Lord of House Wilfson for less than two years\n- Colard immediately became the new Lord Wilfson\n- He was immediately restored to House Wilfrey's favor\n\n## The Vindication\n\nColard's choice to kill his brother and maintain loyalty was vindicated:\n- [[House Wilfson]] retained their hereditary positions:\n  - Master of the Silver Mines\n  - Castellan of [[Breakmount Castle]]\n- 250 years later, House Wilfson **still serves in these roles**\n- The choice stands as proof that loyalty to the main house is rewarded with continuity and trust\n\n## The Stain\n\nBut vindication came at a price. House Wilfson is forever marked as:\n- **Loyal Servants**: Who chose duty over brotherhood\n- **Kinslayers**: The stain of brother killing brother\n\nThe choice saved the house but damned the soul.\n\n## The Questions\n\n**Was Colard:**\n- **A loyal son** who did what was necessary to restore his family's honor?\n- **A fratricide** who killed his brother for ambition?\n- **A pragmatist** who saw the only path forward and took it?\n- **A tragic figure** forced to choose between brother and house?\n\n## The Legacy\n\n250 years later, Colard's descendants still serve [[House Wilfrey]] faithfully. The kinslaying purchased:\n- **Continuity**: Unbroken service across centuries\n- **Trust**: House Wilfrey's continued faith in House Wilfson\n- **Position**: Retention of critical hereditary roles\n- **Guilt**: The eternal stain of fratricide\n\nEvery Lord Wilfson since Colard has inherited both the position and the question: **Was the price worth paying?**\n\n## The Lesson\n\nthe scandal is taught to every generation of fosterlings. Colard's choice serves as one part of the lesson:\n- Loyalty to the main house is rewarded\n- Defiance, even for love, ends in death\n- Sometimes duty requires the unthinkable\n- The right choice can still damn your soul\n\nWhether Colard was hero, villain, or simply human depends on who tells the story.\n\n## See Also\n- the scandal: The scandal that forced his choice\n- [[Baudin Wilfson]]: The brother he killed\n- [[House Wilfson]]: The house he saved through kinslaying\n- [[The Fostering System]]: The bonds his brother chose over duty",
+      "sections": [
+        {
+          "heading": "The Challenge",
+          "content": "Brother against brother",
+          "order": 1
+        },
+        {
+          "heading": "The Duel",
+          "content": "Swift death, immediate lordship",
+          "order": 2
+        },
+        {
+          "heading": "The Vindication",
+          "content": "250 years of loyal service",
+          "order": 3
+        },
+        {
+          "heading": "The Stain",
+          "content": "Kinslayer forever",
+          "order": 4
+        }
+      ],
+      "category": "Historical Figures",
+      "tags": [
+        "colard",
+        "wilfson",
+        "kinslayer",
+        "tragedy",
+        "old-right",
+        "loyalty"
+      ],
+      "era": "~250 Years Ago",
+      "personId": null,
+      "houseId": null,
+      "created": "2026-01-03T23:53:39.587Z",
+      "updated": "2026-01-04T17:57:38.045Z",
+      "wordCount": 487,
+      "version": 1,
+      "changelog": [],
+      "id": 24
+    },
+    {
+      "type": "personage",
+      "title": "The Old Knight",
+      "subtitle": "Raylegh's Elderly Betrothed",
+      "content": "**The Old Knight** was the wealthy, elderly man to whom [[Raylegh]] was betrothed approximately 250 years ago. His planned marriage to Raylegh triggered the chain of events leading to the scandal.\n\n## What We Know\n\n- He was wealthy\n- He was three times Raylegh's age\n- He was betrothed to marry Raylegh. His previous wife had died screaming in childbirth.\n- The council confirmed all these facts were true\n\n## What We Don't Know\n\n- His name\n- His house\n- Whether he was truly as terrible as Raylegh claimed\n- Whether the betrothal was forced or arranged with family consent\n- Whether he knew about Raylegh's night with [[Lennis Wilfrey]]\n- What happened to him after the scandal\n- Whether he married someone else\n- Whether he ever learned the full truth\n\n## The Question of Character\n\n**Was he:**\n- A cruel old man forcing a young woman into unwanted marriage?\n- A legitimate suitor in a standard political arrangement?\n- A victim of Raylegh's manipulation, his reputation unfairly maligned?\n- Simply an old lord seeking a young wife, as was common in the era?\n\nThe truth depends on whether you believe Raylegh's account.\n\n## The Mystery\n\nThe Old Knight's fate is one of the unanswered questions of the scandal:\n- If Raylegh married him anyway after Lennis was banished, did they have children?\n- If Raylegh was pregnant by Lennis, was the child raised as the Old Knight's heir?\n- Did he die before the marriage could take place?\n- Did he refuse to marry Raylegh after the scandal?\n\nThese questions may never be answered, but they could become critically important if Raylegh's child by Lennis exists somewhere with a potential claim.\n\n## Legacy\n\nThe Old Knight exists in history as a shadowy figure - simultaneously:\n- Catalyst for the greatest scandal in House Wilfrey's history\n- Potential villain forcing an unwilling bride\n- Possible victim of a manipulative woman's scheme\n- Unknown factor in questions of succession and legitimacy\n\n## See Also\n- [[Raylegh]]: His betrothed who fled\n- the scandal: The scandal his betrothal triggered\n- [[Lennis Wilfrey]]: The young heir who interfered",
+      "sections": [
+        {
+          "heading": "The Betrothal",
+          "content": "Wealthy, elderly, and unknown",
+          "order": 1
+        },
+        {
+          "heading": "The Questions",
+          "content": "Villain, victim, or simply unlucky?",
+          "order": 2
+        },
+        {
+          "heading": "The Unknown Fate",
+          "content": "What happened after?",
+          "order": 3
+        }
+      ],
+      "category": "Historical Figures",
+      "tags": [
+        "old-knight",
+        "raylegh",
+        "old-right",
+        "mystery"
+      ],
+      "era": "~250 Years Ago",
+      "personId": null,
+      "houseId": null,
+      "created": "2026-01-03T23:53:39.588Z",
+      "updated": "2026-01-04T17:57:38.047Z",
+      "wordCount": 348,
+      "version": 1,
+      "changelog": [],
+      "id": 25
+    },
+    {
+      "type": "mysteria",
+      "title": "The Fostering System",
+      "subtitle": "Bonds of Brotherhood That Bind a Realm",
+      "content": "**The Fostering System** is the primary institutional mechanism binding [[House Wilfrey]]'s geographically separated seats together, creating bonds of loyalty and shared culture across generations.\n\n## Core Purpose\n\nThe fostering tradition serves multiple functions:\n- Creates personal bonds between future leaders\n- Ensures shared values and traditions across regions\n- Provides comprehensive leadership training\n- Acts as subtle hostage system ensuring regional loyalty\n- Transmits House Wilfrey culture to each generation\n\n## Requirements\n\n### Mandatory Participants\n- **Heirs to the four main seats** ([[Breakmount Castle]], [[Bramblehall]], [[Riverhead]], [[Fourhearth Castle]]) - required\n- **Heirs of cadet branches** when pledging loyalty to House Wilfrey - required\n- **Result**: Approximately 10+ young male heirs fostering at Breakmount at any given time\n\n### Age and Duration\n- **Start Age**: 5 years old\n- **End Age**: 16 years old (considered manhood)\n- **Total Duration**: 11 years\n\n### Presentation Ceremony\nEach heir must be presented by a delegation including their father. Exception: Another person of importance may present, but only with good reason (death, incapacity, etc.).\n\n## The Fostering Process\n\n### Early Years (Ages 5-12)\n\n**Primary residence**: [[Breakmount Castle]]\n\nDuring these formative years:\n- Fostering cohorts grow up together\n- Learn shared traditions, rituals, and values\n- Form the foundational bonds of brotherhood\n- Receive training befitting future lords\n- Live, eat, learn, and play together for 7 years\n\nThese bonds are not theoretical - they are forged through shared childhood, creating relationships as strong as blood.\n\n### \"Doing a Season\" (Ages 12-16)\n\n**Requirement**: Each fosterling must spend one season at each of the three other seats\n\n**Timing**: One-time requirement for each seat, typically completed between ages 12-16\n**Duration**: Takes 3-4 years to complete all three rotations\n**Group Size**: Small groups (2-4 fosterlings typically), occasionally individuals\n**Strategic Purpose**: Assignments are made strategically to provide relevant leadership training\n\n**Example Rotation**:\n- Summer of 12th year: [[Riverhead]]\n- Winter of 13th year: [[Fourhearth Castle]]\n- Spring of 15th year: [[Bramblehall]]\n\n## Strategic Seasonal Learning\n\n### At Riverhead\nBest for late summer/autumn (harvest) or winter (managing stores):\n- Harvest management\n- Food storage and supply chain logistics\n- Water management\n- Bridge defense\n- Understanding agricultural power dynamics\n\n### At Fourhearth\nBest for spring/summer (active sailing) or autumn (trade winds):\n- Sailing and ship captaincy\n- Trade negotiations\n- Port management\n- Navigation and weather reading\n- Diplomatic skills with foreign powers\n\n### At Bramblehall\nBest for spring/autumn (logging) or winter (hunting):\n- Forestry and timber management\n- Hunting and woodland survival\n- Leading insular, independent-minded people\n- Woodland warfare tactics\n- Respecting traditional ways\n\n### At Breakmount (Implicit)\nAs the home base for ages 5-12 and between rotations:\n- Mining operations\n- Silver commerce\n- Central governance\n- Managing the fostering program itself\n- Mountain defense\n- Metalwork\n\n## Administration\n\n### Master of Fosterlings\n\nA highly sought-after and influential position responsible for:\n- Coordinating complex rotation schedules\n- Making strategic decisions about which heirs need what experiences\n- Controlling timing and grouping of fosterlings\n- Building alliances through access and influence\n- Shaping the next generation of House Wilfrey's leadership\n\nThis position carries immense soft power - the Master of Fosterlings can:\n- Determine which heirs develop close bonds\n- Influence future alliances through strategic groupings\n- Favor or disadvantage particular houses through assignments\n- Shape the next generation's worldview\n\n## Intended Outcomes\n\n### Individual Benefits\n- Future lords personally know all four regions intimately\n- Deep understanding of different regional cultures and challenges\n- Network of fostering brothers across all seats\n- Comprehensive leadership training\n- Shared identity as \"sons of House Wilfrey\"\n\n### House Benefits\n- Regional loyalty bound by personal relationships\n- Reduced chance of civil war (would fight fostering brothers)\n- Shared culture despite geographic separation\n- Practical knowledge distributed across future leaders\n- Subtle hostage system (harm to fosterlings brings retribution)\n\n## [[The Old Right]] and the System's Paradox\n\nThe fostering system's greatest success became its greatest failure:\n\n**Success**: [[Baudin Wilfson]] and [[Lennis Wilfrey]] became true brothers, their bond unbreakable even by death\n\n**Failure**: That very bond led Baudin to defy the council, resulting in:\n- His sister [[Nivette Wilfson]]'s secret marriage to Lennis\n- Baudin's death in a duel with his brother [[Colard Wilfson]]\n- The founding of [[House Wilson]] as a rival house\n- Eternal debate about the limits of council authority\n\n## Current Significance\n\n250 years after [[The Old Right]], the fostering system continues to:\n- Bind House Wilfrey's scattered seats together\n- Create the next generation of leaders\n- Serve as living reminder of both its power and its limits\n- Function as the primary force holding the realm together\n\nThe story of Baudin and Lennis is taught to every new generation of fosterlings as a cautionary tale demonstrating that:\n- The bonds formed are real and unbreakable\n- Those bonds can both unite and destroy\n- Loyalty to fostering brothers and loyalty to the house may conflict\n- There are no easy answers when love and duty collide\n\n## See Also\n- [[Breakmount Castle]]: Center of the fostering system\n- [[The Old Right]]: The scandal that tested the system's limits\n- [[Baudin Wilfson]]: Fostering brother who died for the bonds\n- [[Lennis Wilfrey]]: The friend who inspired that sacrifice\n- The Four Seats: [[Bramblehall]], [[Riverhead]], [[Fourhearth Castle]]",
+      "sections": [
+        {
+          "heading": "Core Structure",
+          "content": "Ages 5-16, mandatory for all heirs",
+          "order": 1
+        },
+        {
+          "heading": "Early Years",
+          "content": "Ages 5-12 at Breakmount, forming bonds",
+          "order": 2
+        },
+        {
+          "heading": "Doing a Season",
+          "content": "Ages 12-16, learning at each of the three other seats",
+          "order": 3
+        },
+        {
+          "heading": "The Paradox",
+          "content": "Success and failure in The Old Right",
+          "order": 4
+        }
+      ],
+      "category": "Customs & Institutions",
+      "tags": [
+        "fostering",
+        "tradition",
+        "breakmount",
+        "heirs",
+        "education"
+      ],
+      "era": "Ancient - Current",
+      "personId": null,
+      "houseId": null,
+      "created": "2026-01-03T23:53:39.590Z",
+      "updated": "2026-01-03T23:53:39.590Z",
+      "wordCount": 827,
+      "version": 1,
+      "changelog": [],
+      "id": 26
+    },
+    {
+      "type": "mysteria",
+      "title": "The Old Right",
+      "subtitle": "Ancient Marriage Practice of the Cadet Houses",
+      "category": "Customs & Institutions",
+      "tags": [
+        "old-right",
+        "marriage",
+        "cadet-houses",
+        "tradition",
+        "historical"
+      ],
+      "era": "Ancient - ~200 Years Ago",
+      "content": "**The Old Right** was a historical marriage practice within [[House Wilfrey]] that ended approximately 200 years ago.\n\n## Original Practice\n\nUnder The Old Right, the most prominent cadet houses of [[House Wilfrey]] had rights to marry the 2nd and 3rd daughters of the ruling Wilfrey family.\n\n### Purpose\n\nThis practice served multiple functions:\n- **Maintained \"Purity\"**: Kept bloodlines within the extended Wilfrey family\n- **Control Mechanism**: The main house controlled which cadet branches received marriage rights\n- **Reinforced Hierarchy**: Demonstrated the preeminence of certain cadet houses over others\n- **Bound Loyalty**: Created family ties between main house and most powerful cadet branches\n\n## End of the Practice\n\nThe Old Right was discontinued approximately 200 years ago. The specific reasons for its end remain to be documented, but the practice has been defunct for two centuries.\n\n## Modern Era\n\nSince the end of The Old Right, cadet families have adapted in different ways:\n\n### New Marriage Patterns\n- Cadet families now commonly marry outside the region\n- Marriages to common-born individuals with significant resources are now acceptable\n- Purpose: To bolster houses' positions and economic standing\n\n### Contemporary Tensions\n\nThe memory of The Old Right creates ongoing conflict between different factions:\n\n**Old Guard Cadet Branches:**\n- Cling to memories of The Old Right\n- Seek prestige marriages to regain influence and status from 200 years ago\n- View themselves as the \"true\" lesser nobility\n- Prioritize traditional bloodline purity\n\n**Pragmatic/Upstart Branches:**\n- Marry common-born wealth to improve economic position\n- Focus on actual power rather than prestige\n- Embrace practical advantages over tradition\n- Build real influence through resources\n\n### The Central Conflict\n\nThis creates a fundamental tension in [[House Wilfrey]]'s politics:\n- **Prestige vs. Prosperity**: Old families with ancient names but diminishing power vs. new families with wealth but less status\n- **Tradition vs. Pragmatism**: Honoring the old ways vs. adapting to new realities\n\nThe ruling Wilfreys must navigate these tensions carefully, sometimes favoring traditional branches for appearances, other times relying on economically stronger ones for practical support.\n\n## Legacy\n\nThough the practice ended 200 years ago, The Old Right continues to shape [[House Wilfrey]]'s internal politics. The debate between prestige and prosperity, tradition and pragmatism, defines much of the tension between cadet branches.\n\n## See Also\n- [[House Wilfrey]]: The main house that practiced The Old Right\n- [[House Wilfson]]: Premier cadet branch, most prominent practitioner\n- Cadet branches: [[House Wilfriend]], [[House Wilfsbane]], [[House Wilfriver]]",
+      "sections": [
+        {
+          "heading": "Original Practice",
+          "content": "Cadet houses had rights to marry 2nd and 3rd daughters",
+          "order": 1
+        },
+        {
+          "heading": "End and Transition",
+          "content": "Ended ~200 years ago, new marriage patterns emerged",
+          "order": 2
+        },
+        {
+          "heading": "Contemporary Tensions",
+          "content": "Old guard vs. pragmatists, prestige vs. prosperity",
+          "order": 3
+        }
+      ],
+      "personId": null,
+      "houseId": null,
+      "created": "2026-01-04T17:57:38.001Z",
+      "updated": "2026-01-04T17:57:38.001Z",
+      "wordCount": 385,
+      "version": 1,
+      "changelog": [],
+      "id": 27
+    },
+    {
+      "type": "personage",
+      "title": "Lord Constann",
+      "subtitle": "Lord of Bramblehall, Father of Ten Daughters",
+      "category": "Historical Figures",
+      "tags": [
+        "constann",
+        "bramblehall",
+        "raylegh",
+        "wilson-scandal"
+      ],
+      "era": "~250 Years Ago",
+      "personId": null,
+      "houseId": null,
+      "content": "**Lord Constann** was Lord of [[Bramblehall]] approximately 250 years ago, father of [[Raylegh]] and central figure in the scandal that led to the founding of [[House Wilson]].\n\n## The Ten Daughters\n\nLord Constann was father to many daughters. Legend says he had **ten daughters, \"all the most beautiful maidens in the entire land.\"**\n\n[[Raylegh]] was one of the younger or less important of these daughters, betrothed to an aging knight.\n\n## The Riverhead Council\n\nWhen the scandal broke, it was Lord Constann who brought the matter before the council.\n\n### The Council Convenes\n\nShortly after [[Baudin Wilfson]]'s succession to his father's position, the Lord of [[Riverhead]] died, triggering the mandatory council for succession matters.\n\nAll four lords attended in person as required by tradition, including:\n- Lord Constann of [[Bramblehall]]\n- The new Lord [[Baudin Wilfson]] (representing [[Breakmount Castle]])\n- The Lord of [[Riverhead]] (or his successor)\n- The Lord of [[Fourhearth Castle]]\n\n### The Demand\n\nAt this council, Lord Constann raised the matter of his daughter's dishonor. He demanded that [[Lennis Wilfrey]], heir to [[Fourhearth Castle]], marry [[Raylegh]] or face consequences.\n\nAfter long debate, the council reached its decision: Ancient law was invoked. Lennis must marry Raylegh or be stripped of his position as heir to Fourhearth. The vote was binding under [[House Wilfrey]]'s traditional laws.\n\n## The Aftermath\n\nLord Constann's demand set in motion events that would lead to:\n- The secret marriage of [[Nivette Wilfson]] to [[Lennis Wilfrey]]\n- The death of [[Baudin Wilfson]] at his brother's hand\n- The founding of [[House Wilson]]\n- One of the greatest scandals in [[House Wilfrey]]'s history\n\n## The Mystery of Raylegh's Fate\n\nWhat happened to [[Raylegh]] after the scandal remains unknown. The songs and histories do not say whether she married the aging knight anyway, died in childbirth as she feared, or met some other fate.\n\nLord Constann's role in these events raises questions:\n- Was he protecting his daughter's honor or his own?\n- Did he know Raylegh had disguised herself that night?\n- How did he learn of what happened?\n- What was his relationship with his daughter after these events?\n\nThese questions, like so much about the scandal, remain unanswered.\n\n## See Also\n- [[Raylegh]]: His daughter who triggered the scandal\n- [[Bramblehall]]: His seat, where the fateful night occurred\n- [[The Founding of House Wilson]]: The scandal he helped precipitate\n- [[Lennis Wilfrey]]: The young lord who bedded his daughter",
+      "sections": [
+        {
+          "heading": "The Ten Daughters",
+          "content": "Father of legendary beauties including Raylegh",
+          "order": 1
+        },
+        {
+          "heading": "The Riverhead Council",
+          "content": "Demanded Lennis marry Raylegh",
+          "order": 2
+        },
+        {
+          "heading": "The Aftermath",
+          "content": "Set events in motion that split houses",
+          "order": 3
+        }
+      ],
+      "created": "2026-01-04T17:57:38.005Z",
+      "updated": "2026-01-04T17:57:38.005Z",
+      "wordCount": 366,
+      "version": 1,
+      "changelog": [],
+      "id": 28
+    },
+    {
+      "type": "personage",
+      "title": "Faramund Wilfson",
+      "subtitle": "Lord of House Wilfson, Father of Baudin",
+      "category": "Historical Figures",
+      "tags": [
+        "faramund",
+        "wilfson",
+        "wilson-scandal",
+        "baudin"
+      ],
+      "era": "~250 Years Ago",
+      "personId": null,
+      "houseId": null,
+      "content": "**Faramund Wilfson** was Lord of [[House Wilfson]] approximately 250 years ago, father of [[Baudin Wilfson]], [[Nivette Wilfson]], and [[Colard Wilfson]].\n\n## Hereditary Positions\n\nAs Lord of [[House Wilfson]], Faramund held the two critical hereditary titles:\n- **Master of the Silver Mines**: Control over [[House Wilfrey]]'s primary wealth source at [[Breakmount Castle]]\n- **Castellan of Breakmount**: Day-to-day governance of the principal seat\n\n## Death and Succession\n\nFaramund died peacefully, with clean succession. His eldest son [[Baudin Wilfson]] inherited his father's titles and positions, becoming the new Lord of House Wilfson, Master of the Silver Mines, and Castellan of Breakmount.\n\nThe succession was smooth and uncontested - no hint of the tragedy that would soon befall the house.\n\n## The Timing\n\nFaramund's death and Baudin's succession occurred shortly before the scandal that would tear [[House Wilfrey]] apart. Baudin had ruled for less than a year when the crisis erupted at the [[Riverhead]] council.\n\nHad Faramund lived, would he have handled the crisis differently? Would his experience and authority have prevented his son's defiance? These questions can never be answered.\n\n## Legacy\n\nFaramund represents the last moment of stability for [[House Wilfson]] before the scandal. His peaceful death and clean succession stand in stark contrast to what followed:\n- His son Baudin's defiance of the council\n- The secret marriage of his daughter Nivette to [[Lennis Wilfrey]]\n- Baudin's death at his younger son Colard's hand\n- The near-destruction of House Wilfson's position\n\nYet ultimately, [[Colard Wilfson]]'s choice to kill his brother preserved Faramund's legacy - 250 years later, House Wilfson still holds the hereditary positions Faramund once held.\n\n## See Also\n- [[House Wilfson]]: The house he led\n- [[Baudin Wilfson]]: His eldest son and heir\n- [[Nivette Wilfson]]: His daughter\n- [[Colard Wilfson]]: His younger son who killed Baudin\n- [[The Founding of House Wilson]]: The scandal that followed his death",
+      "sections": [
+        {
+          "heading": "Hereditary Positions",
+          "content": "Master of Silver Mines and Castellan",
+          "order": 1
+        },
+        {
+          "heading": "Peaceful Death",
+          "content": "Clean succession to Baudin",
+          "order": 2
+        },
+        {
+          "heading": "The Last Stable Moment",
+          "content": "Before the scandal tore the house apart",
+          "order": 3
+        }
+      ],
+      "created": "2026-01-04T17:57:38.007Z",
+      "updated": "2026-01-04T17:57:38.007Z",
+      "wordCount": 278,
+      "version": 1,
+      "changelog": [],
+      "id": 29
+    }
+  ]
+}

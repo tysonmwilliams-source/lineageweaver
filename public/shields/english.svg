@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xl="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="133.875 178.875 344.2545 436.21735" width="344.2545" height="436.21735">
+  <defs>
+    <clipPath id="artboard_clip_path">
+      <path d="M 133.875 178.875 L 478.1295 178.875 L 478.1295 615.09235 L 133.875 615.09235 Z"/>
+    </clipPath>
+  </defs>
+  <g id="Heater_Shield_(3)" fill="none" stroke-opacity="1" stroke-dasharray="none" stroke="none" fill-opacity="1">
+    <title>Heater Shield (3)</title>
+    <g id="Heater_Shield_(3)_Layer_1" clip-path="url(#artboard_clip_path)">
+      <title>Layer 1</title>
+      <g id="Graphic_76">
+        <path d="M 136.24933 357.5617 C 136.24933 357.5617 129.47764 533.9534 306.152 610.83 C 482.67684 533.9534 475.7483 357.5617 475.7483 357.5617 L 475.7483 181.17 L 136.24933 181.17 Z" fill="white"/>
+        <path d="M 136.24933 357.5617 C 136.24933 357.5617 129.47764 533.9534 306.152 610.83 C 482.67684 533.9534 475.7483 357.5617 475.7483 357.5617 L 475.7483 181.17 L 136.24933 181.17 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+      </g>
+    </g>
+  </g>
+</svg>

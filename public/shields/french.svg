@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xl="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="125 179 362 433.6419" width="362" height="433.6419">
+  <defs>
+    <clipPath id="artboard_clip_path">
+      <path d="M 125 179 L 487 179 L 487 612.6419 L 125 612.6419 Z"/>
+    </clipPath>
+  </defs>
+  <g id="Embowed_Heater_(1)" fill="none" stroke-opacity="1" stroke-dasharray="none" stroke="none" fill-opacity="1">
+    <title>Embowed Heater (1)</title>
+    <g id="Embowed_Heater_(1)_Layer_2" clip-path="url(#artboard_clip_path)">
+      <title>Layer 2</title>
+      <g id="Graphic_71">
+        <path d="M 126 213.19238 C 126 213.19238 233.87523 180 305.79205 180 C 377.70886 180 486 213.19238 486 213.19238 C 486 213.19238 486 213.19234 486 323.0706 C 486 432.9488 418.5 549.6944 306 611.5009 C 193.5 549.6944 126.00002 432.94883 126 323.0706 C 126 213.19238 126 213.19238 126 213.19238 Z" fill="white"/>
+        <path d="M 126 213.19238 C 126 213.19238 233.87523 180 305.79205 180 C 377.70886 180 486 213.19238 486 213.19238 C 486 213.19238 486 213.19234 486 323.0706 C 486 432.9488 418.5 549.6944 306 611.5009 C 193.5 549.6944 126.00002 432.94883 126 323.0706 C 126 213.19238 126 213.19238 126 213.19238 Z" stroke="black" stroke-linecap="round" stroke-linejoin="miter" stroke-width="2"/>
+      </g>
+    </g>
+  </g>
+</svg>

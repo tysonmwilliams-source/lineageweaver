@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xl="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="139.5 178.3125 333.0045 437.34235" width="333.0045" height="437.34235">
+  <defs>
+    <clipPath id="artboard_clip_path">
+      <path d="M 139.5 178.3125 L 472.5045 178.3125 L 472.5045 615.65485 L 139.5 615.65485 Z"/>
+    </clipPath>
+  </defs>
+  <g id="Heater_Shield_(1)" fill="none" stroke-opacity="1" stroke-dasharray="none" stroke="none" fill-opacity="1">
+    <title>Heater Shield (1)</title>
+    <g id="Heater_Shield_(1)_Layer_1" clip-path="url(#artboard_clip_path)">
+      <title>Layer 1</title>
+      <g id="Graphic_62">
+        <path d="M 470.08766 180 C 470.08766 180 484.8826 470.25 306.00358 612 C 127.13258 470.25 141.9195 180 141.9195 180 Z" fill="white"/>
+        <path d="M 470.08766 180 C 470.08766 180 484.8826 470.25 306.00358 612 C 127.13258 470.25 141.9195 180 141.9195 180 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+      </g>
+    </g>
+  </g>
+</svg>
