@@ -1,0 +1,233 @@
+/* ========================================
+   HOUSE LIST STYLES
+   Uses CSS custom properties for theming
+   ======================================== */
+
+/* Empty State */
+.house-list-empty {
+  text-align: center;
+  padding: 48px 24px;
+  background-color: var(--bg-tertiary);
+  border-radius: 8px;
+  border: 1px dashed var(--border-primary);
+}
+
+.house-list-empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.house-list-empty-text {
+  color: var(--text-secondary);
+  font-size: 16px;
+  margin: 0;
+  font-family: var(--font-body);
+}
+
+/* List Container */
+.house-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* House Card */
+.house-card {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: 8px;
+  padding: 16px;
+  transition: all var(--duration-fast) ease;
+}
+
+.house-card:hover {
+  border-color: var(--accent-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.house-card-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+/* Heraldry Thumbnail */
+.house-card-heraldry {
+  width: 60px;
+  height: 60px;
+  border-radius: 6px;
+  overflow: hidden;
+  background-color: var(--bg-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--duration-fast) ease;
+  flex-shrink: 0;
+}
+
+.house-card-heraldry:hover {
+  transform: scale(1.05);
+  box-shadow: var(--shadow-md);
+}
+
+.house-card-heraldry img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.house-card-heraldry .svg-container {
+  width: 90%;
+  height: 90%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.house-card-heraldry-loading {
+  font-size: 20px;
+  color: var(--text-secondary);
+}
+
+.house-card-heraldry-placeholder {
+  border-style: dashed;
+  border-width: 2px;
+}
+
+.house-card-heraldry-placeholder-icon {
+  font-size: 24px;
+}
+
+/* House Info */
+.house-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.house-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.house-card-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid var(--border-primary);
+  flex-shrink: 0;
+}
+
+.house-card-name {
+  margin: 0;
+  font-size: 17px;
+  font-weight: bold;
+  color: var(--text-primary);
+  font-family: var(--font-heading);
+}
+
+.house-card-founded {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.house-card-type {
+  font-size: 11px;
+  padding: 2px 8px;
+  background-color: var(--bg-elevated);
+  color: var(--text-secondary);
+  border-radius: 4px;
+  text-transform: capitalize;
+}
+
+.house-card-blazon {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0 0 4px 0;
+  font-style: italic;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.house-card-motto {
+  font-size: 13px;
+  color: var(--text-primary);
+  font-style: italic;
+  margin: 0 0 4px 0;
+}
+
+.house-card-notes {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 400px;
+}
+
+/* Actions */
+.house-card-actions {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  flex-shrink: 0;
+}
+
+.house-card-btn {
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--duration-fast) ease;
+  font-family: var(--font-body);
+}
+
+.house-card-btn-heraldry {
+  background-color: transparent;
+  color: var(--accent-primary);
+  border: 1px solid var(--accent-primary);
+}
+
+.house-card-btn-heraldry:hover {
+  background-color: var(--accent-muted);
+}
+
+.house-card-btn-edit {
+  background-color: transparent;
+  color: var(--accent-primary);
+  border: 1px solid var(--border-primary);
+}
+
+.house-card-btn-edit:hover {
+  background-color: var(--bg-elevated);
+}
+
+.house-card-btn-delete {
+  background-color: var(--color-error-bg);
+  color: var(--color-error);
+  border: 1px solid transparent;
+}
+
+.house-card-btn-delete:hover {
+  background-color: var(--color-error);
+  color: var(--text-primary);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .house-card-content {
+    flex-wrap: wrap;
+  }
+  
+  .house-card-actions {
+    width: 100%;
+    margin-top: 12px;
+    justify-content: flex-end;
+  }
+}

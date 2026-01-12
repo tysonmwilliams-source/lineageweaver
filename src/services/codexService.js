@@ -32,9 +32,10 @@ export async function createEntry(entryData) {
       tags: entryData.tags || [], // Array of strings
       era: entryData.era || null, // Time period
       
-      // Links (for external references - personId, houseId, etc.)
+      // Links (for external references - personId, houseId, heraldryId, etc.)
       personId: entryData.personId || null, // Link to Person entity
       houseId: entryData.houseId || null, // Link to House entity
+      heraldryId: entryData.heraldryId || null, // Link to Heraldry entity (Phase 5)
       
       // Metadata
       created: new Date().toISOString(),
@@ -51,6 +52,63 @@ export async function createEntry(entryData) {
     return id;
   } catch (error) {
     console.error('Error creating codex entry:', error);
+    throw error;
+  }
+}
+
+/**
+ * Restore a codex entry with a specific ID
+ * 
+ * IMPORTANT: This is different from createEntry() because it uses .put()
+ * which preserves the original ID instead of auto-generating a new one.
+ * 
+ * Used during cloud sync to restore entries without creating duplicates.
+ * 
+ * @param {Object} entryData - Entry data including the original ID
+ * @returns {Promise<number>} - The ID of the restored entry
+ */
+export async function restoreEntry(entryData) {
+  try {
+    // Build the entry object, preserving the original ID
+    const entry = {
+      id: parseInt(entryData.id) || entryData.id, // CRITICAL: preserve original ID
+      
+      // Core identity
+      type: entryData.type,
+      title: entryData.title,
+      subtitle: entryData.subtitle || null,
+      
+      // Content
+      content: entryData.content || '',
+      sections: entryData.sections || [],
+      
+      // Organization
+      category: entryData.category || null,
+      tags: entryData.tags || [],
+      era: entryData.era || null,
+      
+      // Links
+      personId: entryData.personId || null,
+      houseId: entryData.houseId || null,
+      heraldryId: entryData.heraldryId || null,
+      
+      // Metadata - preserve original timestamps if available
+      created: entryData.created || new Date().toISOString(),
+      updated: entryData.updated || new Date().toISOString(),
+      wordCount: entryData.wordCount || calculateWordCount(entryData.content || ''),
+      
+      // Version control
+      version: entryData.version || 1,
+      changelog: entryData.changelog || []
+    };
+    
+    // Use .put() which creates OR updates based on the key
+    // This prevents duplicates by using the original ID
+    const id = await db.codexEntries.put(entry);
+    console.log('Codex entry restored with ID:', id);
+    return id;
+  } catch (error) {
+    console.error('Error restoring codex entry:', error);
     throw error;
   }
 }
@@ -87,6 +145,29 @@ export async function getEntryByPersonId(personId) {
     return entries.length > 0 ? entries[0] : null;
   } catch (error) {
     console.error('Error getting codex entry by personId:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get a codex entry by heraldryId
+ * 
+ * PHASE 5 - CODEX-HERALDRY INTEGRATION: Used to find the Codex entry
+ * for a heraldry record when navigating from The Armory.
+ * 
+ * @param {number} heraldryId - The heraldry record's database ID
+ * @returns {Object|null} The codex entry or null if not found
+ */
+export async function getEntryByHeraldryId(heraldryId) {
+  try {
+    const entries = await db.codexEntries
+      .filter(entry => entry.heraldryId === heraldryId)
+      .toArray();
+    
+    // Return the first match (should only be one per heraldry)
+    return entries.length > 0 ? entries[0] : null;
+  } catch (error) {
+    console.error('Error getting codex entry by heraldryId:', error);
     throw error;
   }
 }
@@ -394,8 +475,10 @@ export async function getCodexStatistics() {
 export default {
   // Entry operations
   createEntry,
+  restoreEntry, // Used for cloud sync - preserves original IDs
   getEntry,
   getEntryByPersonId, // TREE-CODEX INTEGRATION
+  getEntryByHeraldryId, // PHASE 5 - CODEX-HERALDRY INTEGRATION
   getAllEntries,
   getEntriesByType,
   getEntriesByCategory,

@@ -8,6 +8,12 @@ import CodexEntryForm from './pages/CodexEntryForm';
 import CodexEntryView from './pages/CodexEntryView';
 import CodexBrowse from './pages/CodexBrowse';
 import CodexImport from './pages/CodexImport';
+import HeraldryLanding from './pages/HeraldryLanding';
+import HeraldryCreator from './pages/HeraldryCreator';
+import ChargesLibrary from './pages/ChargesLibrary';
+import DignitiesLanding from './pages/DignitiesLanding';
+import DignityForm from './pages/DignityForm';
+import DignityView from './pages/DignityView';
 import { initializeSampleData } from './services/sampleData';
 import { ThemeProvider } from './components/ThemeContext';
 import { GenealogyProvider } from './contexts/GenealogyContext';
@@ -197,6 +203,14 @@ function AppContent() {
           <Route path="/codex/entry/:id" element={<CodexEntryView />} />
           <Route path="/codex/browse/:type" element={<CodexBrowse />} />
           <Route path="/codex/import" element={<CodexImport />} />
+          <Route path="/heraldry" element={<HeraldryLanding />} />
+          <Route path="/heraldry/create" element={<HeraldryCreator />} />
+          <Route path="/heraldry/edit/:id" element={<HeraldryCreator />} />
+          <Route path="/heraldry/charges" element={<ChargesLibrary />} />
+          <Route path="/dignities" element={<DignitiesLanding />} />
+          <Route path="/dignities/create" element={<DignityForm />} />
+          <Route path="/dignities/edit/:id" element={<DignityForm />} />
+          <Route path="/dignities/view/:id" element={<DignityView />} />
         </Routes>
       </Router>
     </GenealogyProvider>

@@ -9,16 +9,24 @@ import { UserMenu, SyncStatusIndicator } from './auth';
  * 
  * Consistent navigation bar across all pages with:
  * - App title/logo (links to home)
- * - Page links (Home, Family Tree, Codex, Manage)
+ * - Page links (Home, Family Tree, The Codex, Heraldry, Manage)
  * - Search bar (optional - only shown when people data provided)
  * - Theme toggle
+ * - User menu and sync status
  */
 function Navigation({ people = [], onSearchResults = null, showSearch = false, showControlsToggle = false, controlsExpanded = false, onToggleControls = null }) {
   const location = useLocation();
   const { isDarkTheme } = useTheme();
   
   // Helper to determine if link is active
-  const isActive = (path) => location.pathname === path;
+  // Uses startsWith for section-based routes (codex, heraldry) so nested pages stay highlighted
+  const isActive = (path) => {
+    if (path === '/') {
+      return location.pathname === '/';
+    }
+    // For section routes, match any path starting with that section
+    return location.pathname.startsWith(path);
+  };
   
   // Style for active/inactive links
   const getLinkStyle = (path) => ({
@@ -69,6 +77,22 @@ function Navigation({ people = [], onSearchResults = null, showSearch = false, s
               className="hover:opacity-80 transition"
             >
               The Codex
+            </Link>
+            
+            <Link 
+              to="/heraldry" 
+              style={getLinkStyle('/heraldry')} 
+              className="hover:opacity-80 transition"
+            >
+              Heraldry
+            </Link>
+            
+            <Link 
+              to="/dignities" 
+              style={getLinkStyle('/dignities')} 
+              className="hover:opacity-80 transition"
+            >
+              Titles & Dignities
             </Link>
             
             <Link 

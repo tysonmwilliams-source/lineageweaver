@@ -1,40 +1,98 @@
 /**
- * Shield SVG Processor - FIXED VERSION
+ * Shield SVG Processor
  * 
  * Loads and processes professional shield SVG files from /public/shields/
  * Properly scales and positions heraldic content to fit shield bounds
  * Supports infinite zoom quality through vector graphics
+ * 
+ * NOTE: As of Phase 4, only the default (French) shield shape is used.
+ * Other shapes are preserved in code for potential future re-addition.
  */
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// SHIELD CONFIGURATION
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// The default shield shape used throughout the application
+// This is the French shield (embowed/arched style)
+export const DEFAULT_SHIELD_TYPE = 'default';
+
 // Shield SVG file paths (in /public/shields/)
+// NOTE: 'default' maps to the french.svg file
 const SHIELD_FILES = {
-  heater: '/shields/heater.svg',
-  french: '/shields/french.svg',
-  spanish: '/shields/spanish.svg',
-  english: '/shields/english.svg',
-  swiss: '/shields/swiss.svg'
+  default: '/shields/french.svg',  // Primary shield - always used
+  
+  // 🪝 FUTURE EXPANSION: Other shield shapes preserved for potential re-addition
+  // These are not currently exposed in the UI but remain available in code
+  // heater: '/shields/heater.svg',    // Classic medieval (c.1245)
+  // english: '/shields/english.svg',  // Late medieval (c.1403)
+  // spanish: '/shields/spanish.svg',  // Engrailed notched
+  // swiss: '/shields/swiss.svg'       // Engrailed peaked
+};
+
+// Legacy mapping - allows old code using 'french' to still work
+const LEGACY_SHIELD_MAPPING = {
+  french: 'default',
+  heater: 'default',   // Fallback to default
+  english: 'default',  // Fallback to default
+  spanish: 'default',  // Fallback to default
+  swiss: 'default'     // Fallback to default
 };
 
 // Cache loaded SVGs to avoid repeated fetches
 const svgCache = {};
 
 /**
+ * Resolve shield type to actual type
+ * Handles legacy names and defaults
+ * 
+ * @param {string} shieldType - The requested shield type
+ * @returns {string} The resolved shield type
+ */
+function resolveShieldType(shieldType) {
+  // If no type specified, use default
+  if (!shieldType) return DEFAULT_SHIELD_TYPE;
+  
+  // Check if it's a legacy name that needs mapping
+  if (LEGACY_SHIELD_MAPPING[shieldType]) {
+    return LEGACY_SHIELD_MAPPING[shieldType];
+  }
+  
+  // Check if the type exists in SHIELD_FILES
+  if (SHIELD_FILES[shieldType]) {
+    return shieldType;
+  }
+  
+  // Fallback to default
+  console.warn(`Unknown shield type "${shieldType}", using default`);
+  return DEFAULT_SHIELD_TYPE;
+}
+
+/**
  * Load shield SVG file and extract path data + bounds
  * 
- * @param {string} shieldType - One of: heater, french, spanish, english, swiss
+ * @param {string} shieldType - Shield type (defaults to 'default')
  * @returns {Promise<Object>} Shield data with pathData, bounds, and full SVG
  */
 export async function loadShieldSVG(shieldType) {
+  // Resolve to actual type
+  const resolvedType = resolveShieldType(shieldType);
+  
   // Return cached version if available
-  if (svgCache[shieldType]) {
-    return svgCache[shieldType];
+  if (svgCache[resolvedType]) {
+    return svgCache[resolvedType];
   }
   
   try {
-    const response = await fetch(SHIELD_FILES[shieldType]);
+    const filePath = SHIELD_FILES[resolvedType];
+    if (!filePath) {
+      throw new Error(`No file path defined for shield type: ${resolvedType}`);
+    }
+    
+    const response = await fetch(filePath);
     
     if (!response.ok) {
-      throw new Error(`Failed to load ${shieldType} shield: ${response.statusText}`);
+      throw new Error(`Failed to load ${resolvedType} shield: ${response.statusText}`);
     }
     
     const svgText = await response.text();
@@ -68,7 +126,7 @@ export async function loadShieldSVG(shieldType) {
     }
     
     if (!mainPath) {
-      throw new Error(`Could not find main path in ${shieldType} shield SVG`);
+      throw new Error(`Could not find main path in ${resolvedType} shield SVG`);
     }
     
     const pathData = mainPath.getAttribute('d');
@@ -82,7 +140,7 @@ export async function loadShieldSVG(shieldType) {
     const bounds = getPathBounds(mainPath);
     
     // Cache the result
-    svgCache[shieldType] = {
+    svgCache[resolvedType] = {
       svgText: svgText,
       pathData: pathData,
       viewBox: viewBox,
@@ -91,10 +149,10 @@ export async function loadShieldSVG(shieldType) {
       originalSVG: svgElement.outerHTML
     };
     
-    return svgCache[shieldType];
+    return svgCache[resolvedType];
     
   } catch (error) {
-    console.error(`Error loading shield SVG (${shieldType}):`, error);
+    console.error(`Error loading shield SVG (${resolvedType}):`, error);
     throw error;
   }
 }
@@ -137,14 +195,17 @@ function getPathBounds(pathElement) {
 /**
  * Create SVG heraldry with shield mask applied
  * Properly scales heraldic content to fit shield bounds
+ * Note: Uses non-uniform scaling to fill shield. Charges should pre-compensate.
  * 
  * @param {string} sourceImageSVG - SVG content to be masked (should have viewBox="0 0 200 200")
- * @param {string} shieldType - Shield shape to use as mask
+ * @param {string} shieldType - Shield shape to use as mask (defaults to 'default')
  * @param {number} size - Output size (default 400)
  * @returns {Promise<string>} Complete SVG with shield mask applied and properly scaled
  */
 export async function createSVGHeraldryWithMask(sourceImageSVG, shieldType, size = 400) {
-  const shield = await loadShieldSVG(shieldType);
+  // Always resolve to actual type (handles legacy names)
+  const resolvedType = resolveShieldType(shieldType);
+  const shield = await loadShieldSVG(resolvedType);
   
   // Parse source SVG to extract content
   const parser = new DOMParser();
@@ -159,6 +220,7 @@ export async function createSVGHeraldryWithMask(sourceImageSVG, shieldType, size
   const targetBounds = shield.bounds || shield.viewBoxParsed;
   
   // Calculate transform to scale source content to fit shield bounds
+  // This uses non-uniform scaling to fill the shield shape
   const scaleX = targetBounds.width / srcWidth;
   const scaleY = targetBounds.height / srcHeight;
   const translateX = targetBounds.x - (srcX * scaleX);
@@ -197,7 +259,7 @@ export async function createSVGHeraldryWithMask(sourceImageSVG, shieldType, size
 /**
  * Get shield path data only (for canvas-based masking)
  * 
- * @param {string} shieldType - Shield type
+ * @param {string} shieldType - Shield type (defaults to 'default')
  * @returns {Promise<string>} SVG path data string
  */
 export async function getShieldPathData(shieldType) {
@@ -208,7 +270,7 @@ export async function getShieldPathData(shieldType) {
 /**
  * Get shield viewBox dimensions
  * 
- * @param {string} shieldType - Shield type
+ * @param {string} shieldType - Shield type (defaults to 'default')
  * @returns {Promise<Object>} Object with x, y, width, height
  */
 export async function getShieldViewBox(shieldType) {
@@ -217,25 +279,48 @@ export async function getShieldViewBox(shieldType) {
 }
 
 /**
- * Preload all shield SVGs (call this on app initialization)
+ * Preload the default shield SVG (call this on app initialization)
  * 
  * @returns {Promise<void>}
  */
 export async function preloadAllShields() {
-  const types = Object.keys(SHIELD_FILES);
-  
   try {
-    await Promise.all(types.map(type => loadShieldSVG(type)));
-    console.log('✅ All shield SVGs preloaded successfully');
+    // Only preload the default shield now
+    await loadShieldSVG(DEFAULT_SHIELD_TYPE);
+    console.log('✅ Default shield SVG preloaded successfully');
   } catch (error) {
-    console.error('❌ Error preloading shields:', error);
+    console.error('❌ Error preloading shield:', error);
   }
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🪝 FUTURE EXPANSION: Enable additional shield shapes
+// ═══════════════════════════════════════════════════════════════════════════════
+// 
+// To re-enable multiple shield shapes in the future:
+// 
+// 1. Update SHIELD_FILES to uncomment the other shapes:
+//    const SHIELD_FILES = {
+//      default: '/shields/french.svg',
+//      heater: '/shields/heater.svg',
+//      english: '/shields/english.svg',
+//      spanish: '/shields/spanish.svg',
+//      swiss: '/shields/swiss.svg'
+//    };
+//
+// 2. Update LEGACY_SHIELD_MAPPING to map to proper types instead of 'default'
+//
+// 3. Re-enable the Shield Shape section in HeraldryCreator.jsx
+//
+// 4. Update any components that hardcode 'default' or 'french'
+//
+// ═══════════════════════════════════════════════════════════════════════════════
 
 export default {
   loadShieldSVG,
   createSVGHeraldryWithMask,
   getShieldPathData,
   getShieldViewBox,
-  preloadAllShields
+  preloadAllShields,
+  DEFAULT_SHIELD_TYPE
 };

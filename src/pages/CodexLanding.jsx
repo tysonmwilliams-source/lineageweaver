@@ -8,15 +8,16 @@ import {
 import { importSeedData, getImportPreview } from '../utils/import-seed-data';
 import { useGenealogy } from '../contexts/GenealogyContext';
 import Navigation from '../components/Navigation';
+import CodexCleanupTool from '../components/CodexCleanupTool';
 import './CodexLanding.css';
 
 /**
- * Codex Landing Page - ENHANCED
+ * Codex Landing Page - ENHANCED v2
  * 
  * Wikipedia-style landing with:
- * - "Article of Interest" (random entry)
+ * - Quick Navigation (dynamic, not random)
  * - Search functionality
- * - Browse by category
+ * - Browse by category (including Concepts)
  * - Recent updates
  * - Statistics
  */
@@ -30,10 +31,15 @@ function CodexLanding() {
   
   const [statistics, setStatistics] = useState(null);
   const [recentEntries, setRecentEntries] = useState([]);
-  const [articleOfInterest, setArticleOfInterest] = useState(null);
+  const [quickNavData, setQuickNavData] = useState({
+    majorHouses: [],
+    lawAndGovernance: [],
+    recentlyEdited: []
+  });
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showCleanupTool, setShowCleanupTool] = useState(false);
   
   useEffect(() => {
     loadCodexData();
@@ -48,17 +54,35 @@ function CodexLanding() {
       
       const allEntries = await getAllEntries();
       
-      // Get recent entries
+      // Get recent entries (for Recently Updated section)
       const sorted = allEntries.sort(
         (a, b) => new Date(b.updated) - new Date(a.updated)
       );
       setRecentEntries(sorted.slice(0, 5));
       
-      // Select random "Article of Interest"
-      if (allEntries.length > 0) {
-        const randomIndex = Math.floor(Math.random() * allEntries.length);
-        setArticleOfInterest(allEntries[randomIndex]);
-      }
+      // Build Quick Navigation data
+      const majorHouses = allEntries.filter(entry => 
+        entry.category === 'Major Houses' ||
+        (entry.tags && entry.tags.some(tag => 
+          ['major-house', 'drihten', 'great-house'].includes(tag.toLowerCase())
+        ))
+      ).slice(0, 6);
+      
+      const lawAndGovernance = allEntries.filter(entry =>
+        entry.category === 'Law & Governance' ||
+        (entry.tags && entry.tags.some(tag =>
+          ['charter', 'law', 'governance', 'driht', 'ward', 'fealty'].includes(tag.toLowerCase())
+        ))
+      ).slice(0, 6);
+      
+      // Recently edited (most recent 4, different from "Recently Updated" which shows all recent)
+      const recentlyEdited = sorted.slice(0, 4);
+      
+      setQuickNavData({
+        majorHouses,
+        lawAndGovernance,
+        recentlyEdited
+      });
       
       setLoading(false);
     } catch (error) {
@@ -103,10 +127,9 @@ function CodexLanding() {
     }
   }
   
-function handleBrowseByType(type) {
-  // Navigate to browse page for this type
-  navigate(`/codex/browse/${type}`);
-}
+  function handleBrowseByType(type) {
+    navigate(`/codex/browse/${type}`);
+  }
   
   function handleCreateEntryOfType(type, event) {
     event.stopPropagation();
@@ -124,17 +147,8 @@ function handleBrowseByType(type) {
   function handleSearchSubmit(e) {
     e.preventDefault();
     if (searchTerm.trim()) {
-      // Future: Navigate to search results page
-      // For now, alert (search page is Phase 2 Week 3)
-      alert(`Search functionality coming in Phase 2 Week 3!\n\nSearching for: "${searchTerm}"`);
-    }
-  }
-  
-  function refreshArticleOfInterest() {
-    if (recentEntries.length > 0) {
-      const allEntries = [...recentEntries]; // This is a simplified version
-      const randomIndex = Math.floor(Math.random() * allEntries.length);
-      setArticleOfInterest(allEntries[randomIndex]);
+      // Navigate to browse page with search term
+      navigate(`/codex/browse/all?search=${encodeURIComponent(searchTerm.trim())}`);
     }
   }
   
@@ -145,15 +159,11 @@ function handleBrowseByType(type) {
       location: '📍',
       event: '⚔️',
       mysteria: '✨',
+      concept: '⚖️',
+      heraldry: '🛡️',
       custom: '📜'
     };
     return icons[type] || '📜';
-  }
-  
-  // Truncate text for preview
-  function truncateText(text, maxLength = 300) {
-    if (!text || text.length <= maxLength) return text;
-    return text.substring(0, maxLength).trim() + '...';
   }
   
   // Loading state
@@ -171,6 +181,11 @@ function handleBrowseByType(type) {
     );
   }
   
+  // Check if we have content for Quick Navigation
+  const hasQuickNavContent = 
+    quickNavData.majorHouses.length > 0 || 
+    quickNavData.lawAndGovernance.length > 0;
+  
   // Main render
   return (
     <>
@@ -185,55 +200,6 @@ function handleBrowseByType(type) {
           </p>
         </header>
         
-        {/* Article of Interest (Wikipedia-style) */}
-        {articleOfInterest && statistics && statistics.total > 0 && (
-          <section className="codex-section article-of-interest-section">
-            <div className="section-header-with-action">
-              <h2 className="section-header">Article of Interest</h2>
-              <button 
-                className="refresh-button"
-                onClick={refreshArticleOfInterest}
-                title="Show different article"
-              >
-                🔄
-              </button>
-            </div>
-            
-            <div className="article-of-interest-card">
-              <div className="article-header">
-                <div className="article-type-badge">
-                  <span className="type-icon">{getTypeIcon(articleOfInterest.type)}</span>
-                  <span className="type-label">{articleOfInterest.type}</span>
-                </div>
-                <h3 className="article-title">{articleOfInterest.title}</h3>
-                {articleOfInterest.subtitle && (
-                  <p className="article-subtitle">{articleOfInterest.subtitle}</p>
-                )}
-              </div>
-              
-              <div className="article-preview">
-                <p>{truncateText(articleOfInterest.content)}</p>
-              </div>
-              
-              <div className="article-footer">
-                <button 
-                  className="read-more-button"
-                  onClick={() => handleViewEntry(articleOfInterest.id)}
-                >
-                  Read More →
-                </button>
-                {articleOfInterest.tags && articleOfInterest.tags.length > 0 && (
-                  <div className="article-tags-preview">
-                    {articleOfInterest.tags.slice(0, 3).map((tag, idx) => (
-                      <span key={idx} className="tag-small">{tag}</span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </section>
-        )}
-        
         {/* Search Section */}
         <div className="codex-search-section">
           <form onSubmit={handleSearchSubmit}>
@@ -246,6 +212,100 @@ function handleBrowseByType(type) {
             />
           </form>
         </div>
+        
+        {/* ═══════════════════════════════════════════════════════════════════
+            QUICK NAVIGATION - Dynamic content hubs
+            ═══════════════════════════════════════════════════════════════════ */}
+        {hasQuickNavContent && (
+          <section className="codex-section quick-nav-section">
+            <h2 className="section-header">Quick Navigation</h2>
+            
+            <div className="quick-nav-grid">
+              {/* Major Houses */}
+              {quickNavData.majorHouses.length > 0 && (
+                <div className="quick-nav-column">
+                  <h3 className="quick-nav-heading">
+                    <span className="heading-icon">🏰</span>
+                    The Great Houses
+                  </h3>
+                  <ul className="quick-nav-list">
+                    {quickNavData.majorHouses.map(entry => (
+                      <li key={entry.id}>
+                        <button 
+                          className="quick-nav-link"
+                          onClick={() => handleViewEntry(entry.id)}
+                        >
+                          {entry.title}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                  {quickNavData.majorHouses.length >= 6 && (
+                    <button 
+                      className="quick-nav-more"
+                      onClick={() => handleBrowseByType('house')}
+                    >
+                      View all houses →
+                    </button>
+                  )}
+                </div>
+              )}
+              
+              {/* Law & Governance */}
+              {quickNavData.lawAndGovernance.length > 0 && (
+                <div className="quick-nav-column">
+                  <h3 className="quick-nav-heading">
+                    <span className="heading-icon">⚖️</span>
+                    Law & Governance
+                  </h3>
+                  <ul className="quick-nav-list">
+                    {quickNavData.lawAndGovernance.map(entry => (
+                      <li key={entry.id}>
+                        <button 
+                          className="quick-nav-link"
+                          onClick={() => handleViewEntry(entry.id)}
+                        >
+                          {entry.title}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                  {quickNavData.lawAndGovernance.length >= 6 && (
+                    <button 
+                      className="quick-nav-more"
+                      onClick={() => handleBrowseByType('concept')}
+                    >
+                      View all concepts →
+                    </button>
+                  )}
+                </div>
+              )}
+              
+              {/* Recently Edited */}
+              {quickNavData.recentlyEdited.length > 0 && (
+                <div className="quick-nav-column">
+                  <h3 className="quick-nav-heading">
+                    <span className="heading-icon">✏️</span>
+                    Recently Edited
+                  </h3>
+                  <ul className="quick-nav-list">
+                    {quickNavData.recentlyEdited.map(entry => (
+                      <li key={entry.id}>
+                        <button 
+                          className="quick-nav-link"
+                          onClick={() => handleViewEntry(entry.id)}
+                        >
+                          <span className="entry-type-indicator">{getTypeIcon(entry.type)}</span>
+                          {entry.title}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
         
         {/* Browse by Category */}
         <section className="codex-section">
@@ -352,6 +412,47 @@ function handleBrowseByType(type) {
               </button>
             </div>
             
+            {/* NEW: Concepts Category */}
+            <div className="entry-type-card-wrapper">
+              <button 
+                className="entry-type-card"
+                onClick={() => handleBrowseByType('concept')}
+              >
+                <div className="card-icon">⚖️</div>
+                <div className="card-label">Concepts</div>
+                <div className="card-count">
+                  ({statistics?.byType.concept || 0})
+                </div>
+              </button>
+              <button
+                className="card-create-button"
+                onClick={(e) => handleCreateEntryOfType('concept', e)}
+                title="Create new concept entry"
+              >
+                +
+              </button>
+            </div>
+            
+            <div className="entry-type-card-wrapper">
+              <button 
+                className="entry-type-card"
+                onClick={() => handleBrowseByType('heraldry')}
+              >
+                <div className="card-icon">🛡️</div>
+                <div className="card-label">Heraldry</div>
+                <div className="card-count">
+                  ({statistics?.byType.heraldry || 0})
+                </div>
+              </button>
+              <button
+                className="card-create-button"
+                onClick={(e) => handleCreateEntryOfType('heraldry', e)}
+                title="Create new heraldry entry"
+              >
+                +
+              </button>
+            </div>
+            
             <div className="entry-type-card-wrapper">
               <button 
                 className="entry-type-card"
@@ -418,8 +519,6 @@ function handleBrowseByType(type) {
         
         {/* ═══════════════════════════════════════════════════════════════════
             🔗 TREE-CODEX INTEGRATION: Biography Completion Stats
-            ═══════════════════════════════════════════════════════════════════
-            Shows how many people have Codex entries and completion status.
             ═══════════════════════════════════════════════════════════════════ */}
         {people && people.length > 0 && (() => {
           const peopleWithCodex = people.filter(p => p.codexEntryId);
@@ -513,6 +612,18 @@ function handleBrowseByType(type) {
             Import Worldbuilding
           </button>
           
+          {/* Cleanup Tool Toggle */}
+          <button 
+            className="action-button secondary"
+            onClick={() => setShowCleanupTool(!showCleanupTool)}
+            style={{
+              borderColor: showCleanupTool ? 'var(--accent-primary)' : undefined
+            }}
+          >
+            <span className="button-icon">🧹</span>
+            {showCleanupTool ? 'Hide Cleanup Tool' : 'Cleanup Duplicates'}
+          </button>
+          
           {statistics && statistics.total === 0 && (
             <button 
               className="action-button secondary"
@@ -530,6 +641,17 @@ function handleBrowseByType(type) {
           )}
         </section>
         
+        {/* Cleanup Tool (collapsible) */}
+        {showCleanupTool && (
+          <section className="codex-section">
+            <CodexCleanupTool 
+              onCleanupComplete={async () => {
+                await loadCodexData();
+              }}
+            />
+          </section>
+        )}
+        
         {/* Empty State (when no entries exist) */}
         {statistics && statistics.total === 0 && (
           <div className="empty-state">
@@ -540,18 +662,17 @@ function handleBrowseByType(type) {
               Create your first entry to get started.
             </p>
             <p className="empty-state-text" style={{ marginTop: '1rem', fontSize: '0.95rem', color: 'var(--text-secondary)' }}>
-              <strong>Quick Start:</strong> Import 23 canonical House Wilfrey entries to see The Codex in action!
+              <strong>Quick Start:</strong> Import canonical worldbuilding entries to see The Codex in action!
             </p>
             <button 
               className="empty-state-button"
-              onClick={handleImportSeedData}
-              disabled={importing}
+              onClick={() => navigate('/codex/import')}
               style={{
                 background: 'var(--accent-primary)',
                 marginBottom: '1rem'
               }}
             >
-              {importing ? '⏳ Importing...' : '📥 Import Sample Data'}
+              📥 Import Worldbuilding Data
             </button>
             <button 
               className="empty-state-button"

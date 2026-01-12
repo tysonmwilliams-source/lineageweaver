@@ -75,6 +75,15 @@
   --interactive-disabled: #b4a484; /* Disabled state */
 
   /* ============================================
+     ACCENT COLORS (Primary brand/action colors)
+     ============================================ */
+  
+  --accent-primary: #b8874a;       /* Rich gold accent - primary actions, selected states */
+  --accent-secondary: #9a6f3a;     /* Darker gold - hover states, secondary emphasis */
+  --accent-tertiary: #d4a56b;      /* Lighter gold - subtle highlights */
+  --accent-muted: rgba(184, 135, 74, 0.15); /* Muted accent for backgrounds */
+
+  /* ============================================
      FOCUS INDICATORS
      ============================================ */
   
@@ -156,6 +165,7 @@
   
   /* Font families */
   --font-display: 'Cinzel', 'Garamond', 'Georgia', serif;
+  --font-heading: 'Cinzel', 'Garamond', 'Georgia', serif;  /* Section headings, titles */
   --font-body: 'Crimson Text', 'Garamond', 'Georgia', serif;
   --font-mono: 'Courier New', 'Courier', monospace;
   

@@ -32,7 +32,10 @@ function RelationshipForm({
     biologicalParent: relationship?.biologicalParent ?? true,
     marriageDate: relationship?.marriageDate || '',
     divorceDate: relationship?.divorceDate || '',
-    marriageStatus: relationship?.marriageStatus || 'married'
+    marriageStatus: relationship?.marriageStatus || 'married',
+    // Lineage-gap specific fields
+    estimatedGenerations: relationship?.estimatedGenerations || '',
+    lineageNotes: relationship?.lineageNotes || ''
   });
 
   // Track validation errors (blocking)
@@ -220,7 +223,12 @@ function RelationshipForm({
         divorceDate: formData.relationshipType === 'spouse' && formData.divorceDate 
           ? formData.divorceDate : null,
         marriageStatus: formData.relationshipType === 'spouse' 
-          ? formData.marriageStatus : null
+          ? formData.marriageStatus : null,
+        // Lineage-gap specific fields
+        estimatedGenerations: formData.relationshipType === 'lineage-gap' && formData.estimatedGenerations
+          ? parseInt(formData.estimatedGenerations) : null,
+        lineageNotes: formData.relationshipType === 'lineage-gap' && formData.lineageNotes
+          ? formData.lineageNotes : null
       };
 
       // If editing, include the ID
@@ -264,6 +272,7 @@ function RelationshipForm({
           <option value="mentor">Mentor/Apprentice</option>
           <option value="twin">Twins</option>
           <option value="named-after">Named After (Namesake)</option>
+          <option value="lineage-gap">Lineage Gap (Distant Ancestor)</option>
         </select>
         <p className="mt-1 text-xs text-gray-500">
           {formData.relationshipType === 'parent' && 'Person 1 is the parent of Person 2'}
@@ -273,6 +282,7 @@ function RelationshipForm({
           {formData.relationshipType === 'mentor' && 'Person 1 is mentor to Person 2'}
           {formData.relationshipType === 'twin' && 'Person 1 and Person 2 are twins'}
           {formData.relationshipType === 'named-after' && 'Person 1 was named after Person 2 (honors/namesake)'}
+          {formData.relationshipType === 'lineage-gap' && 'Person 2 is a distant ancestor of Person 1 (exact lineage unknown)'}
         </p>
         {errors.relationshipType && (
           <p className="mt-1 text-sm text-red-600">{errors.relationshipType}</p>
@@ -290,6 +300,7 @@ function RelationshipForm({
              formData.relationshipType === 'foster-parent' ? 'Foster Parent *' :
              formData.relationshipType === 'twin' ? 'First Twin *' :
              formData.relationshipType === 'named-after' ? 'Person Named *' :
+             formData.relationshipType === 'lineage-gap' ? 'Descendant *' :
              'Mentor *'}
           </label>
           <select
@@ -323,6 +334,7 @@ function RelationshipForm({
              formData.relationshipType === 'foster-parent' ? 'Foster Child *' :
              formData.relationshipType === 'twin' ? 'Second Twin *' :
              formData.relationshipType === 'named-after' ? 'Named After (Honored) *' :
+             formData.relationshipType === 'lineage-gap' ? 'Distant Ancestor *' :
              'Apprentice *'}
           </label>
           <select
@@ -443,6 +455,65 @@ function RelationshipForm({
             Uncheck if this is a non-biological parental relationship
           </p>
         </div>
+      )}
+
+      {/* Lineage-gap specific fields */}
+      {formData.relationshipType === 'lineage-gap' && (
+        <>
+          <div className="rounded-lg border border-purple-200 bg-purple-50 p-4">
+            <div className="flex items-start gap-3">
+              <span className="text-purple-600 text-xl">🔗</span>
+              <div className="flex-1">
+                <h4 className="font-semibold text-purple-800 mb-2">
+                  Lineage Gap Connection
+                </h4>
+                <p className="text-sm text-purple-700 mb-3">
+                  Use this to connect family members who are related but separated by 
+                  unknown or unrecorded generations. This creates a "loose" connection 
+                  that links tree fragments without implying direct parent-child relationships.
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <div>
+            <label htmlFor="estimatedGenerations" className="block text-sm font-medium text-gray-700 mb-1">
+              Estimated Generations Apart
+            </label>
+            <input
+              type="number"
+              id="estimatedGenerations"
+              name="estimatedGenerations"
+              value={formData.estimatedGenerations}
+              onChange={handleChange}
+              min="1"
+              max="50"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="e.g., 5 for great-great-great grandparent"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Approximate number of generations between these people (optional)
+            </p>
+          </div>
+          
+          <div>
+            <label htmlFor="lineageNotes" className="block text-sm font-medium text-gray-700 mb-1">
+              Connection Notes
+            </label>
+            <textarea
+              id="lineageNotes"
+              name="lineageNotes"
+              value={formData.lineageNotes}
+              onChange={handleChange}
+              rows="3"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="e.g., 'Aldric is believed to be Cair's ancestor through the main Salomon line, exact connection unknown'"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Notes about how these people are connected or why the exact lineage is unknown
+            </p>
+          </div>
+        </>
       )}
 
       {/* Spouse-specific fields */}

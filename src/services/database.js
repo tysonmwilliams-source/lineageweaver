@@ -98,6 +98,95 @@ db.version(6).stores({
   acknowledgedDuplicates: '++id, person1Id, person2Id, acknowledgedAt'
 });
 
+// Version 7: Add The Armory - Heraldry System
+// This creates a standalone heraldry table, separating heraldry from houses
+// so heraldry can be its own major system like The Codex
+db.version(7).stores({
+  people: '++id, firstName, lastName, houseId, dateOfBirth, dateOfDeath, bastardStatus, codexEntryId',
+  houses: '++id, houseName, parentHouseId, houseType, codexEntryId, heraldryId',
+  relationships: '++id, person1Id, person2Id, relationshipType',
+  codexEntries: '++id, type, title, category, *tags, era, created, updated',
+  codexLinks: '++id, sourceId, targetId, type',
+  acknowledgedDuplicates: '++id, person1Id, person2Id, acknowledgedAt',
+  // NEW: The Armory - Standalone heraldry system
+  heraldry: '++id, name, category, *tags, created, updated',
+  // Links heraldry to entities (houses, people, locations, events)
+  heraldryLinks: '++id, heraldryId, entityType, entityId, linkType'
+}).upgrade(tx => {
+  // Add heraldryId to existing houses
+  return tx.table('houses').toCollection().modify(house => {
+    house.heraldryId = house.heraldryId || null;
+  });
+});
+
+// Version 8: Add The Dignities System - Titles & Feudal Hierarchy
+// Based on "The Codified Charter of Driht, Ward, and Service"
+// This creates the fifth major system for tracking titles, dignities, and feudal bonds
+db.version(8).stores({
+  people: '++id, firstName, lastName, houseId, dateOfBirth, dateOfDeath, bastardStatus, codexEntryId',
+  houses: '++id, houseName, parentHouseId, houseType, codexEntryId, heraldryId',
+  relationships: '++id, person1Id, person2Id, relationshipType',
+  codexEntries: '++id, type, title, category, *tags, era, created, updated',
+  codexLinks: '++id, sourceId, targetId, type',
+  acknowledgedDuplicates: '++id, person1Id, person2Id, acknowledgedAt',
+  heraldry: '++id, name, category, *tags, created, updated',
+  heraldryLinks: '++id, heraldryId, entityType, entityId, linkType',
+  dignities: '++id, name, shortName, dignityClass, dignityRank, swornToId, currentHolderId, currentHouseId, codexEntryId, created, updated',
+  dignityTenures: '++id, dignityId, personId, dateStarted, dateEnded, acquisitionType, endType, created',
+  dignityLinks: '++id, dignityId, entityType, entityId, linkType, created'
+});
+
+// Version 9: Add Epithets System - Descriptive Bynames
+// Epithets are descriptive names like "the Bold", "Dragonslayer", "the Wise"
+// Stored as an array on people for flexibility and cross-system integration
+db.version(9).stores({
+  people: '++id, firstName, lastName, houseId, dateOfBirth, dateOfDeath, bastardStatus, codexEntryId',
+  houses: '++id, houseName, parentHouseId, houseType, codexEntryId, heraldryId',
+  relationships: '++id, person1Id, person2Id, relationshipType',
+  codexEntries: '++id, type, title, category, *tags, era, created, updated',
+  codexLinks: '++id, sourceId, targetId, type',
+  acknowledgedDuplicates: '++id, person1Id, person2Id, acknowledgedAt',
+  heraldry: '++id, name, category, *tags, created, updated',
+  heraldryLinks: '++id, heraldryId, entityType, entityId, linkType',
+  // Dignities tables (from v8)
+  dignities: '++id, name, shortName, dignityClass, dignityRank, swornToId, currentHolderId, currentHouseId, codexEntryId, created, updated',
+  dignityTenures: '++id, dignityId, personId, dateStarted, dateEnded, acquisitionType, endType, created',
+  dignityLinks: '++id, dignityId, entityType, entityId, linkType, created'
+}).upgrade(tx => {
+  // Add epithets array to existing people
+  return tx.table('people').toCollection().modify(person => {
+    // epithets: Array of epithet objects
+    // Each epithet: { id, text, isPrimary, source, grantedById, earnedFrom, linkedEntityType, linkedEntityId, dateEarned, notes }
+    person.epithets = person.epithets || [];
+  });
+});
+
+// Version 10: Add Personal Arms - Heraldry Phase 4
+// This allows individuals (not just houses) to have their own heraldic devices.
+// Personal arms can be derived from house arms with cadency marks (triangles)
+// to distinguish birth order among legitimate sons.
+db.version(10).stores({
+  // Add heraldryId to people for personal arms (quick access like houses have)
+  people: '++id, firstName, lastName, houseId, dateOfBirth, dateOfDeath, bastardStatus, codexEntryId, heraldryId',
+  houses: '++id, houseName, parentHouseId, houseType, codexEntryId, heraldryId',
+  relationships: '++id, person1Id, person2Id, relationshipType',
+  codexEntries: '++id, type, title, category, *tags, era, created, updated',
+  codexLinks: '++id, sourceId, targetId, type',
+  acknowledgedDuplicates: '++id, person1Id, person2Id, acknowledgedAt',
+  heraldry: '++id, name, category, *tags, created, updated',
+  heraldryLinks: '++id, heraldryId, entityType, entityId, linkType',
+  dignities: '++id, name, shortName, dignityClass, dignityRank, swornToId, currentHolderId, currentHouseId, codexEntryId, created, updated',
+  dignityTenures: '++id, dignityId, personId, dateStarted, dateEnded, acquisitionType, endType, created',
+  dignityLinks: '++id, dignityId, entityType, entityId, linkType, created'
+}).upgrade(tx => {
+  // Add heraldryId to existing people
+  // This field links directly to a heraldry record for quick access
+  // (The heraldryLinks table still provides the full relationship details)
+  return tx.table('people').toCollection().modify(person => {
+    person.heraldryId = person.heraldryId || null;
+  });
+});
+
 // Version 3: Add heraldry system fields
 db.version(3).stores({
   // No changes to indexes, just adding new fields through upgrade function
@@ -407,17 +496,58 @@ export async function foundCadetHouse(ceremonyData) {
 
 // ==================== DELETE ALL DATA ====================
 
+/**
+ * Delete all data from all tables
+ * 
+ * IMPORTANT: This clears ALL tables including Codex data.
+ * Used primarily during cloud sync when downloading fresh data.
+ */
 export async function deleteAllData() {
   try {
-    // Clear all tables
+    // Clear all core tables
     await db.people.clear();
     await db.houses.clear();
     await db.relationships.clear();
     
-    console.log('✅ All data deleted successfully');
+    // Clear Codex tables (CRITICAL - prevents duplicates during sync)
+    await db.codexEntries.clear();
+    await db.codexLinks.clear();
+    
+    // Clear other tables
+    await db.acknowledgedDuplicates.clear();
+    
+    // Clear heraldry tables if they exist
+    if (db.heraldry) await db.heraldry.clear();
+    if (db.heraldryLinks) await db.heraldryLinks.clear();
+    
+    // Clear dignities tables if they exist
+    if (db.dignities) await db.dignities.clear();
+    if (db.dignityTenures) await db.dignityTenures.clear();
+    if (db.dignityLinks) await db.dignityLinks.clear();
+    
+    console.log('✅ All data deleted successfully (including Codex and Dignities)');
     return true;
   } catch (error) {
     console.error('❌ Error deleting all data:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete only genealogy data (people, houses, relationships)
+ * Preserves Codex entries - useful for some operations
+ */
+export async function deleteGenealogyData() {
+  try {
+    await db.people.clear();
+    await db.houses.clear();
+    await db.relationships.clear();
+    await db.acknowledgedDuplicates.clear();
+    
+    console.log('✅ Genealogy data deleted (Codex preserved)');
+    return true;
+  } catch (error) {
+    console.error('❌ Error deleting genealogy data:', error);
     throw error;
   }
 }

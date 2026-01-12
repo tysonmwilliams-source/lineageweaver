@@ -5,6 +5,7 @@ import {
   updateEntry,
   getEntry
 } from '../services/codexService';
+import { updateHeraldry } from '../services/heraldryService'; // PHASE 5 Batch 3
 import Navigation from '../components/Navigation';
 import './CodexEntryForm.css';
 
@@ -22,15 +23,20 @@ function CodexEntryForm() {
   const isEditing = Boolean(id);
   const initialType = searchParams.get('type') || 'personage';
   
+  // PHASE 5 Batch 3: Get heraldryId and title from URL params (for Armory integration)
+  const heraldryIdParam = searchParams.get('heraldryId');
+  const titleParam = searchParams.get('title');
+  
   // Form state
   const [formData, setFormData] = useState({
     type: initialType,
-    title: '',
+    title: titleParam || '',
     subtitle: '',
     content: '',
     tags: [],
     era: '',
-    category: ''
+    category: '',
+    heraldryId: heraldryIdParam ? parseInt(heraldryIdParam) : null // PHASE 5 Batch 3
   });
   
   const [tagInput, setTagInput] = useState('');
@@ -60,7 +66,8 @@ function CodexEntryForm() {
           content: entry.content,
           tags: entry.tags || [],
           era: entry.era || '',
-          category: entry.category || ''
+          category: entry.category || '',
+          heraldryId: entry.heraldryId || null // PHASE 5 Batch 3
         });
       } else {
         setError('Entry not found');
@@ -144,13 +151,28 @@ function CodexEntryForm() {
         content: formData.content.trim(),
         tags: formData.tags,
         era: formData.era.trim() || null,
-        category: formData.category.trim() || null
+        category: formData.category.trim() || null,
+        heraldryId: formData.heraldryId || null // PHASE 5 Batch 3
       };
+      
+      let codexEntryId;
       
       if (isEditing) {
         await updateEntry(parseInt(id), entryData);
+        codexEntryId = parseInt(id);
       } else {
-        await createEntry(entryData);
+        codexEntryId = await createEntry(entryData);
+      }
+      
+      // PHASE 5 Batch 3: Bidirectional linking - update heraldry record with codexEntryId
+      if (entryData.heraldryId && codexEntryId) {
+        try {
+          await updateHeraldry(entryData.heraldryId, { codexEntryId });
+          console.log('🔗 Bidirectional link created: Heraldry', entryData.heraldryId, '<-> Codex', codexEntryId);
+        } catch (linkError) {
+          // Don't fail the save if linking fails, just log it
+          console.error('Warning: Failed to create bidirectional link:', linkError);
+        }
       }
       
       // Navigate back to codex landing
@@ -372,6 +394,7 @@ const ENTRY_TYPES = [
   { value: 'location', label: 'Location', icon: '🗺️' },
   { value: 'event', label: 'Event', icon: '📖' },
   { value: 'mysteria', label: 'Mysteria', icon: '🔮' },
+  { value: 'heraldry', label: 'Heraldry', icon: '🛡️' },
   { value: 'custom', label: 'Custom', icon: '⚖️' }
 ];
 
@@ -537,6 +560,49 @@ const ENTRY_TEMPLATES = {
 
 [Impact on your world and story]`,
     defaultCategory: 'Magic & Mystery'
+  },
+  
+  heraldry: {
+    content: `## Overview
+
+[Brief description of this heraldic device and its significance]
+
+## Blazon
+
+**Technical Description:** [Formal heraldic blazon, e.g., "Argent, a lion rampant gules"]
+
+## Symbolism
+
+[Meaning behind the colors, charges, and design choices]
+
+## History
+
+**Created:** [Date/Era]
+**Original Bearer:** [[Person or House Name]]
+**Current Bearer:** [[Current holder]]
+
+[History of this coat of arms - when it was granted, any modifications over time]
+
+## Associated Houses & Bearers
+
+- [[House Name]] - [Primary/Cadet branch]
+- [[Person Name]] - [Relationship to arms]
+
+## Heraldic Elements
+
+**Field:** [Base color/pattern]
+**Charges:** [Main symbols]
+**Motto:** "[Associated motto if any]"
+
+## Notable Appearances
+
+[Where these arms have appeared in significant events, battles, ceremonies]
+
+## Related Arms
+
+- [[Related Heraldry 1]] - [Relationship, e.g., parent arms, cadet difference]
+- [[Related Heraldry 2]] - [Relationship]`,
+    defaultCategory: 'Heraldry'
   },
   
   custom: {

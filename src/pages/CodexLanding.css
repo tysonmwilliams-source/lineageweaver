@@ -815,3 +815,130 @@
     font-size: 1.5rem;
   }
 }
+
+/* ========================================
+   QUICK NAVIGATION SECTION
+   Dynamic content hubs replacing "Article of Interest"
+   ======================================== */
+
+.quick-nav-section {
+  background: linear-gradient(
+    135deg,
+    var(--bg-secondary) 0%,
+    var(--bg-tertiary) 100%
+  );
+  border: 2px solid var(--border-primary);
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 3rem;
+}
+
+.quick-nav-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+}
+
+.quick-nav-column {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-secondary);
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.quick-nav-heading {
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 1rem 0;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid var(--border-secondary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.heading-icon {
+  font-size: 1.25rem;
+}
+
+.quick-nav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.quick-nav-list li {
+  margin-bottom: 0.5rem;
+}
+
+.quick-nav-list li:last-child {
+  margin-bottom: 0;
+}
+
+.quick-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.quick-nav-link:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--border-secondary);
+  color: var(--accent-primary);
+}
+
+.entry-type-indicator {
+  font-size: 0.9rem;
+  opacity: 0.7;
+}
+
+.quick-nav-more {
+  display: block;
+  width: 100%;
+  margin-top: 1rem;
+  padding: 0.5rem;
+  background: transparent;
+  border: 1px dashed var(--border-secondary);
+  border-radius: 6px;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  color: var(--text-tertiary);
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.quick-nav-more:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+/* Responsive adjustments for Quick Navigation */
+@media (max-width: 768px) {
+  .quick-nav-section {
+    padding: 1.5rem;
+  }
+  
+  .quick-nav-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  
+  .quick-nav-column {
+    padding: 1rem;
+  }
+}

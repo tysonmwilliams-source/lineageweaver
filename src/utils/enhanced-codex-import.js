@@ -33,6 +33,7 @@
  */
 
 import { createEntry, getAllEntries, searchEntriesByTitle } from '../services/codexService.js';
+import { syncAddCodexEntry } from '../services/dataSyncService.js';
 
 // Import data sources
 import CODEX_SEED_DATA from '../data/codex-seed-data.js';
@@ -47,7 +48,8 @@ export async function importCodexData(source, options = {}) {
   const {
     skipDuplicates = true,
     onProgress = null,
-    validateOnly = false
+    validateOnly = false,
+    userId = null  // ☁️ Cloud sync: pass userId to sync imported entries
   } = options;
   
   console.log('📚 Starting enhanced codex import...');
@@ -72,6 +74,7 @@ export async function importCodexData(source, options = {}) {
     events: [],
     personages: [],
     mysteria: [],
+    concepts: [],
     errors: [],
     skipped: [],
     timing: {
@@ -91,7 +94,8 @@ export async function importCodexData(source, options = {}) {
     (dataToImport.locations?.length || 0) +
     (dataToImport.events?.length || 0) +
     (dataToImport.personages?.length || 0) +
-    (dataToImport.mysteria?.length || 0);
+    (dataToImport.mysteria?.length || 0) +
+    (dataToImport.concepts?.length || 0);
   
   let processed = 0;
   
@@ -102,7 +106,8 @@ export async function importCodexData(source, options = {}) {
       { key: 'locations', icon: '🏰', name: 'Locations' },
       { key: 'events', icon: '⚔️', name: 'Events' },
       { key: 'personages', icon: '👤', name: 'Personages' },
-      { key: 'mysteria', icon: '✨', name: 'Mysteria' }
+      { key: 'mysteria', icon: '✨', name: 'Mysteria' },
+      { key: 'concepts', icon: '⚖️', name: 'Concepts' }
     ];
     
     for (const category of categories) {
@@ -135,6 +140,17 @@ export async function importCodexData(source, options = {}) {
           const id = await createEntry(item);
           results[category.key].push({ title: item.title, id });
           console.log(`  ✓ Created: ${item.title} (ID: ${id})`);
+          
+          // ☁️ CLOUD SYNC: Push to Firestore so entries persist across sessions
+          if (userId) {
+            try {
+              await syncAddCodexEntry(userId, id, { ...item, id });
+              console.log(`  ☁️ Synced to cloud: ${item.title}`);
+            } catch (syncErr) {
+              console.warn(`  ⚠️ Cloud sync failed for ${item.title}:`, syncErr.message);
+              // Don't fail the import - local entry is still saved
+            }
+          }
           
           if (onProgress) {
             onProgress({ processed, total, current: item.title, success: true });
@@ -199,7 +215,8 @@ function parseDataSource(source) {
       locations: [],
       events: [],
       personages: [],
-      mysteria: []
+      mysteria: [],
+      concepts: []
     };
     
     for (const src of source) {
@@ -209,6 +226,7 @@ function parseDataSource(source) {
       merged.events.push(...(data.events || []));
       merged.personages.push(...(data.personages || []));
       merged.mysteria.push(...(data.mysteria || []));
+      merged.concepts.push(...(data.concepts || []));
     }
     
     return merged;
@@ -230,7 +248,8 @@ function isValidDataStructure(obj) {
     Array.isArray(obj.locations) ||
     Array.isArray(obj.events) ||
     Array.isArray(obj.personages) ||
-    Array.isArray(obj.mysteria);
+    Array.isArray(obj.mysteria) ||
+    Array.isArray(obj.concepts);
   
   return hasValidCategory;
 }
@@ -248,7 +267,7 @@ function validateDataStructure(data) {
     return { valid: false, errors };
   }
   
-  const validCategories = ['houses', 'locations', 'events', 'personages', 'mysteria'];
+  const validCategories = ['houses', 'locations', 'events', 'personages', 'mysteria', 'concepts'];
   const foundCategories = Object.keys(data).filter(k => validCategories.includes(k));
   
   if (foundCategories.length === 0) {
@@ -298,7 +317,8 @@ function printImportSummary(results) {
     results.locations.length +
     results.events.length +
     results.personages.length +
-    results.mysteria.length;
+    results.mysteria.length +
+    (results.concepts?.length || 0);
   
   console.log('\n📊 IMPORT SUMMARY');
   console.log('═'.repeat(50));
@@ -307,6 +327,7 @@ function printImportSummary(results) {
   console.log(`Events imported:     ${results.events.length}`);
   console.log(`Personages imported: ${results.personages.length}`);
   console.log(`Mysteria imported:   ${results.mysteria.length}`);
+  console.log(`Concepts imported:   ${results.concepts?.length || 0}`);
   console.log(`─`.repeat(50));
   console.log(`Total imported:      ${totalImported}`);
   console.log(`Skipped (duplicates):${results.skipped.length}`);

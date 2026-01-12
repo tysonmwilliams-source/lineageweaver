@@ -15,11 +15,14 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGenealogy } from '../contexts/GenealogyContext';
-import HeraldryThumbnail from './HeraldryThumbnail';
-import HeraldryCreationModal from './HeraldryCreationModal';
+import HouseHeraldrySection from './HouseHeraldrySection';
+import PersonalArmsSection from './PersonalArmsSection'; // Phase 4: Personal Arms
 import { getEntryByPersonId } from '../services/codexService';
 import { getBiographyStatus, getStatusSummary } from '../utils/biographyStatus';
 import { validateRelationship, validatePerson } from '../utils/SmartDataValidator';
+import { getDignitiesForPerson, getDignityIcon, DIGNITY_CLASSES } from '../services/dignityService';
+import EpithetsSection from './EpithetsSection';
+import { getPrimaryEpithet, formatNameWithEpithet } from '../utils/epithetUtils';
 
 function QuickEditPanel({ 
   person, 
@@ -42,7 +45,6 @@ function QuickEditPanel({
 
   // ==================== LOCAL STATE ====================
   const [editedPerson, setEditedPerson] = useState(person);
-  const [showHeraldryModal, setShowHeraldryModal] = useState(false);
   
   // Add relationship form state
   const [addingRelationType, setAddingRelationType] = useState(null); // 'spouse' | 'parent' | 'child' | 'sibling' | null
@@ -62,6 +64,12 @@ function QuickEditPanel({
   // ═══════════════════════════════════════════════════════════════════════
   const [codexEntry, setCodexEntry] = useState(null);
   const [loadingCodex, setLoadingCodex] = useState(false);
+  
+  // ═══════════════════════════════════════════════════════════════════════
+  // 👑 TREE-DIGNITIES INTEGRATION - Phase 3: Titles Display
+  // ═══════════════════════════════════════════════════════════════════════
+  const [personDignities, setPersonDignities] = useState([]);
+  const [loadingDignities, setLoadingDignities] = useState(false);
 
   // ==================== EFFECTS ====================
   useEffect(() => {
@@ -75,8 +83,10 @@ function QuickEditPanel({
     // Fetch Codex entry for biography status
     if (person?.id) {
       loadCodexEntry(person.id);
+      loadPersonDignities(person.id);
     } else {
       setCodexEntry(null);
+      setPersonDignities([]);
     }
   }, [person]);
   
@@ -91,6 +101,27 @@ function QuickEditPanel({
       setCodexEntry(null);
     } finally {
       setLoadingCodex(false);
+    }
+  };
+  
+  // Fetch dignities/titles for the current person
+  const loadPersonDignities = async (personId) => {
+    try {
+      setLoadingDignities(true);
+      const dignities = await getDignitiesForPerson(personId);
+      // Sort by displayPriority (higher first), then by name
+      dignities.sort((a, b) => {
+        if (b.displayPriority !== a.displayPriority) {
+          return (b.displayPriority || 0) - (a.displayPriority || 0);
+        }
+        return (a.name || '').localeCompare(b.name || '');
+      });
+      setPersonDignities(dignities);
+    } catch (error) {
+      console.warn('Could not load dignities:', error);
+      setPersonDignities([]);
+    } finally {
+      setLoadingDignities(false);
     }
   };
 
@@ -1212,6 +1243,12 @@ function QuickEditPanel({
             <div className="flex-1 min-w-0">
               <h2 className="text-xl font-bold truncate" style={{ color: theme.text }}>
                 {person.firstName} {person.lastName}
+                {/* Show primary epithet in header */}
+                {getPrimaryEpithet(person.epithets) && (
+                  <span className="font-normal italic ml-1" style={{ color: theme.accent }}>
+                    {getPrimaryEpithet(person.epithets).text}
+                  </span>
+                )}
               </h2>
               {person.maidenName && (
                 <p className="text-sm italic" style={{ color: theme.textSecondary }}>
@@ -1301,23 +1338,38 @@ function QuickEditPanel({
                 </div>
               </div>
               
-              {/* House display with heraldry */}
+              {/* House name display (simplified - heraldry in dedicated section) */}
               {house && (
                 <div 
-                  className="p-2 rounded border flex items-center gap-2"
+                  className="p-2 rounded border"
                   style={{ backgroundColor: theme.bgLight, borderColor: theme.border }}
                 >
-                  <HeraldryThumbnail 
-                    house={house}
-                    size="small"
-                    onClick={() => setShowHeraldryModal(true)}
-                    isDarkTheme={isDarkTheme}
-                  />
                   <span className="text-sm" style={{ color: theme.text }}>{house.houseName}</span>
                 </div>
               )}
             </div>
           </section>
+
+          {/* ═══════════════════════════════════════════════════════════════════
+              🛡️ HOUSE HERALDRY SECTION - Phase 5 Batch 2
+              ═══════════════════════════════════════════════════════════════════ */}
+          {house && (
+            <HouseHeraldrySection
+              house={house}
+              isDarkTheme={isDarkTheme}
+            />
+          )}
+
+          {/* ═══════════════════════════════════════════════════════════════════
+              🛡️ PERSONAL ARMS SECTION - Phase 4
+              ═══════════════════════════════════════════════════════════════════ */}
+          <PersonalArmsSection
+            person={person}
+            house={house}
+            allPeople={people}
+            allRelationships={relationships}
+            isDarkTheme={isDarkTheme}
+          />
 
           {/* ═══════════════════════════════════════════════════════════════════
               🔗 TREE-CODEX INTEGRATION - Phase 2: Biography Status Section
@@ -1423,6 +1475,106 @@ function QuickEditPanel({
                 </div>
               </div>
             )}
+          </section>
+
+          {/* ═══════════════════════════════════════════════════════════════════
+              👑 TREE-DIGNITIES INTEGRATION - Phase 3: Titles Section
+              ═══════════════════════════════════════════════════════════════════ */}
+          <section>
+            <h3 
+              className="font-semibold mb-2 text-xs uppercase tracking-wider flex items-center gap-2" 
+              style={{ color: theme.textSecondary }}
+            >
+              <span>👑</span> Titles & Dignities
+              <span className="opacity-50">({personDignities.length})</span>
+            </h3>
+            
+            {loadingDignities ? (
+              <div 
+                className="p-3 rounded border text-center text-sm"
+                style={{ backgroundColor: theme.bgLight, borderColor: theme.border, color: theme.textSecondary }}
+              >
+                Loading...
+              </div>
+            ) : personDignities.length > 0 ? (
+              <div className="space-y-1 mb-2">
+                {personDignities.map(dignity => (
+                  <div
+                    key={dignity.id}
+                    onClick={() => navigate(`/dignities/view/${dignity.id}`)}
+                    className="p-2 rounded cursor-pointer transition-all hover:scale-[1.02]"
+                    style={{ 
+                      backgroundColor: theme.bgLight, 
+                      color: theme.text,
+                      border: `1px solid ${theme.border}`
+                    }}
+                  >
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">
+                          {getDignityIcon(dignity) || DIGNITY_CLASSES[dignity.dignityClass]?.icon || '📜'}
+                        </span>
+                        <span className="font-medium text-sm">{dignity.shortName || dignity.name}</span>
+                      </div>
+                      <span className="text-xs opacity-60">→</span>
+                    </div>
+                    {dignity.name !== dignity.shortName && dignity.shortName && (
+                      <div className="text-xs mt-0.5 ml-6" style={{ color: theme.textSecondary }}>
+                        {dignity.name}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div 
+                className="p-3 rounded border text-center text-sm"
+                style={{ 
+                  backgroundColor: theme.bgLight, 
+                  borderColor: theme.border, 
+                  color: theme.textSecondary,
+                  borderStyle: 'dashed'
+                }}
+              >
+                No titles recorded
+              </div>
+            )}
+            
+            {/* Add Title Button */}
+            <button
+              onClick={() => navigate(`/dignities/create?personId=${person.id}&houseId=${person.houseId || ''}`)}
+              className="w-full py-2 px-3 rounded border transition-all flex items-center justify-center gap-2"
+              style={{
+                backgroundColor: 'transparent',
+                color: theme.accent,
+                borderColor: theme.accent,
+                borderStyle: 'dashed',
+                cursor: 'pointer'
+              }}
+            >
+              <span>+</span>
+              <span>Add Title</span>
+            </button>
+          </section>
+
+          {/* ═══════════════════════════════════════════════════════════════════
+              ✨ EPITHETS - Descriptive Bynames
+              ═══════════════════════════════════════════════════════════════════ */}
+          <section>
+            <h3 
+              className="font-semibold mb-2 text-xs uppercase tracking-wider flex items-center gap-2" 
+              style={{ color: theme.textSecondary }}
+            >
+              <span>✨</span> Epithets
+              <span className="opacity-50">({(editedPerson.epithets || []).length})</span>
+            </h3>
+            
+            <EpithetsSection
+              epithets={editedPerson.epithets || []}
+              onChange={(newEpithets) => setEditedPerson({ ...editedPerson, epithets: newEpithets })}
+              isDarkTheme={isDarkTheme}
+              compact={true}
+            />
           </section>
 
           {/* ===== SPOUSES SECTION ===== */}
@@ -1539,19 +1691,6 @@ function QuickEditPanel({
           </button>
         </div>
       </div>
-
-      {/* Heraldry Modal */}
-      {showHeraldryModal && house && (
-        <HeraldryCreationModal 
-          house={house}
-          onClose={() => setShowHeraldryModal(false)}
-          onSave={(heraldryData) => {
-            console.log('🛡️ Heraldry saved:', heraldryData);
-            setShowHeraldryModal(false);
-          }}
-          isDarkTheme={isDarkTheme}
-        />
-      )}
 
       {/* Add Person Form Modal */}
       {renderAddPersonForm()}

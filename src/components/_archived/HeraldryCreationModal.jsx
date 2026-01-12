@@ -38,7 +38,9 @@ function HeraldryCreationModal({
     text: '#e9dcc9',
     textSecondary: '#b8a989',
     border: '#4a3d2a',
-    accent: '#d4a574',
+    accent: '#c9a227',           // Golden accent matching theme
+    accentHover: '#a88620',      // Darker hover state
+    accentText: '#1a1410',       // Dark text on accent buttons
     tab: '#3a2f20',
     tabActive: '#4a3d2a'
   } : {
@@ -47,7 +49,9 @@ function HeraldryCreationModal({
     text: '#2d2418',
     textSecondary: '#4a3d2a',
     border: '#d4c4a4',
-    accent: '#b8874a',
+    accent: '#b8874a',           // Rich gold for light theme
+    accentHover: '#9a6f3a',      // Darker hover state
+    accentText: '#ffffff',       // White text on accent buttons
     tab: '#e5dfd0',
     tabActive: '#d4c4a4'
   };
@@ -308,13 +312,14 @@ function HeraldryCreationModal({
                 style={{
                   padding: '12px 24px',
                   backgroundColor: theme.accent,
-                  color: isDarkTheme ? '#1a1410' : '#ffffff',
+                  color: theme.accentText,
                   border: 'none',
                   borderRadius: '4px',
                   cursor: isProcessing ? 'not-allowed' : 'pointer',
                   fontSize: '16px',
                   fontWeight: 'bold',
-                  opacity: isProcessing ? 0.6 : 1
+                  opacity: isProcessing ? 0.6 : 1,
+                  transition: 'all 0.2s ease'
                 }}
               >
                 {isProcessing ? '⏳ Generating...' : '✨ Generate Heraldry'}
@@ -469,13 +474,14 @@ function HeraldryCreationModal({
             style={{
               padding: '10px 20px',
               backgroundColor: generatedHeraldry && !isProcessing ? theme.accent : theme.border,
-              color: generatedHeraldry && !isProcessing ? (isDarkTheme ? '#1a1410' : '#ffffff') : theme.textSecondary,
+              color: generatedHeraldry && !isProcessing ? theme.accentText : theme.textSecondary,
               border: 'none',
               borderRadius: '4px',
               cursor: generatedHeraldry && !isProcessing ? 'pointer' : 'not-allowed',
               fontSize: '14px',
               fontWeight: 'bold',
-              opacity: generatedHeraldry && !isProcessing ? 1 : 0.6
+              opacity: generatedHeraldry && !isProcessing ? 1 : 0.6,
+              transition: 'all 0.2s ease'
             }}
             title={generatedHeraldry ? 'Save heraldry to house' : 'Generate heraldry first'}
           >

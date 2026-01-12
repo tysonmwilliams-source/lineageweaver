@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { isFeatureEnabled } from '../config/featureFlags';
+import EpithetsSection from './EpithetsSection';
 
 /**
  * PersonForm Component
@@ -33,7 +34,8 @@ function PersonForm({ person = null, houses = [], onSave, onCancel }) {
     magicalBloodline: person?.magicalBloodline || '',
     titles: person?.titles ? person.titles.join(', ') : '',
     notes: person?.notes || '',
-    portraitUrl: person?.portraitUrl || ''
+    portraitUrl: person?.portraitUrl || '',
+    epithets: person?.epithets || []
   });
 
   // Track validation errors
@@ -112,7 +114,8 @@ function PersonForm({ person = null, houses = [], onSave, onCancel }) {
         dateOfDeath: formData.dateOfDeath || null,
         species: formData.species || null,
         magicalBloodline: formData.magicalBloodline || null,
-        portraitUrl: formData.portraitUrl || null
+        portraitUrl: formData.portraitUrl || null,
+        epithets: formData.epithets || []
       };
 
       // If editing, include the ID
@@ -371,6 +374,22 @@ function PersonForm({ person = null, houses = [], onSave, onCancel }) {
           <p className="mt-1 text-xs text-gray-500">Example: Lord of Winterfell, Warden of the North</p>
         </div>
       )}
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          ✨ EPITHETS SECTION
+          ═══════════════════════════════════════════════════════════════════════
+          Descriptive bynames like "the Bold", "the Wise", "Dragonslayer".
+          Full editing interface with all metadata fields.
+          ═══════════════════════════════════════════════════════════════════════ */}
+      <div className="border-t pt-4">
+        <EpithetsSection
+          epithets={formData.epithets}
+          onChange={(newEpithets) => setFormData(prev => ({ ...prev, epithets: newEpithets }))}
+          isDarkTheme={false}
+          compact={false}
+          readOnly={false}
+        />
+      </div>
 
       {/* Notes */}
       <div>

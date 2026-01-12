@@ -417,7 +417,7 @@ export async function syncAllToCloud(userId, localData) {
   try {
     console.log('☁️ Starting full sync to cloud...');
     
-    const { people, houses, relationships, codexEntries } = localData;
+    const { people, houses, relationships, codexEntries, heraldry, heraldryLinks, dignities, dignityTenures, dignityLinks } = localData;
     
     // Use batched writes for efficiency (max 500 operations per batch)
     // We'll create multiple batches if needed
@@ -480,6 +480,61 @@ export async function syncAllToCloud(userId, localData) {
       await checkBatch();
     }
     
+    // Sync heraldry
+    for (const h of heraldry || []) {
+      const docRef = getUserDoc(userId, 'heraldry', String(h.id));
+      batch.set(docRef, {
+        ...h,
+        localId: h.id,
+        syncedAt: serverTimestamp()
+      });
+      await checkBatch();
+    }
+    
+    // Sync heraldry links
+    for (const link of heraldryLinks || []) {
+      const docRef = getUserDoc(userId, 'heraldryLinks', String(link.id));
+      batch.set(docRef, {
+        ...link,
+        localId: link.id,
+        syncedAt: serverTimestamp()
+      });
+      await checkBatch();
+    }
+    
+    // Sync dignities
+    for (const dignity of dignities || []) {
+      const docRef = getUserDoc(userId, 'dignities', String(dignity.id));
+      batch.set(docRef, {
+        ...dignity,
+        localId: dignity.id,
+        syncedAt: serverTimestamp()
+      });
+      await checkBatch();
+    }
+    
+    // Sync dignity tenures
+    for (const tenure of dignityTenures || []) {
+      const docRef = getUserDoc(userId, 'dignityTenures', String(tenure.id));
+      batch.set(docRef, {
+        ...tenure,
+        localId: tenure.id,
+        syncedAt: serverTimestamp()
+      });
+      await checkBatch();
+    }
+    
+    // Sync dignity links
+    for (const link of dignityLinks || []) {
+      const docRef = getUserDoc(userId, 'dignityLinks', String(link.id));
+      batch.set(docRef, {
+        ...link,
+        localId: link.id,
+        syncedAt: serverTimestamp()
+      });
+      await checkBatch();
+    }
+    
     // Commit remaining operations
     if (operationCount > 0) {
       await batch.commit();
@@ -489,7 +544,12 @@ export async function syncAllToCloud(userId, localData) {
       houses: houses?.length || 0,
       people: people?.length || 0,
       relationships: relationships?.length || 0,
-      codexEntries: codexEntries?.length || 0
+      codexEntries: codexEntries?.length || 0,
+      heraldry: heraldry?.length || 0,
+      heraldryLinks: heraldryLinks?.length || 0,
+      dignities: dignities?.length || 0,
+      dignityTenures: dignityTenures?.length || 0,
+      dignityLinks: dignityLinks?.length || 0
     });
     
     return true;
@@ -510,21 +570,31 @@ export async function downloadAllFromCloud(userId) {
   try {
     console.log('☁️ Downloading all data from cloud...');
     
-    const [people, houses, relationships, codexEntries] = await Promise.all([
+    const [people, houses, relationships, codexEntries, heraldry, heraldryLinks, dignities, dignityTenures, dignityLinks] = await Promise.all([
       getAllPeopleCloud(userId),
       getAllHousesCloud(userId),
       getAllRelationshipsCloud(userId),
-      getAllCodexEntriesCloud(userId)
+      getAllCodexEntriesCloud(userId),
+      getAllHeraldryCloud(userId),
+      getAllHeraldryLinksCloud(userId),
+      getAllDignitiesCloud(userId),
+      getAllDignityTenuresCloud(userId),
+      getAllDignityLinksCloud(userId)
     ]);
     
     console.log('☁️ Download complete!', {
       houses: houses.length,
       people: people.length,
       relationships: relationships.length,
-      codexEntries: codexEntries.length
+      codexEntries: codexEntries.length,
+      heraldry: heraldry.length,
+      heraldryLinks: heraldryLinks.length,
+      dignities: dignities.length,
+      dignityTenures: dignityTenures.length,
+      dignityLinks: dignityLinks.length
     });
     
-    return { people, houses, relationships, codexEntries };
+    return { people, houses, relationships, codexEntries, heraldry, heraldryLinks, dignities, dignityTenures, dignityLinks };
   } catch (error) {
     console.error('☁️ Error downloading from cloud:', error);
     throw error;
@@ -548,6 +618,332 @@ export async function hasCloudData(userId) {
   }
 }
 
+// ==================== HERALDRY OPERATIONS ====================
+
+/**
+ * Add a heraldry record to Firestore
+ */
+export async function addHeraldryCloud(userId, heraldryData) {
+  try {
+    const heraldryRef = getUserCollection(userId, 'heraldry');
+    const docRef = doc(heraldryRef, String(heraldryData.id));
+    
+    await setDoc(docRef, {
+      ...heraldryData,
+      localId: heraldryData.id,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+    
+    console.log('☁️ Heraldry added to cloud:', heraldryData.name);
+    return docRef.id;
+  } catch (error) {
+    console.error('☁️ Error adding heraldry to cloud:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get a heraldry record from Firestore
+ */
+export async function getHeraldryCloud(userId, heraldryId) {
+  try {
+    const docRef = getUserDoc(userId, 'heraldry', String(heraldryId));
+    const docSnap = await getDoc(docRef);
+    return docToObject(docSnap);
+  } catch (error) {
+    console.error('☁️ Error getting heraldry from cloud:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get all heraldry from Firestore
+ */
+export async function getAllHeraldryCloud(userId) {
+  try {
+    const heraldryRef = getUserCollection(userId, 'heraldry');
+    const snapshot = await getDocs(heraldryRef);
+    return snapshot.docs.map(docToObject);
+  } catch (error) {
+    console.error('☁️ Error getting all heraldry from cloud:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update a heraldry record in Firestore
+ */
+export async function updateHeraldryCloud(userId, heraldryId, updates) {
+  try {
+    const docRef = getUserDoc(userId, 'heraldry', String(heraldryId));
+    await updateDoc(docRef, {
+      ...updates,
+      updatedAt: serverTimestamp()
+    });
+    console.log('☁️ Heraldry updated in cloud:', heraldryId);
+  } catch (error) {
+    console.error('☁️ Error updating heraldry in cloud:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete a heraldry record from Firestore
+ */
+export async function deleteHeraldryCloud(userId, heraldryId) {
+  try {
+    const docRef = getUserDoc(userId, 'heraldry', String(heraldryId));
+    await deleteDoc(docRef);
+    console.log('☁️ Heraldry deleted from cloud:', heraldryId);
+  } catch (error) {
+    console.error('☁️ Error deleting heraldry from cloud:', error);
+    throw error;
+  }
+}
+
+// ==================== DIGNITIES OPERATIONS ====================
+
+/**
+ * Add a dignity record to Firestore
+ */
+export async function addDignityCloud(userId, dignityData) {
+  try {
+    const dignitiesRef = getUserCollection(userId, 'dignities');
+    const docRef = doc(dignitiesRef, String(dignityData.id));
+    
+    await setDoc(docRef, {
+      ...dignityData,
+      localId: dignityData.id,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+    
+    console.log('☁️ Dignity added to cloud:', dignityData.name);
+    return docRef.id;
+  } catch (error) {
+    console.error('☁️ Error adding dignity to cloud:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get all dignities from Firestore
+ */
+export async function getAllDignitiesCloud(userId) {
+  try {
+    const dignitiesRef = getUserCollection(userId, 'dignities');
+    const snapshot = await getDocs(dignitiesRef);
+    return snapshot.docs.map(docToObject);
+  } catch (error) {
+    console.error('☁️ Error getting all dignities from cloud:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update a dignity record in Firestore
+ */
+export async function updateDignityCloud(userId, dignityId, updates) {
+  try {
+    const docRef = getUserDoc(userId, 'dignities', String(dignityId));
+    await updateDoc(docRef, {
+      ...updates,
+      updatedAt: serverTimestamp()
+    });
+    console.log('☁️ Dignity updated in cloud:', dignityId);
+  } catch (error) {
+    console.error('☁️ Error updating dignity in cloud:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete a dignity record from Firestore
+ */
+export async function deleteDignityCloud(userId, dignityId) {
+  try {
+    const docRef = getUserDoc(userId, 'dignities', String(dignityId));
+    await deleteDoc(docRef);
+    console.log('☁️ Dignity deleted from cloud:', dignityId);
+  } catch (error) {
+    console.error('☁️ Error deleting dignity from cloud:', error);
+    throw error;
+  }
+}
+
+// ==================== DIGNITY TENURES OPERATIONS ====================
+
+/**
+ * Add a dignity tenure record to Firestore
+ */
+export async function addDignityTenureCloud(userId, tenureData) {
+  try {
+    const tenuresRef = getUserCollection(userId, 'dignityTenures');
+    const docRef = doc(tenuresRef, String(tenureData.id));
+    
+    await setDoc(docRef, {
+      ...tenureData,
+      localId: tenureData.id,
+      createdAt: serverTimestamp()
+    });
+    
+    console.log('☁️ Dignity tenure added to cloud');
+    return docRef.id;
+  } catch (error) {
+    console.error('☁️ Error adding dignity tenure to cloud:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get all dignity tenures from Firestore
+ */
+export async function getAllDignityTenuresCloud(userId) {
+  try {
+    const tenuresRef = getUserCollection(userId, 'dignityTenures');
+    const snapshot = await getDocs(tenuresRef);
+    return snapshot.docs.map(docToObject);
+  } catch (error) {
+    console.error('☁️ Error getting all dignity tenures from cloud:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update a dignity tenure in Firestore
+ */
+export async function updateDignityTenureCloud(userId, tenureId, updates) {
+  try {
+    const docRef = getUserDoc(userId, 'dignityTenures', String(tenureId));
+    await updateDoc(docRef, updates);
+    console.log('☁️ Dignity tenure updated in cloud:', tenureId);
+  } catch (error) {
+    console.error('☁️ Error updating dignity tenure in cloud:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete a dignity tenure from Firestore
+ */
+export async function deleteDignityTenureCloud(userId, tenureId) {
+  try {
+    const docRef = getUserDoc(userId, 'dignityTenures', String(tenureId));
+    await deleteDoc(docRef);
+    console.log('☁️ Dignity tenure deleted from cloud:', tenureId);
+  } catch (error) {
+    console.error('☁️ Error deleting dignity tenure from cloud:', error);
+    throw error;
+  }
+}
+
+// ==================== DIGNITY LINKS OPERATIONS ====================
+
+/**
+ * Add a dignity link to Firestore
+ */
+export async function addDignityLinkCloud(userId, linkData) {
+  try {
+    const linksRef = getUserCollection(userId, 'dignityLinks');
+    const docRef = doc(linksRef, String(linkData.id));
+    
+    await setDoc(docRef, {
+      ...linkData,
+      localId: linkData.id,
+      createdAt: serverTimestamp()
+    });
+    
+    console.log('☁️ Dignity link added to cloud');
+    return docRef.id;
+  } catch (error) {
+    console.error('☁️ Error adding dignity link to cloud:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get all dignity links from Firestore
+ */
+export async function getAllDignityLinksCloud(userId) {
+  try {
+    const linksRef = getUserCollection(userId, 'dignityLinks');
+    const snapshot = await getDocs(linksRef);
+    return snapshot.docs.map(docToObject);
+  } catch (error) {
+    console.error('☁️ Error getting all dignity links from cloud:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete a dignity link from Firestore
+ */
+export async function deleteDignityLinkCloud(userId, linkId) {
+  try {
+    const docRef = getUserDoc(userId, 'dignityLinks', String(linkId));
+    await deleteDoc(docRef);
+    console.log('☁️ Dignity link deleted from cloud:', linkId);
+  } catch (error) {
+    console.error('☁️ Error deleting dignity link from cloud:', error);
+    throw error;
+  }
+}
+
+// ==================== HERALDRY LINKS OPERATIONS ====================
+
+/**
+ * Add a heraldry link to Firestore
+ */
+export async function addHeraldryLinkCloud(userId, linkData) {
+  try {
+    const linksRef = getUserCollection(userId, 'heraldryLinks');
+    const docRef = doc(linksRef, String(linkData.id));
+    
+    await setDoc(docRef, {
+      ...linkData,
+      localId: linkData.id,
+      createdAt: serverTimestamp()
+    });
+    
+    console.log('☁️ Heraldry link added to cloud');
+    return docRef.id;
+  } catch (error) {
+    console.error('☁️ Error adding heraldry link to cloud:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get all heraldry links from Firestore
+ */
+export async function getAllHeraldryLinksCloud(userId) {
+  try {
+    const linksRef = getUserCollection(userId, 'heraldryLinks');
+    const snapshot = await getDocs(linksRef);
+    return snapshot.docs.map(docToObject);
+  } catch (error) {
+    console.error('☁️ Error getting all heraldry links from cloud:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete a heraldry link from Firestore
+ */
+export async function deleteHeraldryLinkCloud(userId, linkId) {
+  try {
+    const docRef = getUserDoc(userId, 'heraldryLinks', String(linkId));
+    await deleteDoc(docRef);
+    console.log('☁️ Heraldry link deleted from cloud:', linkId);
+  } catch (error) {
+    console.error('☁️ Error deleting heraldry link from cloud:', error);
+    throw error;
+  }
+}
+
+// ==================== BULK OPERATIONS ====================
+
 /**
  * Delete all user data from cloud
  * @param {string} userId - The user's Firebase UID
@@ -556,7 +952,7 @@ export async function deleteAllCloudData(userId) {
   try {
     console.log('☁️ Deleting all cloud data...');
     
-    const collections = ['people', 'houses', 'relationships', 'codexEntries', 'codexLinks', 'acknowledgedDuplicates'];
+    const collections = ['people', 'houses', 'relationships', 'codexEntries', 'codexLinks', 'acknowledgedDuplicates', 'heraldry', 'heraldryLinks', 'dignities', 'dignityTenures', 'dignityLinks'];
     
     for (const collName of collections) {
       const collRef = getUserCollection(userId, collName);
@@ -606,6 +1002,35 @@ export default {
   getAllCodexEntriesCloud,
   updateCodexEntryCloud,
   deleteCodexEntryCloud,
+  
+  // Heraldry
+  addHeraldryCloud,
+  getHeraldryCloud,
+  getAllHeraldryCloud,
+  updateHeraldryCloud,
+  deleteHeraldryCloud,
+  
+  // Heraldry Links
+  addHeraldryLinkCloud,
+  getAllHeraldryLinksCloud,
+  deleteHeraldryLinkCloud,
+  
+  // Dignities
+  addDignityCloud,
+  getAllDignitiesCloud,
+  updateDignityCloud,
+  deleteDignityCloud,
+  
+  // Dignity Tenures
+  addDignityTenureCloud,
+  getAllDignityTenuresCloud,
+  updateDignityTenureCloud,
+  deleteDignityTenureCloud,
+  
+  // Dignity Links
+  addDignityLinkCloud,
+  getAllDignityLinksCloud,
+  deleteDignityLinkCloud,
   
   // Bulk operations
   syncAllToCloud,

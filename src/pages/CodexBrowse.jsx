@@ -209,6 +209,7 @@ function CodexBrowse() {
       location: '📍',
       event: '⚔️',
       mysteria: '✨',
+      heraldry: '🛡️',
       custom: '📜'
     };
     return icons[entryType] || '📜';
@@ -221,6 +222,7 @@ function CodexBrowse() {
       location: 'Locations',
       event: 'Events',
       mysteria: 'Mysteria',
+      heraldry: 'Heraldry',
       custom: 'Custom Entries'
     };
     return labels[entryType] || 'Entries';

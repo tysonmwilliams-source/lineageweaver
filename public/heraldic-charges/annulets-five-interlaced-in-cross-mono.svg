@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xl="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" xmlns:dc="http://purl.org/dc/elements/1.1/" version="1.1" viewBox="36 62.99866 292.5 292.50134" width="292.5" height="292.50134">
+  <defs>
+    <clipPath id="artboard_clip_path">
+      <path d="M 36 62.99866 L 328.5 62.99866 L 328.5 355.5 L 36 355.5 Z"/>
+    </clipPath>
+  </defs>
+  <g id="Annulets,_Five,_Interlaced_In_Cross" stroke-opacity="1" stroke="none" stroke-dasharray="none" fill="none" fill-opacity="1">
+    <title>Annulets, Five, Interlaced In Cross</title>
+    <g id="Annulets,_Five,_Interlaced_In_Cross_Layer_2" clip-path="url(#artboard_clip_path)">
+      <title>Layer 2</title>
+      <g id="Group_24">
+        <g id="Graphic_38">
+          <circle cx="182.00477" cy="209.26977" r="55.1777498638415" stroke="black" stroke-linecap="butt" stroke-linejoin="round" stroke-width="18"/>
+        </g>
+        <g id="Graphic_37">
+          <circle cx="182.00477" cy="209.26977" r="55.1777498638415" stroke="#FFFFFF" stroke-linecap="butt" stroke-linejoin="round" stroke-width="12.5"/>
+        </g>
+        <g id="Graphic_36">
+          <circle cx="255.57498" cy="209.26977" r="62.5347831790204" stroke="black" stroke-linecap="butt" stroke-linejoin="round" stroke-width="18"/>
+        </g>
+        <g id="Graphic_35">
+          <circle cx="108.92502" cy="209.26977" r="62.5347831790204" stroke="black" stroke-linecap="butt" stroke-linejoin="round" stroke-width="18"/>
+        </g>
+        <g id="Graphic_34">
+          <circle cx="255.57498" cy="209.26977" r="62.5347831790204" stroke="#FFFFFF" stroke-linecap="butt" stroke-linejoin="round" stroke-width="12.5"/>
+        </g>
+        <g id="Graphic_33">
+          <circle cx="108.92502" cy="209.26977" r="62.5347831790204" stroke="#FFFFFF" stroke-linecap="butt" stroke-linejoin="round" stroke-width="12.5"/>
+        </g>
+        <g id="Graphic_32">
+          <circle cx="182.00477" cy="135.65868" r="62.5347831790204" stroke="black" stroke-linecap="butt" stroke-linejoin="round" stroke-width="18"/>
+        </g>
+        <g id="Graphic_31">
+          <circle cx="182.00477" cy="282.83998" r="62.5347831790204" stroke="black" stroke-linecap="butt" stroke-linejoin="round" stroke-width="18"/>
+        </g>
+        <g id="Graphic_30">
+          <circle cx="182.00477" cy="135.65868" r="62.5347831790204" stroke="#FFFFFF" stroke-linecap="butt" stroke-linejoin="round" stroke-width="12.5"/>
+        </g>
+        <g id="Graphic_29">
+          <circle cx="182.00477" cy="282.83998" r="62.5347831790204" stroke="#FFFFFF" stroke-linecap="butt" stroke-linejoin="round" stroke-width="12.5"/>
+        </g>
+        <g id="Graphic_28">
+          <path d="M 142.98827 248.28626 C 121.44006 226.73804 121.44006 191.8015 142.98827 170.25327" stroke="black" stroke-linecap="butt" stroke-linejoin="round" stroke-width="18"/>
+        </g>
+        <g id="Graphic_27">
+          <path d="M 221.02126 170.25327 C 242.56947 191.8015 242.56947 226.73804 221.02126 248.28626" stroke="black" stroke-linecap="butt" stroke-linejoin="round" stroke-width="18"/>
+        </g>
+        <g id="Graphic_26">
+          <path d="M 143.3804 248.6747 C 132.7931 238.29698 126.82726 224.0954 126.82726 209.27013 C 126.82726 194.44487 132.7931 180.24328 143.3804 169.86556" stroke="#FFFFFF" stroke-linecap="butt" stroke-linejoin="round" stroke-width="12.5"/>
+        </g>
+        <g id="Graphic_25">
+          <path d="M 220.62913 169.86556 C 231.21644 180.24328 237.18227 194.44487 237.18227 209.27013 C 237.18227 224.0954 231.21644 238.29698 220.62913 248.6747" stroke="#FFFFFF" stroke-linecap="butt" stroke-linejoin="round" stroke-width="12.5"/>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>

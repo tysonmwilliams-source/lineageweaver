@@ -3,44 +3,49 @@
  * 
  * Dedicated page for importing worldbuilding content into The Codex.
  * Provides UI for importing House Wilfrey seed data, Veritists expansion,
- * or any custom data following the same format.
+ * Charter data, or any custom data following the same format.
+ * 
+ * STYLED TO MATCH: Medieval manuscript aesthetic using theme CSS variables
  */
 
 import { useNavigate } from 'react-router-dom';
 import EnhancedCodexImportTool from '../components/EnhancedCodexImportTool';
 import VERITISTS_CODEX_DATA from '../data/veritists-codex-import';
+import CHARTER_CODEX_DATA from '../data/charter-codex-import';
+import './CodexImport.css';
 
 export default function CodexImport() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-[var(--parchment-bg)]">
+    <div className="codex-import">
       {/* Header */}
-      <div className="bg-[var(--parchment-accent)] text-white shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-serif font-bold mb-2">
-                📚 Codex Import
-              </h1>
-              <p className="text-sm opacity-90">
-                Import worldbuilding content into The Codex
-              </p>
-            </div>
-            <button
-              onClick={() => navigate('/codex')}
-              className="px-4 py-2 bg-white text-[var(--parchment-accent)] rounded-lg hover:bg-gray-100 transition-colors font-serif"
-            >
-              ← Back to Codex
-            </button>
+      <header className="codex-import__header">
+        <div className="codex-import__header-content">
+          <div className="codex-import__header-text">
+            <h1 className="codex-import__title">
+              📚 Codex Import
+            </h1>
+            <p className="codex-import__subtitle">
+              Import worldbuilding content into The Codex
+            </p>
           </div>
+          <button
+            onClick={() => navigate('/codex')}
+            className="codex-import__back-button"
+          >
+            ← Back to Codex
+          </button>
         </div>
-      </div>
+      </header>
 
       {/* Import Tool */}
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <EnhancedCodexImportTool veritistsData={VERITISTS_CODEX_DATA} />
-      </div>
+      <main className="codex-import__main">
+        <EnhancedCodexImportTool 
+          veritistsData={VERITISTS_CODEX_DATA} 
+          charterData={CHARTER_CODEX_DATA}
+        />
+      </main>
     </div>
   );
 }

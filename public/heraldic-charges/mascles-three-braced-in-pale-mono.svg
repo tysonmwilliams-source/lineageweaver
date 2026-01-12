@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xl="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg" xmlns:dc="http://purl.org/dc/elements/1.1/" version="1.1" viewBox="94.5 60.75 175.5 355.5" width="175.5" height="355.5">
+  <defs>
+    <clipPath id="artboard_clip_path">
+      <path d="M 94.5 60.75 L 270 60.75 L 270 416.25 L 94.5 416.25 Z"/>
+    </clipPath>
+  </defs>
+  <g id="Mascles,_Three,_Braced_In_Pale" stroke-opacity="1" stroke="none" stroke-dasharray="none" fill="none" fill-opacity="1">
+    <title>Mascles, Three, Braced In Pale</title>
+    <g id="Mascles,_Three,_Braced_In_Pale_Layer_2" clip-path="url(#artboard_clip_path)">
+      <title>Layer 2</title>
+      <g id="Group_40">
+        <g id="Graphic_36">
+          <path d="M 145.10036 192.38321 L 155.99509 181.4885 L 120.95666 146.26642 L 182.25 84.65184 L 243.54334 146.26642 L 182.25 207.881 L 166.833 192.38321 L 155.99509 203.27793 L 182.25 229.53285 L 265.51642 146.26642 L 182.25 63 L 98.98358 146.26642 Z" fill="#FFFFFF"/>
+          <path d="M 145.10036 192.38321 L 155.99509 181.4885 L 120.95666 146.26642 L 182.25 84.65184 L 243.54334 146.26642 L 182.25 207.881 L 166.833 192.38321 L 155.99509 203.27793 L 182.25 229.53285 L 265.51642 146.26642 L 182.25 63 L 98.98358 146.26642 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+        </g>
+        <g id="Graphic_38">
+          <path d="M 155.99509 273.72207 L 120.95666 238.5 L 182.25 176.88542 L 197.667 192.38321 L 208.50491 181.4885 L 182.25 155.23358 L 98.98358 238.5 L 145.10036 284.6168 Z M 155.99509 295.5115 L 182.25 321.76642 L 265.51642 238.5 L 219.39964 192.38321 L 208.50491 203.27793 L 243.54334 238.5 L 182.25 300.1146 L 166.833 284.6168 Z" fill="#FFFFFF"/>
+          <path d="M 155.99509 273.72207 L 120.95666 238.5 L 182.25 176.88542 L 197.667 192.38321 L 208.50491 181.4885 L 182.25 155.23358 L 98.98358 238.5 L 145.10036 284.6168 Z M 155.99509 295.5115 L 182.25 321.76642 L 265.51642 238.5 L 219.39964 192.38321 L 208.50491 203.27793 L 243.54334 238.5 L 182.25 300.1146 L 166.833 284.6168 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+        </g>
+        <g id="Graphic_39">
+          <path d="M 219.39964 284.6168 L 208.50491 295.5115 L 243.54334 330.73358 L 182.25 392.34816 L 120.95666 330.73358 L 182.25 269.119 L 197.667 284.6168 L 208.50491 273.72207 L 182.25 247.46715 L 98.98358 330.73358 L 182.25 414 L 265.51642 330.73358 Z" fill="#FFFFFF"/>
+          <path d="M 219.39964 284.6168 L 208.50491 295.5115 L 243.54334 330.73358 L 182.25 392.34816 L 120.95666 330.73358 L 182.25 269.119 L 197.667 284.6168 L 208.50491 273.72207 L 182.25 247.46715 L 98.98358 330.73358 L 182.25 414 L 265.51642 330.73358 Z" stroke="black" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>

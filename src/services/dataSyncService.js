@@ -55,6 +55,19 @@ import {
   addCodexEntryCloud,
   updateCodexEntryCloud,
   deleteCodexEntryCloud,
+  addHeraldryCloud,
+  updateHeraldryCloud,
+  deleteHeraldryCloud,
+  addHeraldryLinkCloud,
+  deleteHeraldryLinkCloud,
+  addDignityCloud,
+  updateDignityCloud,
+  deleteDignityCloud,
+  addDignityTenureCloud,
+  updateDignityTenureCloud,
+  deleteDignityTenureCloud,
+  addDignityLinkCloud,
+  deleteDignityLinkCloud,
   syncAllToCloud,
   downloadAllFromCloud,
   hasCloudData
@@ -72,8 +85,15 @@ import {
 
 import {
   getAllEntries as getAllCodexEntries,
-  createEntry as localCreateCodexEntry
+  restoreEntry as localRestoreCodexEntry // Use restore, not create, to preserve IDs
 } from './codexService';
+
+import {
+  getAllHeraldry as localGetAllHeraldry,
+  createHeraldry as localCreateHeraldry
+} from './heraldryService';
+
+import { db as localDb } from './database';
 
 // ==================== SYNC STATE ====================
 
@@ -180,17 +200,45 @@ export async function initializeSync(userId) {
       console.log('⬆️ Uploading local data to cloud...');
       
       let codexEntries = [];
+      let heraldry = [];
+      let heraldryLinks = [];
+      
       try {
         codexEntries = await getAllCodexEntries();
       } catch (e) {
         console.warn('Could not get codex entries:', e);
+      }
+      
+      try {
+        heraldry = await localGetAllHeraldry();
+        heraldryLinks = await localDb.heraldryLinks.toArray();
+      } catch (e) {
+        console.warn('Could not get heraldry:', e);
+      }
+      
+      // Get dignities data
+      let dignities = [];
+      let dignityTenures = [];
+      let dignityLinks = [];
+      
+      try {
+        dignities = await localDb.dignities.toArray();
+        dignityTenures = await localDb.dignityTenures.toArray();
+        dignityLinks = await localDb.dignityLinks.toArray();
+      } catch (e) {
+        console.warn('Could not get dignities:', e);
       }
 
       await syncAllToCloud(userId, {
         people: localPeople,
         houses: localHouses,
         relationships: localRelationships,
-        codexEntries
+        codexEntries,
+        heraldry,
+        heraldryLinks,
+        dignities,
+        dignityTenures,
+        dignityLinks
       });
 
       updateSyncStatus({ isSyncing: false, lastSyncTime: new Date() });
@@ -229,12 +277,65 @@ export async function initializeSync(userId) {
     }
 
     // Handle codex entries if they exist
+    // IMPORTANT: Use restoreEntry (not createEntry) to preserve original IDs
+    // This prevents duplicate entries during sync
     for (const entry of cloudData.codexEntries || []) {
       const { createdAt, updatedAt, syncedAt, localId, ...entryData } = entry;
       try {
-        await localCreateCodexEntry({ ...entryData, id: parseInt(entry.id) || entry.id });
+        await localRestoreCodexEntry({ ...entryData, id: parseInt(entry.id) || entry.id });
       } catch (e) {
         console.warn('Could not restore codex entry:', e);
+      }
+    }
+    
+    // Handle heraldry if it exists
+    for (const h of cloudData.heraldry || []) {
+      const { createdAt, updatedAt, syncedAt, localId, ...heraldryData } = h;
+      try {
+        // Use put to insert with specific ID
+        await localDb.heraldry.put({ ...heraldryData, id: parseInt(h.id) || h.id });
+      } catch (e) {
+        console.warn('Could not restore heraldry:', e);
+      }
+    }
+    
+    // Handle heraldry links if they exist
+    for (const link of cloudData.heraldryLinks || []) {
+      const { createdAt, syncedAt, localId, ...linkData } = link;
+      try {
+        await localDb.heraldryLinks.put({ ...linkData, id: parseInt(link.id) || link.id });
+      } catch (e) {
+        console.warn('Could not restore heraldry link:', e);
+      }
+    }
+    
+    // Handle dignities if they exist
+    for (const dignity of cloudData.dignities || []) {
+      const { createdAt, updatedAt, syncedAt, localId, ...dignityData } = dignity;
+      try {
+        await localDb.dignities.put({ ...dignityData, id: parseInt(dignity.id) || dignity.id });
+      } catch (e) {
+        console.warn('Could not restore dignity:', e);
+      }
+    }
+    
+    // Handle dignity tenures if they exist
+    for (const tenure of cloudData.dignityTenures || []) {
+      const { createdAt, syncedAt, localId, ...tenureData } = tenure;
+      try {
+        await localDb.dignityTenures.put({ ...tenureData, id: parseInt(tenure.id) || tenure.id });
+      } catch (e) {
+        console.warn('Could not restore dignity tenure:', e);
+      }
+    }
+    
+    // Handle dignity links if they exist
+    for (const link of cloudData.dignityLinks || []) {
+      const { createdAt, syncedAt, localId, ...linkData } = link;
+      try {
+        await localDb.dignityLinks.put({ ...linkData, id: parseInt(link.id) || link.id });
+      } catch (e) {
+        console.warn('Could not restore dignity link:', e);
       }
     }
 
@@ -417,6 +518,185 @@ export async function syncDeleteCodexEntry(userId, entryId) {
   }
 }
 
+// ==================== HERALDRY SYNC WRAPPERS ====================
+
+/**
+ * Add heraldry (local + cloud)
+ * @param {string} userId - The user's Firebase UID
+ * @param {number} heraldryId - The local heraldry ID (after local add)
+ * @param {Object} heraldryData - The heraldry data
+ */
+export async function syncAddHeraldry(userId, heraldryId, heraldryData) {
+  if (!userId || !isOnline) return;
+  
+  try {
+    await addHeraldryCloud(userId, { ...heraldryData, id: heraldryId });
+  } catch (error) {
+    console.error('☁️ Failed to sync heraldry add:', error);
+  }
+}
+
+/**
+ * Update heraldry (local + cloud)
+ */
+export async function syncUpdateHeraldry(userId, heraldryId, updates) {
+  if (!userId || !isOnline) return;
+  
+  try {
+    await updateHeraldryCloud(userId, heraldryId, updates);
+  } catch (error) {
+    console.error('☁️ Failed to sync heraldry update:', error);
+  }
+}
+
+/**
+ * Delete heraldry (local + cloud)
+ */
+export async function syncDeleteHeraldry(userId, heraldryId) {
+  if (!userId || !isOnline) return;
+  
+  try {
+    await deleteHeraldryCloud(userId, heraldryId);
+  } catch (error) {
+    console.error('☁️ Failed to sync heraldry delete:', error);
+  }
+}
+
+/**
+ * Add heraldry link (local + cloud)
+ */
+export async function syncAddHeraldryLink(userId, linkId, linkData) {
+  if (!userId || !isOnline) return;
+  
+  try {
+    await addHeraldryLinkCloud(userId, { ...linkData, id: linkId });
+  } catch (error) {
+    console.error('☁️ Failed to sync heraldry link add:', error);
+  }
+}
+
+/**
+ * Delete heraldry link (local + cloud)
+ */
+export async function syncDeleteHeraldryLink(userId, linkId) {
+  if (!userId || !isOnline) return;
+  
+  try {
+    await deleteHeraldryLinkCloud(userId, linkId);
+  } catch (error) {
+    console.error('☁️ Failed to sync heraldry link delete:', error);
+  }
+}
+
+// ==================== DIGNITIES SYNC WRAPPERS ====================
+
+/**
+ * Add dignity (local + cloud)
+ * @param {string} userId - The user's Firebase UID
+ * @param {number} dignityId - The local dignity ID (after local add)
+ * @param {Object} dignityData - The dignity data
+ */
+export async function syncAddDignity(userId, dignityId, dignityData) {
+  if (!userId || !isOnline) return;
+  
+  try {
+    await addDignityCloud(userId, { ...dignityData, id: dignityId });
+  } catch (error) {
+    console.error('☁️ Failed to sync dignity add:', error);
+  }
+}
+
+/**
+ * Update dignity (local + cloud)
+ */
+export async function syncUpdateDignity(userId, dignityId, updates) {
+  if (!userId || !isOnline) return;
+  
+  try {
+    await updateDignityCloud(userId, dignityId, updates);
+  } catch (error) {
+    console.error('☁️ Failed to sync dignity update:', error);
+  }
+}
+
+/**
+ * Delete dignity (local + cloud)
+ */
+export async function syncDeleteDignity(userId, dignityId) {
+  if (!userId || !isOnline) return;
+  
+  try {
+    await deleteDignityCloud(userId, dignityId);
+  } catch (error) {
+    console.error('☁️ Failed to sync dignity delete:', error);
+  }
+}
+
+/**
+ * Add dignity tenure (local + cloud)
+ */
+export async function syncAddDignityTenure(userId, tenureId, tenureData) {
+  if (!userId || !isOnline) return;
+  
+  try {
+    await addDignityTenureCloud(userId, { ...tenureData, id: tenureId });
+  } catch (error) {
+    console.error('☁️ Failed to sync dignity tenure add:', error);
+  }
+}
+
+/**
+ * Update dignity tenure (local + cloud)
+ */
+export async function syncUpdateDignityTenure(userId, tenureId, updates) {
+  if (!userId || !isOnline) return;
+  
+  try {
+    await updateDignityTenureCloud(userId, tenureId, updates);
+  } catch (error) {
+    console.error('☁️ Failed to sync dignity tenure update:', error);
+  }
+}
+
+/**
+ * Delete dignity tenure (local + cloud)
+ */
+export async function syncDeleteDignityTenure(userId, tenureId) {
+  if (!userId || !isOnline) return;
+  
+  try {
+    await deleteDignityTenureCloud(userId, tenureId);
+  } catch (error) {
+    console.error('☁️ Failed to sync dignity tenure delete:', error);
+  }
+}
+
+/**
+ * Add dignity link (local + cloud)
+ */
+export async function syncAddDignityLink(userId, linkId, linkData) {
+  if (!userId || !isOnline) return;
+  
+  try {
+    await addDignityLinkCloud(userId, { ...linkData, id: linkId });
+  } catch (error) {
+    console.error('☁️ Failed to sync dignity link add:', error);
+  }
+}
+
+/**
+ * Delete dignity link (local + cloud)
+ */
+export async function syncDeleteDignityLink(userId, linkId) {
+  if (!userId || !isOnline) return;
+  
+  try {
+    await deleteDignityLinkCloud(userId, linkId);
+  } catch (error) {
+    console.error('☁️ Failed to sync dignity link delete:', error);
+  }
+}
+
 // ==================== UTILITY ====================
 
 /**
@@ -436,13 +716,13 @@ export async function forceCloudSync(userId) {
   updateSyncStatus({ isSyncing: true, error: null });
   
   try {
-    // Clear local data
+    // Clear ALL local data (including Codex - this is now fixed in database.js)
     await localDeleteAllData();
     
     // Download from cloud
     const cloudData = await downloadAllFromCloud(userId);
     
-    // Re-populate local
+    // Re-populate local - houses first (people reference houses)
     for (const house of cloudData.houses || []) {
       const { createdAt, updatedAt, syncedAt, localId, ...houseData } = house;
       await localAddHouse({ ...houseData, id: parseInt(house.id) || house.id });
@@ -456,6 +736,66 @@ export async function forceCloudSync(userId) {
     for (const rel of cloudData.relationships || []) {
       const { createdAt, updatedAt, syncedAt, localId, ...relData } = rel;
       await localAddRelationship({ ...relData, id: parseInt(rel.id) || rel.id });
+    }
+    
+    // Restore codex entries (using restoreEntry to preserve IDs)
+    for (const entry of cloudData.codexEntries || []) {
+      const { createdAt, updatedAt, syncedAt, localId, ...entryData } = entry;
+      try {
+        await localRestoreCodexEntry({ ...entryData, id: parseInt(entry.id) || entry.id });
+      } catch (e) {
+        console.warn('Could not restore codex entry during force sync:', e);
+      }
+    }
+    
+    // Restore heraldry
+    for (const h of cloudData.heraldry || []) {
+      const { createdAt, updatedAt, syncedAt, localId, ...heraldryData } = h;
+      try {
+        await localDb.heraldry.put({ ...heraldryData, id: parseInt(h.id) || h.id });
+      } catch (e) {
+        console.warn('Could not restore heraldry during force sync:', e);
+      }
+    }
+    
+    // Restore heraldry links
+    for (const link of cloudData.heraldryLinks || []) {
+      const { createdAt, syncedAt, localId, ...linkData } = link;
+      try {
+        await localDb.heraldryLinks.put({ ...linkData, id: parseInt(link.id) || link.id });
+      } catch (e) {
+        console.warn('Could not restore heraldry link during force sync:', e);
+      }
+    }
+    
+    // Restore dignities
+    for (const dignity of cloudData.dignities || []) {
+      const { createdAt, updatedAt, syncedAt, localId, ...dignityData } = dignity;
+      try {
+        await localDb.dignities.put({ ...dignityData, id: parseInt(dignity.id) || dignity.id });
+      } catch (e) {
+        console.warn('Could not restore dignity during force sync:', e);
+      }
+    }
+    
+    // Restore dignity tenures
+    for (const tenure of cloudData.dignityTenures || []) {
+      const { createdAt, syncedAt, localId, ...tenureData } = tenure;
+      try {
+        await localDb.dignityTenures.put({ ...tenureData, id: parseInt(tenure.id) || tenure.id });
+      } catch (e) {
+        console.warn('Could not restore dignity tenure during force sync:', e);
+      }
+    }
+    
+    // Restore dignity links
+    for (const link of cloudData.dignityLinks || []) {
+      const { createdAt, syncedAt, localId, ...linkData } = link;
+      try {
+        await localDb.dignityLinks.put({ ...linkData, id: parseInt(link.id) || link.id });
+      } catch (e) {
+        console.warn('Could not restore dignity link during force sync:', e);
+      }
     }
     
     updateSyncStatus({ isSyncing: false, lastSyncTime: new Date() });
@@ -472,17 +812,40 @@ export default {
   getSyncStatus,
   forceCloudSync,
   
-  // Sync wrappers
+  // Sync wrappers - People
   syncAddPerson,
   syncUpdatePerson,
   syncDeletePerson,
+  
+  // Sync wrappers - Houses
   syncAddHouse,
   syncUpdateHouse,
   syncDeleteHouse,
+  
+  // Sync wrappers - Relationships
   syncAddRelationship,
   syncUpdateRelationship,
   syncDeleteRelationship,
+  
+  // Sync wrappers - Codex
   syncAddCodexEntry,
   syncUpdateCodexEntry,
-  syncDeleteCodexEntry
+  syncDeleteCodexEntry,
+  
+  // Sync wrappers - Heraldry
+  syncAddHeraldry,
+  syncUpdateHeraldry,
+  syncDeleteHeraldry,
+  syncAddHeraldryLink,
+  syncDeleteHeraldryLink,
+  
+  // Sync wrappers - Dignities
+  syncAddDignity,
+  syncUpdateDignity,
+  syncDeleteDignity,
+  syncAddDignityTenure,
+  syncUpdateDignityTenure,
+  syncDeleteDignityTenure,
+  syncAddDignityLink,
+  syncDeleteDignityLink
 };

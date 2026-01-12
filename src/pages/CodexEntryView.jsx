@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getEntry, getAllLinksForEntry, getEntry as getBacklinkEntry } from '../services/codexService';
+import { getHeraldry } from '../services/heraldryService'; // PHASE 5 Batch 3
+import { db } from '../services/database'; // For loading linked person data
 import { parseWikiLinks, getContextSnippet } from '../utils/wikiLinkParser';
+import { getPrimaryEpithet, getEpithetsSummary, EPITHET_SOURCES, EPITHET_EARNED_FROM } from '../utils/epithetUtils';
 import Navigation from '../components/Navigation';
+import HeraldryThumbnail from '../components/HeraldryThumbnail'; // PHASE 5 Batch 3
 import './CodexEntryView.css';
 
 /**
@@ -28,6 +32,13 @@ function CodexEntryView() {
   const [backlinkDetails, setBacklinkDetails] = useState([]);
   const [loadingBacklinks, setLoadingBacklinks] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState({});
+  
+  // PHASE 5 Batch 3: Linked heraldry state
+  const [linkedHeraldry, setLinkedHeraldry] = useState(null);
+  const [loadingHeraldry, setLoadingHeraldry] = useState(false);
+  
+  // ✨ EPITHETS: Linked person data for personage entries
+  const [linkedPerson, setLinkedPerson] = useState(null);
   
   useEffect(() => {
     loadEntry();
@@ -55,11 +66,45 @@ function CodexEntryView() {
       // Load backlinks
       await loadBacklinks(entryData);
       
+      // PHASE 5 Batch 3: Load linked heraldry if entry has heraldryId
+      if (entryData.heraldryId) {
+        await loadLinkedHeraldry(entryData.heraldryId);
+      } else {
+        setLinkedHeraldry(null);
+      }
+      
+      // ✨ EPITHETS: Load linked person data for personage entries
+      if (entryData.type === 'personage' && entryData.personId) {
+        try {
+          const personData = await db.people.get(entryData.personId);
+          setLinkedPerson(personData || null);
+        } catch (err) {
+          console.error('Error loading linked person:', err);
+          setLinkedPerson(null);
+        }
+      } else {
+        setLinkedPerson(null);
+      }
+      
       setLoading(false);
     } catch (err) {
       console.error('Error loading entry:', err);
       setError('Failed to load entry');
       setLoading(false);
+    }
+  }
+  
+  // PHASE 5 Batch 3: Load linked heraldry record
+  async function loadLinkedHeraldry(heraldryId) {
+    try {
+      setLoadingHeraldry(true);
+      const heraldryData = await getHeraldry(heraldryId);
+      setLinkedHeraldry(heraldryData);
+    } catch (err) {
+      console.error('Error loading linked heraldry:', err);
+      setLinkedHeraldry(null);
+    } finally {
+      setLoadingHeraldry(false);
     }
   }
   
@@ -121,6 +166,15 @@ function CodexEntryView() {
     navigate('/tree');
   }
   
+  // ═══════════════════════════════════════════════════════════════════
+  // 🛡️ PHASE 5 Batch 3: Navigate to The Armory
+  // ═══════════════════════════════════════════════════════════════════
+  function handleViewInArmory() {
+    if (entry?.heraldryId) {
+      navigate(`/heraldry/edit/${entry.heraldryId}`);
+    }
+  }
+  
   function handleViewBacklink(backlinkId) {
     navigate(`/codex/entry/${backlinkId}`);
   }
@@ -151,6 +205,7 @@ function CodexEntryView() {
       location: '📍',
       event: '⚔️',
       mysteria: '✨',
+      heraldry: '🛡️',
       custom: '📜'
     };
     return icons[type] || '📜';
@@ -179,6 +234,7 @@ function CodexEntryView() {
       location: count === 1 ? 'Location' : 'Locations',
       event: count === 1 ? 'Event' : 'Events',
       mysteria: count === 1 ? 'Mysteria' : 'Mysteria',
+      heraldry: count === 1 ? 'Heraldry' : 'Heraldry',
       custom: count === 1 ? 'Entry' : 'Entries'
     };
     return labels[type] || 'Entries';
@@ -247,6 +303,35 @@ function CodexEntryView() {
             
             <h1 className="entry-title">{entry.title}</h1>
             
+            {/* ✨ EPITHETS: Show primary epithet for personage entries */}
+            {linkedPerson && linkedPerson.epithets && linkedPerson.epithets.length > 0 && (
+              <div className="entry-epithets">
+                <span className="epithets-label">Known as: </span>
+                {(() => {
+                  const primary = getPrimaryEpithet(linkedPerson.epithets);
+                  const others = linkedPerson.epithets.filter(e => !e.isPrimary);
+                  return (
+                    <>
+                      {primary && (
+                        <span className="epithet-primary" title="Primary epithet">
+                          {primary.text}
+                        </span>
+                      )}
+                      {others.length > 0 && (
+                        <span className="epithets-others">
+                          {others.map((e, i) => (
+                            <span key={e.id} className="epithet-secondary">
+                              {i > 0 || primary ? ', ' : ''}{e.text}
+                            </span>
+                          ))}
+                        </span>
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
+            )}
+            
             {entry.subtitle && (
               <p className="entry-subtitle">{entry.subtitle}</p>
             )}
@@ -310,7 +395,47 @@ function CodexEntryView() {
                   View in Family Tree
                 </button>
               )}
+              
+              {/* 🛡️ PHASE 5 Batch 3: Show "View in Armory" for entries with linked heraldry */}
+              {entry.heraldryId && linkedHeraldry && (
+                <button onClick={handleViewInArmory} className="action-button secondary">
+                  <span className="button-icon">🛡️</span>
+                  View in Armory
+                </button>
+              )}
             </div>
+            
+            {/* 🛡️ PHASE 5 Batch 3: Linked Heraldry Display */}
+            {linkedHeraldry && (
+              <div className="linked-heraldry-panel">
+                <div className="heraldry-panel-header">
+                  <span className="panel-icon">🛡️</span>
+                  <span className="panel-title">Linked Heraldry</span>
+                </div>
+                <div className="heraldry-panel-content">
+                  <div 
+                    className="heraldry-preview-clickable"
+                    onClick={handleViewInArmory}
+                    title="Click to view in The Armory"
+                  >
+                    <HeraldryThumbnail
+                      heraldryData={linkedHeraldry}
+                      size="large"
+                      showBlazon={false}
+                    />
+                  </div>
+                  <div className="heraldry-panel-info">
+                    <h4 className="heraldry-name">{linkedHeraldry.name}</h4>
+                    {linkedHeraldry.blazon && (
+                      <p className="heraldry-blazon">{linkedHeraldry.blazon}</p>
+                    )}
+                    <span className="heraldry-link" onClick={handleViewInArmory}>
+                      View in The Armory →
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
           </header>
           
           {/* Divider */}
