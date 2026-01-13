@@ -1,60 +1,56 @@
-import { useEffect, useRef } from 'react';
-import * as d3 from 'd3';
-
 /**
- * TreeControls Component - Dual Theme Support
- * 
- * Provides interactive controls for the family tree:
+ * TreeControls.jsx - Tree View Control Panel
+ *
+ * PURPOSE:
+ * Provides interactive controls for the family tree visualization:
  * - Zoom in/out/reset buttons
  * - Layout toggle (vertical/horizontal)
  * - Current zoom level display
  * - Keyboard shortcuts
- * - Adapts styling based on isDarkTheme prop
- * 
- * UPDATED: v0.8.2 - Added horizontal layout toggle
+ *
+ * Uses Framer Motion for animations and BEM CSS.
  */
-function TreeControls({ 
-  svgRef, 
-  zoomBehaviorRef, 
-  showCadetHouses, 
+
+import { useEffect } from 'react';
+import { motion } from 'framer-motion';
+import * as d3 from 'd3';
+import Icon from './icons';
+import './TreeControls.css';
+
+// ==================== ANIMATION VARIANTS ====================
+const PANEL_VARIANTS = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      type: 'spring',
+      damping: 20,
+      stiffness: 300
+    }
+  }
+};
+
+const HINT_VARIANTS = {
+  hidden: { opacity: 0, y: 10 },
+  visible: {
+    opacity: 0.6,
+    y: 0,
+    transition: { delay: 0.5, duration: 0.3 }
+  }
+};
+
+function TreeControls({
+  svgRef,
+  zoomBehaviorRef,
+  showCadetHouses,
   onToggleCadetHouses,
   zoomLevel,
   onZoomChange,
-  isDarkTheme = true,
-  // Layout controls
   layoutMode = 'vertical',
   onLayoutChange
 }) {
-
-  // Theme-aware colors
-  const theme = isDarkTheme ? {
-    bg: {
-      primary: '#2d2418',
-      secondary: '#3a2f20',
-    },
-    text: '#e9dcc9',
-    textSecondary: '#a89880',
-    border: '#4a3d2a',
-    accent: '#d4a574',
-    accentLight: 'rgba(212, 165, 116, 0.3)',
-    buttonPrimary: '#d4a574',
-    buttonSecondary: '#8c6a4f',
-    buttonActive: '#e8c49a',
-  } : {
-    bg: {
-      primary: '#ede7dc',
-      secondary: '#e5dfd0',
-    },
-    text: '#2d2418',
-    textSecondary: '#6b5d4d',
-    border: '#d4c4a4',
-    accent: '#b8874a',
-    accentLight: 'rgba(184, 135, 74, 0.3)',
-    buttonPrimary: '#b8874a',
-    buttonSecondary: '#c99558',
-    buttonActive: '#a07040',
-  };
-
+  // ==================== ZOOM HANDLERS ====================
   const handleZoomIn = () => {
     if (zoomBehaviorRef.current && svgRef.current) {
       d3.select(svgRef.current)
@@ -90,14 +86,14 @@ function TreeControls({
     }
   };
 
-  // Keyboard shortcuts
+  // ==================== KEYBOARD SHORTCUTS ====================
   useEffect(() => {
     const handleKeyDown = (e) => {
       // Ignore if user is typing in an input
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
         return;
       }
-      
+
       switch (e.key) {
         case '+':
         case '=':
@@ -112,7 +108,6 @@ function TreeControls({
           break;
         case 'h':
         case 'H':
-          // Toggle horizontal layout
           handleToggleLayout();
           break;
         default:
@@ -127,38 +122,22 @@ function TreeControls({
   return (
     <>
       {/* Layout Toggle - Bottom Left */}
-      <div 
-        className="fixed bottom-6 left-6 p-3 rounded-lg shadow-lg z-10"
-        style={{
-          backgroundColor: theme.bg.primary,
-          borderWidth: '1px',
-          borderColor: theme.border,
-          boxShadow: isDarkTheme 
-            ? '0 10px 15px -3px rgba(0, 0, 0, 0.4)' 
-            : '0 10px 15px -3px rgba(45, 36, 24, 0.15)'
-        }}
+      <motion.div
+        className="tree-controls tree-controls--layout"
+        variants={PANEL_VARIANTS}
+        initial="hidden"
+        animate="visible"
       >
-        <div 
-          className="text-xs mb-2 text-center font-semibold"
-          style={{ color: theme.textSecondary }}
-        >
-          Layout
-        </div>
-        
-        <div className="flex gap-1">
+        <span className="tree-controls__label">Layout</span>
+
+        <div className="tree-controls__button-group">
           {/* Vertical Layout Button */}
           <button
+            className={`tree-controls__layout-btn ${layoutMode === 'vertical' ? 'tree-controls__layout-btn--active' : ''}`}
             onClick={() => onLayoutChange && onLayoutChange('vertical')}
-            className="w-10 h-10 rounded flex items-center justify-center transition-all hover:brightness-110"
-            style={{
-              backgroundColor: layoutMode === 'vertical' ? theme.buttonActive : theme.buttonSecondary,
-              color: layoutMode === 'vertical' ? (isDarkTheme ? '#1a1410' : '#ffffff') : theme.text,
-              border: layoutMode === 'vertical' ? `2px solid ${theme.accent}` : 'none'
-            }}
             title="Vertical Layout (ancestors at top) - Press H to toggle"
           >
-            {/* Vertical tree icon */}
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <svg className="tree-controls__layout-icon" viewBox="0 0 24 24" fill="currentColor">
               <rect x="10" y="2" width="4" height="4" rx="1" />
               <rect x="4" y="10" width="4" height="4" rx="1" />
               <rect x="16" y="10" width="4" height="4" rx="1" />
@@ -183,17 +162,11 @@ function TreeControls({
 
           {/* Horizontal Layout Button */}
           <button
+            className={`tree-controls__layout-btn ${layoutMode === 'horizontal' ? 'tree-controls__layout-btn--active' : ''}`}
             onClick={() => onLayoutChange && onLayoutChange('horizontal')}
-            className="w-10 h-10 rounded flex items-center justify-center transition-all hover:brightness-110"
-            style={{
-              backgroundColor: layoutMode === 'horizontal' ? theme.buttonActive : theme.buttonSecondary,
-              color: layoutMode === 'horizontal' ? (isDarkTheme ? '#1a1410' : '#ffffff') : theme.text,
-              border: layoutMode === 'horizontal' ? `2px solid ${theme.accent}` : 'none'
-            }}
             title="Horizontal Layout (ancestors on left) - Press H to toggle"
           >
-            {/* Horizontal tree icon (rotated 90°) */}
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <svg className="tree-controls__layout-icon" viewBox="0 0 24 24" fill="currentColor">
               <rect x="2" y="10" width="4" height="4" rx="1" />
               <rect x="10" y="4" width="4" height="4" rx="1" />
               <rect x="10" y="16" width="4" height="4" rx="1" />
@@ -217,91 +190,61 @@ function TreeControls({
           </button>
         </div>
 
-        <div 
-          className="text-xs mt-2 text-center"
-          style={{ color: theme.textSecondary }}
-        >
-          Press <kbd style={{ 
-            backgroundColor: theme.bg.secondary, 
-            padding: '1px 4px', 
-            borderRadius: '3px',
-            border: `1px solid ${theme.border}`
-          }}>H</kbd> to toggle
-        </div>
-      </div>
+        <span className="tree-controls__hint">
+          Press <kbd className="tree-controls__kbd">H</kbd> to toggle
+        </span>
+      </motion.div>
 
       {/* Zoom Controls - Bottom Right */}
-      <div 
-        className="fixed bottom-6 right-6 p-3 rounded-lg shadow-lg z-10 flex flex-col gap-2"
-        style={{
-          backgroundColor: theme.bg.primary,
-          borderWidth: '1px',
-          borderColor: theme.border,
-          boxShadow: isDarkTheme 
-            ? '0 10px 15px -3px rgba(0, 0, 0, 0.4)' 
-            : '0 10px 15px -3px rgba(45, 36, 24, 0.15)'
-        }}
+      <motion.div
+        className="tree-controls tree-controls--zoom"
+        variants={PANEL_VARIANTS}
+        initial="hidden"
+        animate="visible"
       >
         <button
+          className="tree-controls__zoom-btn tree-controls__zoom-btn--primary"
           onClick={handleZoomIn}
-          className="w-10 h-10 rounded font-bold text-xl transition-all hover:brightness-110"
-          style={{
-            backgroundColor: theme.buttonPrimary,
-            color: isDarkTheme ? '#1a1410' : '#ffffff'
-          }}
           title="Zoom In (+)"
         >
-          +
+          <Icon name="plus" size={20} />
         </button>
+
         <button
+          className="tree-controls__zoom-btn tree-controls__zoom-btn--primary"
           onClick={handleZoomOut}
-          className="w-10 h-10 rounded font-bold text-xl transition-all hover:brightness-110"
-          style={{
-            backgroundColor: theme.buttonPrimary,
-            color: isDarkTheme ? '#1a1410' : '#ffffff'
-          }}
           title="Zoom Out (-)"
         >
-          −
+          <Icon name="minus" size={20} />
         </button>
+
         <button
+          className="tree-controls__zoom-btn tree-controls__zoom-btn--secondary"
           onClick={handleResetView}
-          className="w-10 h-10 rounded text-lg transition-all hover:brightness-110"
-          style={{
-            backgroundColor: theme.buttonSecondary,
-            color: theme.text
-          }}
           title="Reset View (0)"
         >
-          ⟲
+          <Icon name="rotate-ccw" size={18} />
         </button>
-        <div 
-          className="text-xs text-center mt-1 font-semibold"
-          style={{ color: theme.text }}
-        >
-          {Math.round(zoomLevel * 100)}%
-        </div>
-      </div>
 
-      {/* Keyboard Shortcuts Hint - appears briefly on load */}
-      <div 
-        className="fixed bottom-6 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded-lg shadow-lg z-10 opacity-60 pointer-events-none"
-        style={{
-          backgroundColor: theme.bg.primary,
-          borderWidth: '1px',
-          borderColor: theme.border,
-          color: theme.textSecondary,
-          fontSize: '0.75rem'
-        }}
+        <span className="tree-controls__zoom-level">
+          {Math.round(zoomLevel * 100)}%
+        </span>
+      </motion.div>
+
+      {/* Keyboard Shortcuts Hint */}
+      <motion.div
+        className="tree-controls__shortcuts"
+        variants={HINT_VARIANTS}
+        initial="hidden"
+        animate="visible"
       >
-        <span className="font-semibold" style={{ color: theme.text }}>Shortcuts:</span>
-        {' '}
-        <kbd style={{ backgroundColor: theme.bg.secondary, padding: '1px 4px', borderRadius: '3px' }}>+</kbd>/<kbd style={{ backgroundColor: theme.bg.secondary, padding: '1px 4px', borderRadius: '3px' }}>-</kbd> zoom
-        {' • '}
-        <kbd style={{ backgroundColor: theme.bg.secondary, padding: '1px 4px', borderRadius: '3px' }}>0</kbd> reset
-        {' • '}
-        <kbd style={{ backgroundColor: theme.bg.secondary, padding: '1px 4px', borderRadius: '3px' }}>H</kbd> layout
-      </div>
+        <span className="tree-controls__shortcuts-label">Shortcuts:</span>
+        <kbd className="tree-controls__kbd">+</kbd>/<kbd className="tree-controls__kbd">-</kbd> zoom
+        <span className="tree-controls__shortcuts-divider">•</span>
+        <kbd className="tree-controls__kbd">0</kbd> reset
+        <span className="tree-controls__shortcuts-divider">•</span>
+        <kbd className="tree-controls__kbd">H</kbd> layout
+      </motion.div>
     </>
   );
 }

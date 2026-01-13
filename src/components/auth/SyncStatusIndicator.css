@@ -1,0 +1,96 @@
+/**
+ * SyncStatusIndicator.css - Cloud Sync Status Styles
+ *
+ * PURPOSE:
+ * Styles for the sync status indicator component.
+ * Medieval manuscript aesthetic with BEM naming.
+ * Uses CSS custom properties for theming.
+ */
+
+/* ============================================
+   INDICATOR CONTAINER
+   ============================================ */
+
+.sync-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+/* ============================================
+   STATUS VARIANTS
+   ============================================ */
+
+.sync-status--syncing {
+  color: var(--color-info);
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.sync-status--synced {
+  color: var(--color-success);
+  background: rgba(34, 197, 94, 0.1);
+}
+
+.sync-status--error {
+  color: var(--color-error);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* ============================================
+   ICON
+   ============================================ */
+
+.sync-status__icon {
+  flex-shrink: 0;
+}
+
+.sync-status--syncing .sync-status__icon {
+  animation: sync-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes sync-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ============================================
+   TEXT
+   ============================================ */
+
+.sync-status__text {
+  display: none;
+}
+
+/* Show text on hover */
+.sync-status:hover .sync-status__text {
+  display: inline;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (min-width: 768px) {
+  .sync-status__text {
+    display: inline;
+  }
+}
+
+/* ============================================
+   REDUCED MOTION
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .sync-status {
+    transition: none;
+  }
+
+  .sync-status--syncing .sync-status__icon {
+    animation: none;
+  }
+}

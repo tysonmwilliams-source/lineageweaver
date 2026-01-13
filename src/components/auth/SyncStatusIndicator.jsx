@@ -1,11 +1,55 @@
 /**
  * SyncStatusIndicator.jsx - Cloud Sync Status Display
- * 
+ *
+ * PURPOSE:
  * Shows the current sync status as a small indicator in the navigation bar.
  * Helps users understand if their data is being saved to the cloud.
+ *
+ * Uses Framer Motion for animations, Lucide icons, and BEM CSS.
  */
 
+import { motion, AnimatePresence } from 'framer-motion';
 import { useGenealogy } from '../../contexts/GenealogyContext';
+import Icon from '../icons';
+import './SyncStatusIndicator.css';
+
+// ==================== STATUS CONFIG ====================
+const STATUS_CONFIG = {
+  syncing: {
+    icon: 'cloud',
+    text: 'Syncing...',
+    className: 'sync-status--syncing'
+  },
+  synced: {
+    icon: 'check-circle',
+    text: 'Synced',
+    className: 'sync-status--synced'
+  },
+  error: {
+    icon: 'alert-triangle',
+    text: 'Sync error',
+    className: 'sync-status--error'
+  }
+};
+
+// ==================== ANIMATION VARIANTS ====================
+const INDICATOR_VARIANTS = {
+  hidden: { opacity: 0, scale: 0.8 },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    transition: {
+      type: 'spring',
+      damping: 20,
+      stiffness: 300
+    }
+  },
+  exit: {
+    opacity: 0,
+    scale: 0.8,
+    transition: { duration: 0.15 }
+  }
+};
 
 export default function SyncStatusIndicator() {
   const { syncStatus } = useGenealogy();
@@ -15,87 +59,22 @@ export default function SyncStatusIndicator() {
     return null;
   }
 
-  const statusConfig = {
-    syncing: {
-      icon: '☁️',
-      text: 'Syncing...',
-      className: 'sync-syncing'
-    },
-    synced: {
-      icon: '✓',
-      text: 'Synced',
-      className: 'sync-synced'
-    },
-    error: {
-      icon: '⚠',
-      text: 'Sync error',
-      className: 'sync-error'
-    }
-  };
-
-  const config = statusConfig[syncStatus] || statusConfig.synced;
+  const config = STATUS_CONFIG[syncStatus] || STATUS_CONFIG.synced;
 
   return (
-    <div className={`sync-indicator ${config.className}`} title={config.text}>
-      <span className="sync-icon">{config.icon}</span>
-      <span className="sync-text">{config.text}</span>
-
-      <style>{`
-        .sync-indicator {
-          display: flex;
-          align-items: center;
-          gap: var(--space-1);
-          padding: var(--space-1) var(--space-2);
-          border-radius: var(--radius-sm);
-          font-family: var(--font-body);
-          font-size: var(--text-xs);
-          transition: all var(--duration-fast) var(--ease-standard);
-        }
-
-        .sync-syncing {
-          color: var(--color-info-light);
-          background: var(--color-info-bg);
-        }
-
-        .sync-syncing .sync-icon {
-          animation: pulse 1.5s ease-in-out infinite;
-        }
-
-        .sync-synced {
-          color: var(--color-success-light);
-          background: var(--color-success-bg);
-        }
-
-        .sync-error {
-          color: var(--color-error-light);
-          background: var(--color-error-bg);
-        }
-
-        .sync-icon {
-          font-size: var(--text-sm);
-        }
-
-        .sync-text {
-          display: none;
-        }
-
-        /* Show text on hover */
-        .sync-indicator:hover .sync-text {
-          display: inline;
-        }
-
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
-        }
-
-        /* On larger screens, always show text */
-        @media (min-width: 768px) {
-          .sync-text {
-            display: inline;
-          }
-        }
-      `}</style>
-    </div>
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={syncStatus}
+        className={`sync-status ${config.className}`}
+        title={config.text}
+        variants={INDICATOR_VARIANTS}
+        initial="hidden"
+        animate="visible"
+        exit="exit"
+      >
+        <Icon name={config.icon} size={14} className="sync-status__icon" />
+        <span className="sync-status__text">{config.text}</span>
+      </motion.div>
+    </AnimatePresence>
   );
 }

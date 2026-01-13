@@ -187,6 +187,30 @@ db.version(10).stores({
   });
 });
 
+// Version 11: Add Bug Tracking System
+// A global bug tracker accessible from anywhere in the app.
+// Includes Claude Code export functionality for AI-assisted debugging.
+// 
+// WHAT THIS ADDS:
+// - bugs: Table for storing bug reports with context
+// - Indexes on status, priority for fast filtering
+// - created index for chronological sorting
+db.version(11).stores({
+  people: '++id, firstName, lastName, houseId, dateOfBirth, dateOfDeath, bastardStatus, codexEntryId, heraldryId',
+  houses: '++id, houseName, parentHouseId, houseType, codexEntryId, heraldryId',
+  relationships: '++id, person1Id, person2Id, relationshipType',
+  codexEntries: '++id, type, title, category, *tags, era, created, updated',
+  codexLinks: '++id, sourceId, targetId, type',
+  acknowledgedDuplicates: '++id, person1Id, person2Id, acknowledgedAt',
+  heraldry: '++id, name, category, *tags, created, updated',
+  heraldryLinks: '++id, heraldryId, entityType, entityId, linkType',
+  dignities: '++id, name, shortName, dignityClass, dignityRank, swornToId, currentHolderId, currentHouseId, codexEntryId, created, updated',
+  dignityTenures: '++id, dignityId, personId, dateStarted, dateEnded, acquisitionType, endType, created',
+  dignityLinks: '++id, dignityId, entityType, entityId, linkType, created',
+  // NEW: Bug Tracking System
+  bugs: '++id, title, status, priority, system, page, created, resolved'
+});
+
 // Version 3: Add heraldry system fields
 db.version(3).stores({
   // No changes to indexes, just adding new fields through upgrade function
@@ -525,7 +549,10 @@ export async function deleteAllData() {
     if (db.dignityTenures) await db.dignityTenures.clear();
     if (db.dignityLinks) await db.dignityLinks.clear();
     
-    console.log('✅ All data deleted successfully (including Codex and Dignities)');
+    // Clear bugs table if it exists
+    if (db.bugs) await db.bugs.clear();
+    
+    console.log('✅ All data deleted successfully (including Codex, Dignities, and Bugs)');
     return true;
   } catch (error) {
     console.error('❌ Error deleting all data:', error);

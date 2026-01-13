@@ -1,16 +1,29 @@
 /**
- * ManageData.jsx - Data Management Page with Theme Support
- * 
- * Updated to use the medieval manuscript theme system with CSS custom properties.
- * Replaces all hardcoded Tailwind colors with theme variables.
- * 
- * UPDATED: Now uses GenealogyContext for shared state management.
+ * ManageData.jsx - Data Management Page
+ *
+ * PURPOSE:
+ * Central hub for managing genealogical data including:
+ * - People (personages in the family tree)
+ * - Houses (noble lineages and families)
+ * - Relationships (connections between people)
+ * - Import/Export functionality
+ * - Data health and validation tools
+ *
+ * DESIGN:
+ * Follows the medieval manuscript aesthetic established in Home.jsx
+ * Uses Lucide icons, Framer Motion animations, and CSS custom properties
+ *
+ * STATE:
+ * Uses GenealogyContext for shared state management.
  * Changes made here are immediately reflected in FamilyTree and vice versa.
  */
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useGenealogy } from '../contexts/GenealogyContext';
 import Navigation from '../components/Navigation';
+import Icon from '../components/icons';
+import { LoadingState, SectionHeader, ActionButton, Card } from '../components/shared';
 import Modal from '../components/Modal';
 import PersonForm from '../components/PersonForm';
 import PersonList from '../components/PersonList';
@@ -21,12 +34,37 @@ import RelationshipList from '../components/RelationshipList';
 import CadetHouseCeremonyModal from '../components/CadetHouseCeremonyModal';
 import ImportExportManager from '../components/ImportExportManager';
 import DataHealthDashboard from '../components/DataHealthDashboard';
-import './ManageData.css'; // Companion CSS file
+import './ManageData.css';
 
+// Animation variants
+const TAB_CONTENT_VARIANTS = {
+  hidden: { opacity: 0, y: 10 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.3, ease: 'easeOut' }
+  },
+  exit: {
+    opacity: 0,
+    y: -10,
+    transition: { duration: 0.2 }
+  }
+};
+
+// Tab configuration with Lucide icons
+const TABS = [
+  { id: 'people', label: 'People', icon: 'users' },
+  { id: 'houses', label: 'Houses', icon: 'castle' },
+  { id: 'relationships', label: 'Relationships', icon: 'link' },
+  { id: 'import-export', label: 'Import/Export', icon: 'hard-drive' },
+  { id: 'health', label: 'Data Health', icon: 'heart-pulse' }
+];
+
+/**
+ * ManageData Component
+ */
 function ManageData() {
-  // ==================== SHARED STATE FROM CONTEXT ====================
-  // This is the key change: instead of local state + loadData(), we use
-  // the shared context. Any changes here update FamilyTree automatically!
+  // Shared state from context
   const {
     people,
     houses,
@@ -45,8 +83,7 @@ function ManageData() {
     deleteAllData
   } = useGenealogy();
 
-  // ==================== LOCAL UI STATE ====================
-  // These remain local because they're UI-specific, not shared data
+  // Local UI state
   const [activeTab, setActiveTab] = useState('people');
 
   // Modal states
@@ -62,156 +99,137 @@ function ManageData() {
   const [cadetFounder, setCadetFounder] = useState(null);
   const [cadetParentHouse, setCadetParentHouse] = useState(null);
 
-  // ==================== PERSON HANDLERS ====================
-  
-  const handleAddPerson = () => {
+  // Person handlers
+  const handleAddPerson = useCallback(() => {
     setEditingPerson(null);
     setShowPersonModal(true);
-  };
+  }, []);
 
-  const handleEditPerson = (person) => {
+  const handleEditPerson = useCallback((person) => {
     setEditingPerson(person);
     setShowPersonModal(true);
-  };
+  }, []);
 
-  const handleSavePerson = async (personData) => {
+  const handleSavePerson = useCallback(async (personData) => {
     try {
       if (editingPerson) {
         await updatePerson(editingPerson.id, personData);
-        alert('Person updated successfully!');
       } else {
         await addPerson(personData);
-        alert('Person added successfully!');
       }
       setShowPersonModal(false);
       setEditingPerson(null);
-      // No loadData() needed - context updates automatically!
     } catch (error) {
       alert('Error saving person: ' + error.message);
     }
-  };
+  }, [editingPerson, updatePerson, addPerson]);
 
-  const handleDeletePerson = async (person) => {
-    if (!confirm(`Delete ${person.firstName} ${person.lastName}? This will also delete their relationships.`)) {
+  const handleDeletePerson = useCallback(async (person) => {
+    if (!window.confirm(`Delete ${person.firstName} ${person.lastName}? This will also delete their relationships.`)) {
       return;
     }
     try {
       await deletePerson(person.id);
-      alert('Person deleted');
-      // No loadData() needed - context updates automatically!
     } catch (error) {
       alert('Error deleting person: ' + error.message);
     }
-  };
+  }, [deletePerson]);
 
-  // ==================== HOUSE HANDLERS ====================
-
-  const handleAddHouse = () => {
+  // House handlers
+  const handleAddHouse = useCallback(() => {
     setEditingHouse(null);
     setShowHouseModal(true);
-  };
+  }, []);
 
-  const handleEditHouse = (house) => {
+  const handleEditHouse = useCallback((house) => {
     setEditingHouse(house);
     setShowHouseModal(true);
-  };
+  }, []);
 
-  const handleSaveHouse = async (houseData) => {
+  const handleSaveHouse = useCallback(async (houseData) => {
     try {
       if (editingHouse) {
         await updateHouse(editingHouse.id, houseData);
-        alert('House updated successfully!');
       } else {
         await addHouse(houseData);
-        alert('House added successfully!');
       }
       setShowHouseModal(false);
       setEditingHouse(null);
-      // No loadData() needed - context updates automatically!
     } catch (error) {
       alert('Error saving house: ' + error.message);
     }
-  };
+  }, [editingHouse, updateHouse, addHouse]);
 
-  const handleDeleteHouse = async (house) => {
-    if (!confirm(`Delete ${house.houseName}?`)) return;
+  const handleDeleteHouse = useCallback(async (house) => {
+    if (!window.confirm(`Delete ${house.houseName}?`)) return;
     try {
       await deleteHouse(house.id);
-      alert('House deleted');
-      // No loadData() needed - context updates automatically!
     } catch (error) {
       alert('Error deleting house: ' + error.message);
     }
-  };
+  }, [deleteHouse]);
 
-  // ==================== RELATIONSHIP HANDLERS ====================
-
-  const handleAddRelationship = () => {
+  // Relationship handlers
+  const handleAddRelationship = useCallback(() => {
     setEditingRelationship(null);
     setShowRelationshipModal(true);
-  };
+  }, []);
 
-  const handleEditRelationship = (relationship) => {
+  const handleEditRelationship = useCallback((relationship) => {
     setEditingRelationship(relationship);
     setShowRelationshipModal(true);
-  };
+  }, []);
 
-  const handleSaveRelationship = async (relationshipData) => {
+  const handleSaveRelationship = useCallback(async (relationshipData) => {
     try {
       if (editingRelationship) {
         await updateRelationship(editingRelationship.id, relationshipData);
-        alert('Relationship updated successfully!');
       } else {
         await addRelationship(relationshipData);
-        alert('Relationship added successfully!');
       }
       setShowRelationshipModal(false);
       setEditingRelationship(null);
-      // No loadData() needed - context updates automatically!
     } catch (error) {
       alert('Error saving relationship: ' + error.message);
     }
-  };
+  }, [editingRelationship, updateRelationship, addRelationship]);
 
-  const handleDeleteRelationship = async (relationship) => {
-    if (!confirm('Delete this relationship?')) return;
+  const handleDeleteRelationship = useCallback(async (relationship) => {
+    if (!window.confirm('Delete this relationship?')) return;
     try {
       await deleteRelationship(relationship.id);
-      alert('Relationship deleted');
-      // No loadData() needed - context updates automatically!
     } catch (error) {
       alert('Error deleting relationship: ' + error.message);
     }
-  };
+  }, [deleteRelationship]);
 
-  // ==================== CADET HOUSE HANDLERS ====================
-
-  const handleFoundCadetHouse = async (ceremonyData) => {
+  // Cadet house handlers
+  const handleFoundCadetHouse = useCallback(async (ceremonyData) => {
     try {
       const result = await foundCadetHouse(ceremonyData);
       alert(`Cadet house ${result.house.houseName} founded successfully!`);
       setShowCadetModal(false);
       setCadetFounder(null);
       setCadetParentHouse(null);
-      // No loadData() needed - context updates automatically!
     } catch (error) {
       alert('Error founding cadet house: ' + error.message);
     }
-  };
+  }, [foundCadetHouse]);
 
-  // ==================== RESET ALL DATA HANDLER ====================
+  // Reset all data handler
+  const handleResetAllData = useCallback(async () => {
+    const confirmMessage = `This will DELETE:\n\n` +
+      `- All ${people.length} people\n` +
+      `- All ${houses.length} houses\n` +
+      `- All ${relationships.length} relationships\n\n` +
+      `This action CANNOT be undone!\n\nAre you absolutely sure?`;
 
-  const handleResetAllData = async () => {
-    const confirmMessage1 = `⚠️ RESET ALL DATA ⚠️\n\nThis will DELETE:\n• All ${people.length} people\n• All ${houses.length} houses\n• All ${relationships.length} relationships\n\nThis action CANNOT be undone!\n\nAre you absolutely sure?`;
-    
-    if (!confirm(confirmMessage1)) {
+    if (!window.confirm(confirmMessage)) {
       return;
     }
 
-    const confirmText = prompt(
-      '⚠️ FINAL CONFIRMATION ⚠️\n\n' +
-      'To confirm, please type: DELETE ALL\n\n' +
-      '(Type exactly as shown, in uppercase)'
+    const confirmText = window.prompt(
+      'To confirm, please type: DELETE ALL\n\n(Type exactly as shown, in uppercase)'
     );
 
     if (confirmText !== 'DELETE ALL') {
@@ -221,193 +239,277 @@ function ManageData() {
 
     try {
       await deleteAllData();
-      alert('✅ All data has been deleted.\n\nYou can now start fresh!');
-      // No loadData() needed - context updates automatically!
+      alert('All data has been deleted. You can now start fresh!');
     } catch (error) {
-      alert('❌ Error resetting data: ' + error.message);
+      alert('Error resetting data: ' + error.message);
     }
-  };
+  }, [people.length, houses.length, relationships.length, deleteAllData]);
 
+  // Get count for tab badge
+  const getTabCount = useCallback((tabId) => {
+    switch (tabId) {
+      case 'people': return people.length;
+      case 'houses': return houses.length;
+      case 'relationships': return relationships.length;
+      default: return null;
+    }
+  }, [people.length, houses.length, relationships.length]);
+
+  // Loading state
   if (loading) {
     return (
-      <div className="manage-loading">
-        <div className="loading-content">
-          <div className="loading-icon">⏳</div>
-          <h2 className="loading-title">Loading...</h2>
-          <p className="loading-text">Fetching your genealogy data</p>
+      <>
+        <Navigation />
+        <div className="manage-page">
+          <div className="manage-container">
+            <LoadingState message="Loading your genealogy data..." size="lg" />
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="manage-page">
-      {/* Navigation Bar */}
+    <>
       <Navigation />
-
-      <div className="manage-container">
-        <div className="manage-content">
-          {/* Header with Reset Button */}
-          <div className="manage-header">
-            <h1 className="manage-title">Data Management</h1>
-            
-            <button
-              onClick={handleResetAllData}
-              className="reset-button"
-              title="Delete all people, houses, and relationships"
+      <div className="manage-page">
+        <div className="manage-container">
+          <motion.div
+            className="manage-content"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
+          >
+            {/* Hero Section */}
+            <motion.header
+              className="manage-hero"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
             >
-              🗑️ Reset All Data
-            </button>
-          </div>
-
-          {/* Tabs */}
-          <div className="manage-tabs-card">
-            <div className="tabs-header">
-              <nav className="tabs-nav">
-                <button
-                  onClick={() => setActiveTab('people')}
-                  className={`tab-button ${activeTab === 'people' ? 'tab-button-active' : ''}`}
-                >
-                  👤 People ({people.length})
-                </button>
-                <button
-                  onClick={() => setActiveTab('houses')}
-                  className={`tab-button ${activeTab === 'houses' ? 'tab-button-active' : ''}`}
-                >
-                  🏰 Houses ({houses.length})
-                </button>
-                <button
-                  onClick={() => setActiveTab('relationships')}
-                  className={`tab-button ${activeTab === 'relationships' ? 'tab-button-active' : ''}`}
-                >
-                  🔗 Relationships ({relationships.length})
-                </button>
-                <button
-                  onClick={() => setActiveTab('import-export')}
-                  className={`tab-button ${activeTab === 'import-export' ? 'tab-button-active' : ''}`}
-                >
-                  💾 Import/Export
-                </button>
-                <button
-                  onClick={() => setActiveTab('health')}
-                  className={`tab-button ${activeTab === 'health' ? 'tab-button-active' : ''}`}
-                >
-                  🏥 Data Health
-                </button>
-              </nav>
-            </div>
-
-            {/* Tab Content */}
-            <div className="tabs-content">
-              {/* PEOPLE TAB */}
-              {activeTab === 'people' && (
-                <div className="tab-panel">
-                  <div className="tab-panel-header">
-                    <h2 className="tab-panel-title">People</h2>
-                    <button
-                      onClick={handleAddPerson}
-                      className="add-button"
-                    >
-                      + Add Person
-                    </button>
-                  </div>
-                  <PersonList
-                    people={people}
-                    houses={houses}
-                    onEdit={handleEditPerson}
-                    onDelete={handleDeletePerson}
-                  />
-                </div>
-              )}
-
-              {/* HOUSES TAB */}
-              {activeTab === 'houses' && (
-                <div className="tab-panel">
-                  <div className="tab-panel-header">
-                    <h2 className="tab-panel-title">Houses</h2>
-                    <button
-                      onClick={handleAddHouse}
-                      className="add-button"
-                    >
-                      + Add House
-                    </button>
-                  </div>
-                  <HouseList
-                    houses={houses}
-                    onEdit={handleEditHouse}
-                    onDelete={handleDeleteHouse}
-                  />
-                </div>
-              )}
-
-              {/* RELATIONSHIPS TAB */}
-              {activeTab === 'relationships' && (
-                <div className="tab-panel">
-                  <div className="tab-panel-header">
-                    <h2 className="tab-panel-title">Relationships</h2>
-                    <button
-                      onClick={handleAddRelationship}
-                      className="add-button"
-                    >
-                      + Add Relationship
-                    </button>
-                  </div>
-                  <RelationshipList
-                    relationships={relationships}
-                    people={people}
-                    onEdit={handleEditRelationship}
-                    onDelete={handleDeleteRelationship}
-                  />
-                </div>
-              )}
-
-              {/* IMPORT/EXPORT TAB */}
-              {activeTab === 'import-export' && (
-                <div className="tab-panel">
-                  <ImportExportManager />
-                </div>
-              )}
-
-              {/* DATA HEALTH TAB */}
-              {activeTab === 'health' && (
-                <div className="tab-panel">
-                  <DataHealthDashboard
-                    isDarkTheme={true}
-                    onNavigateToPerson={(personId) => {
-                      const person = people.find(p => p.id === personId);
-                      if (person) {
-                        handleEditPerson(person);
-                      }
-                    }}
-                    onNavigateToRelationship={(relId) => {
-                      const rel = relationships.find(r => r.id === relId);
-                      if (rel) {
-                        handleEditRelationship(rel);
-                      }
-                    }}
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Danger Zone Info Box */}
-          <div className="danger-zone">
-            <div className="danger-zone-content">
-              <div className="danger-zone-icon">⚠️</div>
-              <div className="danger-zone-text">
-                <h3 className="danger-zone-title">Danger Zone</h3>
-                <p className="danger-zone-description">
-                  The "Reset All Data" button will permanently delete all people, houses, and relationships. 
-                  This action cannot be undone. Use with extreme caution.
-                </p>
+              <h1 className="manage-hero__title">
+                <span className="manage-hero__initial">D</span>
+                <span>ATA MANAGEMENT</span>
+              </h1>
+              <p className="manage-hero__subtitle">
+                Organize and maintain your genealogical records
+              </p>
+              <div className="manage-hero__divider">
+                <Icon name="database" size={20} className="manage-hero__divider-icon" />
               </div>
-            </div>
-          </div>
+            </motion.header>
+
+            {/* Quick Stats */}
+            <motion.section
+              className="manage-stats"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+            >
+              <div className="manage-stats__grid">
+                <div className="manage-stats__item">
+                  <Icon name="users" size={20} className="manage-stats__icon" />
+                  <span className="manage-stats__value">{people.length}</span>
+                  <span className="manage-stats__label">People</span>
+                </div>
+                <div className="manage-stats__item">
+                  <Icon name="castle" size={20} className="manage-stats__icon" />
+                  <span className="manage-stats__value">{houses.length}</span>
+                  <span className="manage-stats__label">Houses</span>
+                </div>
+                <div className="manage-stats__item">
+                  <Icon name="link" size={20} className="manage-stats__icon" />
+                  <span className="manage-stats__value">{relationships.length}</span>
+                  <span className="manage-stats__label">Relationships</span>
+                </div>
+              </div>
+            </motion.section>
+
+            {/* Tabs Card */}
+            <motion.section
+              className="manage-tabs"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              <Card className="manage-tabs__card" padding="none">
+                {/* Tab Navigation */}
+                <div className="manage-tabs__nav">
+                  {TABS.map(tab => {
+                    const count = getTabCount(tab.id);
+                    return (
+                      <button
+                        key={tab.id}
+                        className={`manage-tabs__button ${activeTab === tab.id ? 'manage-tabs__button--active' : ''}`}
+                        onClick={() => setActiveTab(tab.id)}
+                      >
+                        <Icon name={tab.icon} size={18} />
+                        <span className="manage-tabs__button-label">{tab.label}</span>
+                        {count !== null && (
+                          <span className="manage-tabs__button-count">{count}</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Tab Content */}
+                <div className="manage-tabs__content">
+                  <AnimatePresence mode="wait">
+                    {/* People Tab */}
+                    {activeTab === 'people' && (
+                      <motion.div
+                        key="people"
+                        className="manage-panel"
+                        variants={TAB_CONTENT_VARIANTS}
+                        initial="hidden"
+                        animate="visible"
+                        exit="exit"
+                      >
+                        <div className="manage-panel__header">
+                          <SectionHeader icon="users" title="People" size="sm" />
+                          <ActionButton icon="plus" variant="primary" onClick={handleAddPerson}>
+                            Add Person
+                          </ActionButton>
+                        </div>
+                        <PersonList
+                          people={people}
+                          houses={houses}
+                          onEdit={handleEditPerson}
+                          onDelete={handleDeletePerson}
+                        />
+                      </motion.div>
+                    )}
+
+                    {/* Houses Tab */}
+                    {activeTab === 'houses' && (
+                      <motion.div
+                        key="houses"
+                        className="manage-panel"
+                        variants={TAB_CONTENT_VARIANTS}
+                        initial="hidden"
+                        animate="visible"
+                        exit="exit"
+                      >
+                        <div className="manage-panel__header">
+                          <SectionHeader icon="castle" title="Houses" size="sm" />
+                          <ActionButton icon="plus" variant="primary" onClick={handleAddHouse}>
+                            Add House
+                          </ActionButton>
+                        </div>
+                        <HouseList
+                          houses={houses}
+                          onEdit={handleEditHouse}
+                          onDelete={handleDeleteHouse}
+                        />
+                      </motion.div>
+                    )}
+
+                    {/* Relationships Tab */}
+                    {activeTab === 'relationships' && (
+                      <motion.div
+                        key="relationships"
+                        className="manage-panel"
+                        variants={TAB_CONTENT_VARIANTS}
+                        initial="hidden"
+                        animate="visible"
+                        exit="exit"
+                      >
+                        <div className="manage-panel__header">
+                          <SectionHeader icon="link" title="Relationships" size="sm" />
+                          <ActionButton icon="plus" variant="primary" onClick={handleAddRelationship}>
+                            Add Relationship
+                          </ActionButton>
+                        </div>
+                        <RelationshipList
+                          relationships={relationships}
+                          people={people}
+                          onEdit={handleEditRelationship}
+                          onDelete={handleDeleteRelationship}
+                        />
+                      </motion.div>
+                    )}
+
+                    {/* Import/Export Tab */}
+                    {activeTab === 'import-export' && (
+                      <motion.div
+                        key="import-export"
+                        className="manage-panel"
+                        variants={TAB_CONTENT_VARIANTS}
+                        initial="hidden"
+                        animate="visible"
+                        exit="exit"
+                      >
+                        <ImportExportManager />
+                      </motion.div>
+                    )}
+
+                    {/* Data Health Tab */}
+                    {activeTab === 'health' && (
+                      <motion.div
+                        key="health"
+                        className="manage-panel"
+                        variants={TAB_CONTENT_VARIANTS}
+                        initial="hidden"
+                        animate="visible"
+                        exit="exit"
+                      >
+                        <DataHealthDashboard
+                          isDarkTheme={true}
+                          onNavigateToPerson={(personId) => {
+                            const person = people.find(p => p.id === personId);
+                            if (person) handleEditPerson(person);
+                          }}
+                          onNavigateToRelationship={(relId) => {
+                            const rel = relationships.find(r => r.id === relId);
+                            if (rel) handleEditRelationship(rel);
+                          }}
+                        />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </Card>
+            </motion.section>
+
+            {/* Danger Zone */}
+            <motion.section
+              className="manage-danger"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+            >
+              <div className="manage-danger__card">
+                <div className="manage-danger__header">
+                  <Icon name="alert-triangle" size={24} className="manage-danger__icon" />
+                  <div className="manage-danger__info">
+                    <h3 className="manage-danger__title">Danger Zone</h3>
+                    <p className="manage-danger__description">
+                      Permanently delete all people, houses, and relationships. This action cannot be undone.
+                    </p>
+                  </div>
+                </div>
+                <motion.button
+                  className="manage-danger__button"
+                  onClick={handleResetAllData}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <Icon name="trash-2" size={18} />
+                  Reset All Data
+                </motion.button>
+              </div>
+            </motion.section>
+
+            {/* Footer */}
+            <footer className="manage-footer">
+              <p>Careful stewardship of your lineage records</p>
+            </footer>
+          </motion.div>
         </div>
       </div>
 
-      {/* MODALS */}
+      {/* Modals */}
 
       {/* Person Modal */}
       <Modal
@@ -467,11 +569,9 @@ function ManageData() {
             setEditingRelationship(null);
           }}
           onSuggestionAccept={async (suggestion) => {
-            // Handle cascade suggestions from smart validation
             if (suggestion.action.type === 'addRelationship') {
               try {
                 await addRelationship(suggestion.action.data);
-                // No alert needed - it's a background helper action
               } catch (error) {
                 console.error('Error applying suggestion:', error);
               }
@@ -503,7 +603,7 @@ function ManageData() {
           />
         </Modal>
       )}
-    </div>
+    </>
   );
 }
 

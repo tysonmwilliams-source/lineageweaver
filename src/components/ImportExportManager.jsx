@@ -1,36 +1,105 @@
 /**
- * ═══════════════════════════════════════════════════════════════════════════
- * IMPORT/EXPORT MANAGER COMPONENT
- * ═══════════════════════════════════════════════════════════════════════════
- * 
+ * ImportExportManager.jsx - Import/Export Manager Component
+ *
+ * PURPOSE:
  * Comprehensive data backup and restore system with:
  * - JSON export with metadata
  * - JSON import with validation
  * - Conflict detection and resolution
  * - Progress tracking
  * - Version compatibility checking
- * 
- * INTEGRATION:
- * Add to ManageData.jsx as a new tab: "Import/Export"
- * 
- * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * Uses Framer Motion for animations, Lucide icons, and BEM CSS.
  */
 
 import { useState } from 'react';
-import { 
-  getAllPeople, 
-  getAllHouses, 
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  getAllPeople,
+  getAllHouses,
   getAllRelationships,
-  db 
+  db
 } from '../services/database';
 import { useGenealogy } from '../contexts/GenealogyContext';
-import { 
-  exportData, 
-  importData, 
-  CURRENT_VERSION 
+import {
+  exportData,
+  importData,
+  CURRENT_VERSION
 } from '../services/database/MigrationHooks';
 import { getAllEntries } from '../services/codexService';
 import CodexMigrationTool from './CodexMigrationTool';
+import Icon from './icons';
+import './ImportExportManager.css';
+
+// ==================== ANIMATION VARIANTS ====================
+const SECTION_VARIANTS = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      type: 'spring',
+      damping: 20,
+      stiffness: 300
+    }
+  }
+};
+
+const CARD_VARIANTS = {
+  hidden: { opacity: 0, scale: 0.95 },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    transition: {
+      type: 'spring',
+      damping: 25,
+      stiffness: 300
+    }
+  }
+};
+
+const ALERT_VARIANTS = {
+  hidden: { opacity: 0, y: -10 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.2 }
+  },
+  exit: {
+    opacity: 0,
+    y: -10,
+    transition: { duration: 0.15 }
+  }
+};
+
+const PROGRESS_VARIANTS = {
+  hidden: { opacity: 0, height: 0 },
+  visible: {
+    opacity: 1,
+    height: 'auto',
+    transition: { duration: 0.2 }
+  },
+  exit: {
+    opacity: 0,
+    height: 0,
+    transition: { duration: 0.15 }
+  }
+};
+
+const GRID_VARIANTS = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05
+    }
+  }
+};
+
+const ITEM_VARIANTS = {
+  hidden: { opacity: 0, y: 10 },
+  visible: { opacity: 1, y: 0 }
+};
 
 function ImportExportManager() {
   // Access context for data refresh after import
@@ -48,19 +117,14 @@ function ImportExportManager() {
   const [importConflicts, setImportConflicts] = useState(null);
   const [importErrors, setImportErrors] = useState(null);
   const [importSuccess, setImportSuccess] = useState(false);
-  const [conflictResolution, setConflictResolution] = useState('skip'); // 'skip', 'overwrite', 'keep-both'
+  const [conflictResolution, setConflictResolution] = useState('skip');
 
   // Progress tracking
   const [progress, setProgress] = useState(0);
   const [progressMessage, setProgressMessage] = useState('');
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // EXPORT FUNCTIONS
-  // ═══════════════════════════════════════════════════════════════════════
+  // ==================== EXPORT FUNCTIONS ====================
 
-  /**
-   * Export all data to JSON file
-   */
   const handleExport = async () => {
     try {
       setExporting(true);
@@ -68,7 +132,6 @@ function ImportExportManager() {
       setExportSuccess(false);
       setProgress(0);
 
-      // Gather all data
       setProgressMessage('Gathering people...');
       setProgress(20);
       const people = await getAllPeople();
@@ -85,7 +148,6 @@ function ImportExportManager() {
       setProgress(70);
       const codexEntries = await getAllEntries();
 
-      // Format data using MigrationHooks
       setProgressMessage('Formatting export...');
       setProgress(80);
       const exportedData = exportData({
@@ -95,7 +157,6 @@ function ImportExportManager() {
         codexEntries: codexEntries || []
       }, 'json');
 
-      // Create download
       setProgressMessage('Creating download...');
       setProgress(90);
       const blob = new Blob([JSON.stringify(exportedData, null, 2)], {
@@ -104,11 +165,10 @@ function ImportExportManager() {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      
-      // Generate filename with timestamp
+
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
       link.download = `lineageweaver-backup-${timestamp}.json`;
-      
+
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -118,7 +178,6 @@ function ImportExportManager() {
       setProgressMessage('Export complete!');
       setExportSuccess(true);
 
-      // Reset after 3 seconds
       setTimeout(() => {
         setExportSuccess(false);
         setProgress(0);
@@ -133,13 +192,8 @@ function ImportExportManager() {
     }
   };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // IMPORT FUNCTIONS
-  // ═══════════════════════════════════════════════════════════════════════
+  // ==================== IMPORT FUNCTIONS ====================
 
-  /**
-   * Handle file selection
-   */
   const handleFileSelect = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -151,15 +205,12 @@ function ImportExportManager() {
     setImportSuccess(false);
 
     try {
-      // Read file
       const fileContent = await readFileAsText(file);
-      
-      // Get existing data
+
       const existingPeople = await getAllPeople();
       const existingHouses = await getAllHouses();
       const existingRelationships = await getAllRelationships();
 
-      // Validate and check conflicts
       const result = importData(fileContent, {
         people: existingPeople,
         houses: existingHouses,
@@ -171,7 +222,6 @@ function ImportExportManager() {
         return;
       }
 
-      // Set preview data
       setImportPreview({
         version: result.data.version,
         exportDate: result.data.exportDate,
@@ -184,7 +234,6 @@ function ImportExportManager() {
         }
       });
 
-      // Set conflicts if any
       if (result.conflicts && result.conflicts.length > 0) {
         setImportConflicts(result.conflicts);
       }
@@ -194,16 +243,12 @@ function ImportExportManager() {
     }
   };
 
-  /**
-   * Execute the import
-   */
   const handleImport = async () => {
     if (!importFile) return;
 
-    // Final confirmation
     const hasConflicts = importConflicts && importConflicts.length > 0;
     const confirmMessage = hasConflicts
-      ? `⚠️ IMPORT WITH CONFLICTS\n\nThis will import data with ${importConflicts.length} conflicts.\nResolution strategy: ${conflictResolution.toUpperCase()}\n\nContinue?`
+      ? `Import with ${importConflicts.length} conflicts?\nResolution: ${conflictResolution.toUpperCase()}`
       : `Import ${importPreview.counts.people} people, ${importPreview.counts.houses} houses, and ${importPreview.counts.relationships} relationships?\n\nThis action cannot be undone without a backup!`;
 
     if (!confirm(confirmMessage)) return;
@@ -213,13 +258,11 @@ function ImportExportManager() {
       setProgress(0);
       setImportSuccess(false);
 
-      // Read file again
       setProgressMessage('Reading import file...');
       setProgress(10);
       const fileContent = await readFileAsText(importFile);
       const data = JSON.parse(fileContent);
 
-      // Handle conflicts
       let finalPeople = data.people;
       let finalHouses = data.houses;
       let finalRelationships = data.relationships;
@@ -229,13 +272,11 @@ function ImportExportManager() {
         setProgress(20);
 
         if (conflictResolution === 'skip') {
-          // Filter out conflicting items
           const existingPeopleIds = (await getAllPeople()).map(p => p.id);
           const existingHouseIds = (await getAllHouses()).map(h => h.id);
           finalPeople = data.people.filter(p => !existingPeopleIds.includes(p.id));
           finalHouses = data.houses.filter(h => !existingHouseIds.includes(h.id));
         } else if (conflictResolution === 'overwrite') {
-          // Delete conflicting items first
           setProgressMessage('Removing conflicting records...');
           for (const conflict of importConflicts) {
             if (conflict.type === 'person') {
@@ -245,10 +286,9 @@ function ImportExportManager() {
             }
           }
         } else if (conflictResolution === 'keep-both') {
-          // Generate new IDs for imports
           setProgressMessage('Generating new IDs...');
           const idMap = new Map();
-          
+
           finalPeople = data.people.map(person => {
             const existing = importConflicts.find(c => c.type === 'person' && c.id === person.id);
             if (existing) {
@@ -269,7 +309,6 @@ function ImportExportManager() {
             return house;
           });
 
-          // Update relationship references
           finalRelationships = data.relationships.map(rel => ({
             ...rel,
             person1Id: idMap.get(rel.person1Id) || rel.person1Id,
@@ -278,22 +317,18 @@ function ImportExportManager() {
         }
       }
 
-      // Import houses first (people reference houses)
       setProgressMessage(`Importing ${finalHouses.length} houses...`);
       setProgress(40);
       await db.houses.bulkAdd(finalHouses);
 
-      // Import people
       setProgressMessage(`Importing ${finalPeople.length} people...`);
       setProgress(60);
       await db.people.bulkAdd(finalPeople);
 
-      // Import relationships
       setProgressMessage(`Importing ${finalRelationships.length} relationships...`);
       setProgress(80);
       await db.relationships.bulkAdd(finalRelationships);
 
-      // Import Codex entries if present
       if (data.codexEntries && data.codexEntries.length > 0) {
         setProgressMessage(`Importing ${data.codexEntries.length} Codex entries...`);
         setProgress(90);
@@ -304,10 +339,8 @@ function ImportExportManager() {
       setProgressMessage('Import complete!');
       setImportSuccess(true);
 
-      // Refresh the shared context so ManageData and FamilyTree update automatically
       await refreshData();
 
-      // Reset form after success
       setTimeout(() => {
         setImportFile(null);
         setImportPreview(null);
@@ -315,7 +348,6 @@ function ImportExportManager() {
         setImportSuccess(false);
         setProgress(0);
         setProgressMessage('');
-        // Reset file input
         document.getElementById('import-file-input').value = '';
       }, 3000);
 
@@ -327,9 +359,6 @@ function ImportExportManager() {
     }
   };
 
-  /**
-   * Helper: Read file as text
-   */
   const readFileAsText = (file) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -339,9 +368,6 @@ function ImportExportManager() {
     });
   };
 
-  /**
-   * Cancel import
-   */
   const handleCancelImport = () => {
     setImportFile(null);
     setImportPreview(null);
@@ -351,389 +377,413 @@ function ImportExportManager() {
     document.getElementById('import-file-input').value = '';
   };
 
-  // ═══════════════════════════════════════════════════════════════════════
-  // RENDER
-  // ═══════════════════════════════════════════════════════════════════════
+  // ==================== RENDER ====================
 
   return (
-    <div className="import-export-manager" style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>
-      
-      {/* ═══════════════════════════════════════════════════════════════ */}
-      {/* EXPORT SECTION */}
-      {/* ═══════════════════════════════════════════════════════════════ */}
-      <section style={{ marginBottom: '3rem' }}>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>
-          📤 Export Data
+    <div className="import-export">
+
+      {/* Export Section */}
+      <motion.section
+        className="import-export__section"
+        variants={SECTION_VARIANTS}
+        initial="hidden"
+        animate="visible"
+      >
+        <h2 className="import-export__header">
+          <Icon name="upload" size={24} />
+          <span>Export Data</span>
         </h2>
-        <p style={{ marginBottom: '1.5rem', color: 'var(--text-secondary)' }}>
+        <p className="import-export__description">
           Create a complete backup of your Lineageweaver data including people, houses, relationships, and Codex entries.
         </p>
 
-        <div style={{ 
-          backgroundColor: 'var(--surface-raised)', 
-          padding: '1.5rem', 
-          borderRadius: '8px',
-          border: '1px solid var(--border-color)'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-            <div style={{ flex: 1 }}>
-              <h3 style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '0.25rem' }}>
-                JSON Format
-              </h3>
-              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+        <motion.div
+          className="import-export__card"
+          variants={CARD_VARIANTS}
+        >
+          <div className="import-export__card-row">
+            <div className="import-export__card-info">
+              <h3 className="import-export__card-title">JSON Format</h3>
+              <p className="import-export__card-subtitle">
                 Human-readable, version {CURRENT_VERSION}
               </p>
             </div>
             <button
+              className="import-export__btn import-export__btn--primary"
               onClick={handleExport}
               disabled={exporting}
-              style={{
-                padding: '0.75rem 1.5rem',
-                backgroundColor: exporting ? 'var(--border-color)' : 'var(--accent-primary)',
-                color: 'white',
-                borderRadius: '6px',
-                border: 'none',
-                cursor: exporting ? 'not-allowed' : 'pointer',
-                fontSize: '0.875rem',
-                fontWeight: '600'
-              }}
             >
-              {exporting ? '⏳ Exporting...' : '📥 Download Backup'}
+              {exporting ? (
+                <>
+                  <Icon name="loader" size={16} />
+                  <span>Exporting...</span>
+                </>
+              ) : (
+                <>
+                  <Icon name="download" size={16} />
+                  <span>Download Backup</span>
+                </>
+              )}
             </button>
           </div>
 
           {/* Progress bar */}
-          {exporting && (
-            <div style={{ marginTop: '1rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                  {progressMessage}
-                </span>
-                <span style={{ fontSize: '0.875rem', fontWeight: '600' }}>
-                  {progress}%
-                </span>
-              </div>
-              <div style={{ 
-                width: '100%', 
-                height: '8px', 
-                backgroundColor: 'var(--border-color)', 
-                borderRadius: '4px',
-                overflow: 'hidden'
-              }}>
-                <div style={{
-                  width: `${progress}%`,
-                  height: '100%',
-                  backgroundColor: 'var(--accent-primary)',
-                  transition: 'width 0.3s ease'
-                }} />
-              </div>
-            </div>
-          )}
+          <AnimatePresence>
+            {exporting && (
+              <motion.div
+                className="import-export__progress"
+                variants={PROGRESS_VARIANTS}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+              >
+                <div className="import-export__progress-header">
+                  <span className="import-export__progress-message">
+                    {progressMessage}
+                  </span>
+                  <span className="import-export__progress-percent">
+                    {progress}%
+                  </span>
+                </div>
+                <div className="import-export__progress-track">
+                  <motion.div
+                    className="import-export__progress-fill"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${progress}%` }}
+                  />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Success message */}
-          {exportSuccess && (
-            <div style={{ 
-              marginTop: '1rem', 
-              padding: '1rem', 
-              backgroundColor: '#d4edda', 
-              color: '#155724',
-              borderRadius: '6px',
-              fontSize: '0.875rem'
-            }}>
-              ✅ Export successful! Your backup has been downloaded.
-            </div>
-          )}
+          <AnimatePresence>
+            {exportSuccess && (
+              <motion.div
+                className="import-export__alert import-export__alert--success"
+                variants={ALERT_VARIANTS}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+              >
+                <Icon name="check-circle" size={18} className="import-export__alert-icon" />
+                <p className="import-export__alert-text">
+                  Export successful! Your backup has been downloaded.
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Error message */}
-          {exportError && (
-            <div style={{ 
-              marginTop: '1rem', 
-              padding: '1rem', 
-              backgroundColor: '#f8d7da', 
-              color: '#721c24',
-              borderRadius: '6px',
-              fontSize: '0.875rem'
-            }}>
-              ❌ Export failed: {exportError}
-            </div>
-          )}
-        </div>
-      </section>
+          <AnimatePresence>
+            {exportError && (
+              <motion.div
+                className="import-export__alert import-export__alert--error"
+                variants={ALERT_VARIANTS}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+              >
+                <Icon name="x-circle" size={18} className="import-export__alert-icon" />
+                <p className="import-export__alert-text">
+                  Export failed: {exportError}
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      </motion.section>
 
-      {/* ═══════════════════════════════════════════════════════════════ */}
-      {/* IMPORT SECTION */}
-      {/* ═══════════════════════════════════════════════════════════════ */}
-      <section>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>
-          📥 Import Data
+      {/* Import Section */}
+      <motion.section
+        className="import-export__section"
+        variants={SECTION_VARIANTS}
+        initial="hidden"
+        animate="visible"
+        transition={{ delay: 0.1 }}
+      >
+        <h2 className="import-export__header">
+          <Icon name="download" size={24} />
+          <span>Import Data</span>
         </h2>
-        <p style={{ marginBottom: '1.5rem', color: 'var(--text-secondary)' }}>
+        <p className="import-export__description">
           Restore data from a Lineageweaver backup file. Automatic version migration and conflict detection included.
         </p>
 
-        <div style={{ 
-          backgroundColor: 'var(--surface-raised)', 
-          padding: '1.5rem', 
-          borderRadius: '8px',
-          border: '1px solid var(--border-color)'
-        }}>
-          
+        <motion.div
+          className="import-export__card"
+          variants={CARD_VARIANTS}
+        >
+
           {/* File selection */}
           {!importPreview && (
-            <div>
+            <div className="import-export__file-input-wrapper">
               <input
                 id="import-file-input"
                 type="file"
                 accept=".json"
                 onChange={handleFileSelect}
-                style={{ marginBottom: '1rem' }}
+                className="import-export__file-input"
               />
-              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+              <p className="import-export__file-hint">
                 Select a .json backup file exported from Lineageweaver
               </p>
             </div>
           )}
 
           {/* Validation errors */}
-          {importErrors && (
-            <div style={{ 
-              marginTop: '1rem', 
-              padding: '1rem', 
-              backgroundColor: '#f8d7da', 
-              color: '#721c24',
-              borderRadius: '6px'
-            }}>
-              <h4 style={{ fontWeight: 'bold', marginBottom: '0.5rem' }}>
-                ❌ Import Validation Failed
-              </h4>
-              <ul style={{ paddingLeft: '1.5rem', fontSize: '0.875rem' }}>
-                {importErrors.map((error, index) => (
-                  <li key={index}>{error}</li>
-                ))}
-              </ul>
-            </div>
-          )}
+          <AnimatePresence>
+            {importErrors && (
+              <motion.div
+                className="import-export__alert import-export__alert--error"
+                variants={ALERT_VARIANTS}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+              >
+                <Icon name="x-circle" size={18} className="import-export__alert-icon" />
+                <div className="import-export__alert-content">
+                  <h4 className="import-export__alert-title">Import Validation Failed</h4>
+                  <ul className="import-export__alert-list">
+                    {importErrors.map((error, index) => (
+                      <li key={index}>{error}</li>
+                    ))}
+                  </ul>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Import preview */}
-          {importPreview && !importSuccess && (
-            <div>
-              <h3 style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '1rem' }}>
-                📋 Import Preview
-              </h3>
-              
-              {/* Metadata */}
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(2, 1fr)', 
-                gap: '1rem',
-                marginBottom: '1.5rem'
-              }}>
-                <div style={{ padding: '1rem', backgroundColor: 'var(--background-primary)', borderRadius: '6px' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
-                    Schema Version
-                  </div>
-                  <div style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>
-                    {importPreview.version}
-                  </div>
-                </div>
-                <div style={{ padding: '1rem', backgroundColor: 'var(--background-primary)', borderRadius: '6px' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.25rem' }}>
-                    Export Date
-                  </div>
-                  <div style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>
-                    {new Date(importPreview.exportDate).toLocaleDateString()}
-                  </div>
-                </div>
-              </div>
+          <AnimatePresence mode="wait">
+            {importPreview && !importSuccess && (
+              <motion.div
+                className="import-export__preview"
+                variants={CARD_VARIANTS}
+                initial="hidden"
+                animate="visible"
+                exit="hidden"
+              >
+                <h3 className="import-export__preview-title">
+                  <Icon name="file-text" size={18} />
+                  <span>Import Preview</span>
+                </h3>
 
-              {/* Counts */}
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(4, 1fr)', 
-                gap: '0.5rem',
-                marginBottom: '1.5rem'
-              }}>
-                <div style={{ textAlign: 'center', padding: '0.75rem', backgroundColor: 'var(--background-primary)', borderRadius: '6px' }}>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{importPreview.counts.people}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>People</div>
-                </div>
-                <div style={{ textAlign: 'center', padding: '0.75rem', backgroundColor: 'var(--background-primary)', borderRadius: '6px' }}>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{importPreview.counts.houses}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Houses</div>
-                </div>
-                <div style={{ textAlign: 'center', padding: '0.75rem', backgroundColor: 'var(--background-primary)', borderRadius: '6px' }}>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{importPreview.counts.relationships}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Relationships</div>
-                </div>
-                <div style={{ textAlign: 'center', padding: '0.75rem', backgroundColor: 'var(--background-primary)', borderRadius: '6px' }}>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>{importPreview.counts.codexEntries}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Codex Entries</div>
-                </div>
-              </div>
+                {/* Metadata */}
+                <motion.div
+                  className="import-export__meta-grid"
+                  variants={GRID_VARIANTS}
+                  initial="hidden"
+                  animate="visible"
+                >
+                  <motion.div className="import-export__meta-item" variants={ITEM_VARIANTS}>
+                    <p className="import-export__meta-label">Schema Version</p>
+                    <p className="import-export__meta-value">{importPreview.version}</p>
+                  </motion.div>
+                  <motion.div className="import-export__meta-item" variants={ITEM_VARIANTS}>
+                    <p className="import-export__meta-label">Export Date</p>
+                    <p className="import-export__meta-value">
+                      {new Date(importPreview.exportDate).toLocaleDateString()}
+                    </p>
+                  </motion.div>
+                </motion.div>
 
-              {/* Conflicts */}
-              {importConflicts && importConflicts.length > 0 && (
-                <div style={{ 
-                  marginBottom: '1.5rem', 
-                  padding: '1rem', 
-                  backgroundColor: '#fff3cd', 
-                  border: '1px solid #ffc107',
-                  borderRadius: '6px'
-                }}>
-                  <h4 style={{ fontWeight: 'bold', marginBottom: '0.5rem', color: '#856404' }}>
-                    ⚠️ {importConflicts.length} Conflicts Detected
-                  </h4>
-                  <p style={{ fontSize: '0.875rem', marginBottom: '1rem', color: '#856404' }}>
-                    The following records already exist in your database:
-                  </p>
-                  <div style={{ maxHeight: '150px', overflowY: 'auto', marginBottom: '1rem' }}>
-                    {importConflicts.slice(0, 10).map((conflict, index) => (
-                      <div key={index} style={{ fontSize: '0.875rem', marginBottom: '0.5rem', color: '#856404' }}>
-                        • {conflict.type === 'person' ? '👤' : '🏰'} {conflict.importName}
+                {/* Counts */}
+                <motion.div
+                  className="import-export__counts-grid"
+                  variants={GRID_VARIANTS}
+                  initial="hidden"
+                  animate="visible"
+                >
+                  <motion.div className="import-export__count-item" variants={ITEM_VARIANTS}>
+                    <p className="import-export__count-value">{importPreview.counts.people}</p>
+                    <p className="import-export__count-label">People</p>
+                  </motion.div>
+                  <motion.div className="import-export__count-item" variants={ITEM_VARIANTS}>
+                    <p className="import-export__count-value">{importPreview.counts.houses}</p>
+                    <p className="import-export__count-label">Houses</p>
+                  </motion.div>
+                  <motion.div className="import-export__count-item" variants={ITEM_VARIANTS}>
+                    <p className="import-export__count-value">{importPreview.counts.relationships}</p>
+                    <p className="import-export__count-label">Relationships</p>
+                  </motion.div>
+                  <motion.div className="import-export__count-item" variants={ITEM_VARIANTS}>
+                    <p className="import-export__count-value">{importPreview.counts.codexEntries}</p>
+                    <p className="import-export__count-label">Codex Entries</p>
+                  </motion.div>
+                </motion.div>
+
+                {/* Conflicts */}
+                <AnimatePresence>
+                  {importConflicts && importConflicts.length > 0 && (
+                    <motion.div
+                      className="import-export__conflicts"
+                      variants={ALERT_VARIANTS}
+                      initial="hidden"
+                      animate="visible"
+                      exit="exit"
+                    >
+                      <h4 className="import-export__conflicts-header">
+                        <Icon name="alert-triangle" size={18} />
+                        <span>{importConflicts.length} Conflicts Detected</span>
+                      </h4>
+                      <p className="import-export__conflicts-description">
+                        The following records already exist in your database:
+                      </p>
+                      <div className="import-export__conflicts-list">
+                        {importConflicts.slice(0, 10).map((conflict, index) => (
+                          <div key={index} className="import-export__conflict-item">
+                            <Icon name={conflict.type === 'person' ? 'user' : 'castle'} size={14} />
+                            <span>{conflict.importName}</span>
+                          </div>
+                        ))}
+                        {importConflicts.length > 10 && (
+                          <p className="import-export__conflicts-more">
+                            ...and {importConflicts.length - 10} more
+                          </p>
+                        )}
                       </div>
-                    ))}
-                    {importConflicts.length > 10 && (
-                      <div style={{ fontSize: '0.875rem', fontStyle: 'italic', color: '#856404' }}>
-                        ...and {importConflicts.length - 10} more
-                      </div>
-                    )}
-                  </div>
 
-                  {/* Conflict resolution strategy */}
-                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem', color: '#856404' }}>
-                    Resolution Strategy:
-                  </label>
-                  <select
-                    value={conflictResolution}
-                    onChange={(e) => setConflictResolution(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '0.5rem',
-                      borderRadius: '4px',
-                      border: '1px solid #ffc107',
-                      backgroundColor: 'white',
-                      fontSize: '0.875rem'
-                    }}
+                      {/* Conflict resolution strategy */}
+                      <div className="import-export__resolution">
+                        <label className="import-export__resolution-label">
+                          Resolution Strategy:
+                        </label>
+                        <select
+                          value={conflictResolution}
+                          onChange={(e) => setConflictResolution(e.target.value)}
+                          className="import-export__resolution-select"
+                        >
+                          <option value="skip">Skip conflicting records (safest)</option>
+                          <option value="overwrite">Overwrite existing records (replaces data)</option>
+                          <option value="keep-both">Keep both (creates duplicates with new IDs)</option>
+                        </select>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Import progress */}
+                <AnimatePresence>
+                  {importing && (
+                    <motion.div
+                      className="import-export__progress"
+                      variants={PROGRESS_VARIANTS}
+                      initial="hidden"
+                      animate="visible"
+                      exit="exit"
+                    >
+                      <div className="import-export__progress-header">
+                        <span className="import-export__progress-message">
+                          {progressMessage}
+                        </span>
+                        <span className="import-export__progress-percent">
+                          {progress}%
+                        </span>
+                      </div>
+                      <div className="import-export__progress-track">
+                        <motion.div
+                          className="import-export__progress-fill"
+                          initial={{ width: 0 }}
+                          animate={{ width: `${progress}%` }}
+                        />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Action buttons */}
+                <div className="import-export__actions">
+                  <button
+                    className="import-export__btn import-export__btn--secondary"
+                    onClick={handleCancelImport}
+                    disabled={importing}
                   >
-                    <option value="skip">Skip conflicting records (safest)</option>
-                    <option value="overwrite">Overwrite existing records (replaces data)</option>
-                    <option value="keep-both">Keep both (creates duplicates with new IDs)</option>
-                  </select>
+                    Cancel
+                  </button>
+                  <button
+                    className="import-export__btn import-export__btn--primary"
+                    onClick={handleImport}
+                    disabled={importing}
+                  >
+                    {importing ? (
+                      <>
+                        <Icon name="loader" size={16} />
+                        <span>Importing...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Icon name="check" size={16} />
+                        <span>Confirm Import</span>
+                      </>
+                    )}
+                  </button>
                 </div>
-              )}
-
-              {/* Import progress */}
-              {importing && (
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                    <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                      {progressMessage}
-                    </span>
-                    <span style={{ fontSize: '0.875rem', fontWeight: '600' }}>
-                      {progress}%
-                    </span>
-                  </div>
-                  <div style={{ 
-                    width: '100%', 
-                    height: '8px', 
-                    backgroundColor: 'var(--border-color)', 
-                    borderRadius: '4px',
-                    overflow: 'hidden'
-                  }}>
-                    <div style={{
-                      width: `${progress}%`,
-                      height: '100%',
-                      backgroundColor: 'var(--accent-primary)',
-                      transition: 'width 0.3s ease'
-                    }} />
-                  </div>
-                </div>
-              )}
-
-              {/* Action buttons */}
-              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
-                <button
-                  onClick={handleCancelImport}
-                  disabled={importing}
-                  style={{
-                    padding: '0.75rem 1.5rem',
-                    backgroundColor: 'var(--border-color)',
-                    color: 'var(--text-primary)',
-                    borderRadius: '6px',
-                    border: 'none',
-                    cursor: importing ? 'not-allowed' : 'pointer',
-                    fontSize: '0.875rem',
-                    fontWeight: '600'
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleImport}
-                  disabled={importing}
-                  style={{
-                    padding: '0.75rem 1.5rem',
-                    backgroundColor: importing ? 'var(--border-color)' : 'var(--accent-primary)',
-                    color: 'white',
-                    borderRadius: '6px',
-                    border: 'none',
-                    cursor: importing ? 'not-allowed' : 'pointer',
-                    fontSize: '0.875rem',
-                    fontWeight: '600'
-                  }}
-                >
-                  {importing ? '⏳ Importing...' : '✅ Confirm Import'}
-                </button>
-              </div>
-            </div>
-          )}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Success message */}
-          {importSuccess && (
-            <div style={{ 
-              padding: '1rem', 
-              backgroundColor: '#d4edda', 
-              color: '#155724',
-              borderRadius: '6px',
-              fontSize: '0.875rem',
-              textAlign: 'center'
-            }}>
-              <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>✅</div>
-              <div style={{ fontWeight: 'bold', marginBottom: '0.25rem' }}>Import Successful!</div>
-              <div>Your data has been restored. All views are now updated!</div>
-            </div>
-          )}
-        </div>
-      </section>
+          <AnimatePresence>
+            {importSuccess && (
+              <motion.div
+                className="import-export__success"
+                variants={ALERT_VARIANTS}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+              >
+                <Icon name="check-circle" size={48} className="import-export__success-icon" />
+                <h3 className="import-export__success-title">Import Successful!</h3>
+                <p className="import-export__success-text">
+                  Your data has been restored. All views are now updated!
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      </motion.section>
 
-      {/* ═══════════════════════════════════════════════════════════════ */}
-      {/* 🔗 TREE-CODEX INTEGRATION: Migration Tool */}
-      {/* ═══════════════════════════════════════════════════════════════ */}
-      <section style={{ marginTop: '3rem' }}>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>
-          🔗 Codex Integration
+      {/* Codex Integration Section */}
+      <motion.section
+        className="import-export__section"
+        variants={SECTION_VARIANTS}
+        initial="hidden"
+        animate="visible"
+        transition={{ delay: 0.2 }}
+      >
+        <h2 className="import-export__header">
+          <Icon name="link" size={24} />
+          <span>Codex Integration</span>
         </h2>
-        <p style={{ marginBottom: '1.5rem', color: 'var(--text-secondary)' }}>
+        <p className="import-export__description">
           Create Codex biography entries for people added before the Tree-Codex integration.
         </p>
         <CodexMigrationTool />
-      </section>
+      </motion.section>
 
-      {/* ═══════════════════════════════════════════════════════════════ */}
-      {/* BEST PRACTICES */}
-      {/* ═══════════════════════════════════════════════════════════════ */}
-      <section style={{ marginTop: '3rem', padding: '1.5rem', backgroundColor: '#e7f3ff', borderRadius: '8px' }}>
-        <h3 style={{ fontSize: '1rem', fontWeight: 'bold', marginBottom: '1rem', color: '#004085' }}>
-          💡 Best Practices
-        </h3>
-        <ul style={{ fontSize: '0.875rem', color: '#004085', paddingLeft: '1.5rem', lineHeight: '1.6' }}>
-          <li>Export backups regularly, especially before major data changes</li>
-          <li>Store backups in multiple locations (local drive, cloud storage, email)</li>
-          <li>Name backups with dates for easy identification</li>
-          <li>Test imports on a separate device or browser profile first</li>
-          <li>Always export before importing to preserve current state</li>
-        </ul>
-      </section>
+      {/* Best Practices */}
+      <motion.section
+        className="import-export__section"
+        variants={SECTION_VARIANTS}
+        initial="hidden"
+        animate="visible"
+        transition={{ delay: 0.3 }}
+      >
+        <div className="import-export__tips">
+          <h3 className="import-export__tips-header">
+            <Icon name="lightbulb" size={18} />
+            <span>Best Practices</span>
+          </h3>
+          <ul className="import-export__tips-list">
+            <li>Export backups regularly, especially before major data changes</li>
+            <li>Store backups in multiple locations (local drive, cloud storage, email)</li>
+            <li>Name backups with dates for easy identification</li>
+            <li>Test imports on a separate device or browser profile first</li>
+            <li>Always export before importing to preserve current state</li>
+          </ul>
+        </div>
+      </motion.section>
     </div>
   );
 }

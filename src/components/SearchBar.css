@@ -1,0 +1,225 @@
+/**
+ * SearchBar.css - Search Bar Styles
+ *
+ * PURPOSE:
+ * Styles for the search bar component.
+ * Medieval manuscript aesthetic with BEM naming.
+ * Uses CSS custom properties for theming.
+ */
+
+/* ============================================
+   CONTAINER
+   ============================================ */
+
+.search-bar {
+  position: relative;
+  width: 280px;
+}
+
+/* ============================================
+   INPUT WRAPPER
+   ============================================ */
+
+.search-bar__input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 44px;
+}
+
+.search-bar__icon {
+  position: absolute;
+  left: var(--space-3);
+  color: var(--text-tertiary);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.search-bar__input {
+  width: 100%;
+  height: 100%;
+  padding: var(--space-2) var(--space-10);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  outline: none;
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.search-bar__input:focus {
+  border-color: var(--focus-ring);
+  box-shadow: 0 0 0 3px var(--focus-ring-alpha, rgba(212, 175, 55, 0.2));
+}
+
+.search-bar__input::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* ============================================
+   CLEAR BUTTON
+   ============================================ */
+
+.search-bar__clear {
+  position: absolute;
+  right: var(--space-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.search-bar__clear:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+/* ============================================
+   DROPDOWN
+   ============================================ */
+
+.search-bar__dropdown {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  left: 0;
+  width: 100%;
+  max-height: 320px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+  overflow: hidden;
+  z-index: 9999;
+}
+
+.search-bar__results {
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+/* ============================================
+   RESULT ITEM
+   ============================================ */
+
+.search-bar__result {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-standard);
+}
+
+.search-bar__result:hover,
+.search-bar__result--highlighted {
+  background: var(--bg-tertiary);
+}
+
+.search-bar__result-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: var(--bg-primary);
+  border-radius: var(--radius-md);
+  color: var(--accent-primary);
+  flex-shrink: 0;
+}
+
+.search-bar__result-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.search-bar__result-name {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-bar__result-detail {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  font-style: italic;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 1px;
+}
+
+.search-bar__result-dates {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 1px;
+}
+
+/* ============================================
+   MORE RESULTS
+   ============================================ */
+
+.search-bar__more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  background: var(--bg-primary);
+  border-top: 1px solid var(--border-secondary);
+}
+
+.search-bar__more svg {
+  color: var(--accent-primary);
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 480px) {
+  .search-bar {
+    width: 100%;
+    max-width: 280px;
+  }
+
+  .search-bar__input {
+    font-size: 16px; /* Prevents iOS zoom */
+  }
+}
+
+/* ============================================
+   REDUCED MOTION
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .search-bar__input,
+  .search-bar__clear,
+  .search-bar__result {
+    transition: none;
+  }
+}

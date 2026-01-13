@@ -1,83 +1,103 @@
-/* ========================================
-   HOUSE LIST STYLES
-   Uses CSS custom properties for theming
-   ======================================== */
+/**
+ * HouseList.css - House List Styles
+ *
+ * PURPOSE:
+ * Styles for the house list component with heraldry integration.
+ * Medieval manuscript aesthetic with BEM naming.
+ * Uses CSS custom properties for theming.
+ */
 
-/* Empty State */
-.house-list-empty {
-  text-align: center;
-  padding: 48px 24px;
-  background-color: var(--bg-tertiary);
-  border-radius: 8px;
-  border: 1px dashed var(--border-primary);
-}
+/* ============================================
+   LIST CONTAINER
+   ============================================ */
 
-.house-list-empty-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
-}
-
-.house-list-empty-text {
-  color: var(--text-secondary);
-  font-size: 16px;
-  margin: 0;
-  font-family: var(--font-body);
-}
-
-/* List Container */
 .house-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
-/* House Card */
-.house-card {
-  background-color: var(--bg-secondary);
+/* ============================================
+   EMPTY STATE
+   ============================================ */
+
+.house-list__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-8) var(--space-6);
+  background: var(--bg-tertiary);
+  border: 1px dashed var(--border-primary);
+  border-radius: var(--radius-lg);
+  text-align: center;
+}
+
+.house-list__empty-icon {
+  color: var(--text-tertiary);
+  margin-bottom: var(--space-3);
+}
+
+.house-list__empty-text {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* ============================================
+   HOUSE CARD
+   ============================================ */
+
+.house-list__card {
+  background: var(--bg-secondary);
   border: 1px solid var(--border-primary);
-  border-radius: 8px;
-  padding: 16px;
-  transition: all var(--duration-fast) ease;
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  transition: all var(--duration-fast) var(--ease-standard);
 }
 
-.house-card:hover {
+.house-list__card:hover {
   border-color: var(--accent-primary);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-md);
 }
 
-.house-card-content {
+.house-list__card-content {
   display: flex;
   align-items: flex-start;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
-/* Heraldry Thumbnail */
-.house-card-heraldry {
-  width: 60px;
-  height: 60px;
-  border-radius: 6px;
+/* ============================================
+   HERALDRY THUMBNAIL
+   ============================================ */
+
+.house-list__heraldry {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-md);
   overflow: hidden;
-  background-color: var(--bg-primary);
+  background: var(--bg-primary);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all var(--duration-fast) ease;
   flex-shrink: 0;
+  transition: all var(--duration-fast) var(--ease-standard);
 }
 
-.house-card-heraldry:hover {
+.house-list__heraldry:hover {
   transform: scale(1.05);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-lg);
 }
 
-.house-card-heraldry img {
+.house-list__heraldry img {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
 }
 
-.house-card-heraldry .svg-container {
+.house-list__heraldry-svg {
   width: 90%;
   height: 90%;
   display: flex;
@@ -85,84 +105,112 @@
   justify-content: center;
 }
 
-.house-card-heraldry-loading {
-  font-size: 20px;
-  color: var(--text-secondary);
+.house-list__heraldry--loading {
+  cursor: default;
 }
 
-.house-card-heraldry-placeholder {
-  border-style: dashed;
-  border-width: 2px;
+.house-list__heraldry--loading:hover {
+  transform: none;
+  box-shadow: none;
 }
 
-.house-card-heraldry-placeholder-icon {
-  font-size: 24px;
+.house-list__heraldry-loader {
+  color: var(--text-tertiary);
+  animation: house-list-spin 1s linear infinite;
 }
 
-/* House Info */
-.house-card-info {
+@keyframes house-list-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.house-list__heraldry--placeholder {
+  border: 2px dashed var(--border-primary);
+  background: var(--bg-tertiary);
+}
+
+.house-list__heraldry-add {
+  color: var(--text-tertiary);
+  transition: color var(--duration-fast) var(--ease-standard);
+}
+
+.house-list__heraldry--placeholder:hover .house-list__heraldry-add {
+  color: var(--accent-primary);
+}
+
+/* ============================================
+   HOUSE INFO
+   ============================================ */
+
+.house-list__info {
   flex: 1;
   min-width: 0;
 }
 
-.house-card-header {
+.house-list__header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 6px;
+  gap: var(--space-2);
+  margin-bottom: var(--space-1);
   flex-wrap: wrap;
 }
 
-.house-card-color {
+.house-list__color {
   width: 12px;
   height: 12px;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   border: 1px solid var(--border-primary);
   flex-shrink: 0;
 }
 
-.house-card-name {
-  margin: 0;
-  font-size: 17px;
-  font-weight: bold;
+.house-list__name {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 700;
   color: var(--text-primary);
-  font-family: var(--font-heading);
+  margin: 0;
 }
 
-.house-card-founded {
-  font-size: 13px;
+.house-list__founded {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
   color: var(--text-secondary);
 }
 
-.house-card-type {
-  font-size: 11px;
-  padding: 2px 8px;
-  background-color: var(--bg-elevated);
+.house-list__type {
+  display: inline-block;
+  padding: 2px var(--space-2);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  background: var(--bg-tertiary);
   color: var(--text-secondary);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   text-transform: capitalize;
 }
 
-.house-card-blazon {
-  font-size: 13px;
-  color: var(--text-secondary);
-  margin: 0 0 4px 0;
+.house-list__blazon {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
   font-style: italic;
+  color: var(--text-secondary);
+  margin: 0 0 var(--space-1) 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.house-card-motto {
-  font-size: 13px;
-  color: var(--text-primary);
+.house-list__motto {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
   font-style: italic;
-  margin: 0 0 4px 0;
+  color: var(--text-primary);
+  margin: 0 0 var(--space-1) 0;
 }
 
-.house-card-notes {
-  font-size: 12px;
-  color: var(--text-secondary);
+.house-list__notes {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
   margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -170,64 +218,115 @@
   max-width: 400px;
 }
 
-/* Actions */
-.house-card-actions {
+/* ============================================
+   ACTIONS
+   ============================================ */
+
+.house-list__actions {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   align-items: flex-start;
   flex-shrink: 0;
 }
 
-.house-card-btn {
-  padding: 6px 12px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all var(--duration-fast) ease;
+.house-list__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
   font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
 }
 
-.house-card-btn-heraldry {
-  background-color: transparent;
+.house-list__btn--heraldry {
+  background: transparent;
   color: var(--accent-primary);
   border: 1px solid var(--accent-primary);
 }
 
-.house-card-btn-heraldry:hover {
-  background-color: var(--accent-muted);
+.house-list__btn--heraldry:hover {
+  background: rgba(212, 175, 55, 0.1);
 }
 
-.house-card-btn-edit {
-  background-color: transparent;
-  color: var(--accent-primary);
+.house-list__btn--edit {
+  background: transparent;
+  color: var(--text-primary);
   border: 1px solid var(--border-primary);
 }
 
-.house-card-btn-edit:hover {
-  background-color: var(--bg-elevated);
+.house-list__btn--edit:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--accent-primary);
 }
 
-.house-card-btn-delete {
-  background-color: var(--color-error-bg);
+.house-list__btn--delete {
+  background: rgba(239, 68, 68, 0.1);
   color: var(--color-error);
   border: 1px solid transparent;
 }
 
-.house-card-btn-delete:hover {
-  background-color: var(--color-error);
-  color: var(--text-primary);
+.house-list__btn--delete:hover {
+  background: var(--color-error);
+  color: white;
 }
 
-/* Responsive */
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
 @media (max-width: 768px) {
-  .house-card-content {
+  .house-list__card-content {
     flex-wrap: wrap;
   }
-  
-  .house-card-actions {
+
+  .house-list__actions {
     width: 100%;
-    margin-top: 12px;
+    margin-top: var(--space-3);
     justify-content: flex-end;
+  }
+
+  .house-list__notes {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .house-list__card {
+    padding: var(--space-3);
+  }
+
+  .house-list__heraldry {
+    width: 48px;
+    height: 48px;
+  }
+
+  .house-list__name {
+    font-size: var(--text-base);
+  }
+
+  .house-list__btn {
+    padding: var(--space-1) var(--space-2);
+  }
+}
+
+/* ============================================
+   REDUCED MOTION
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .house-list__card,
+  .house-list__heraldry,
+  .house-list__btn,
+  .house-list__heraldry-add {
+    transition: none;
+  }
+
+  .house-list__heraldry-loader {
+    animation: none;
   }
 }

@@ -1,27 +1,67 @@
-import { useState, useEffect } from 'react';
-import { isFeatureEnabled } from '../config/featureFlags';
-import { getEntry } from '../services/codexService';
-import { getBiographyStatus } from '../utils/biographyStatus';
-
 /**
- * PersonCard Component
- * 
+ * PersonCard.jsx - Person Detail Card Component
+ *
+ * PURPOSE:
  * Displays detailed information about a person.
  * Used in the sidebar when a person is selected in the tree view.
- * 
+ * Uses Framer Motion for animations, Lucide icons, and BEM CSS.
+ *
  * Props:
  * - person: Person object to display
  * - house: House object this person belongs to
  * - relationships: Array of relationships involving this person
  * - allPeople: Array of all people (to show relationship names)
  */
+
+import { useState, useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Link } from 'react-router-dom';
+import { isFeatureEnabled } from '../config/featureFlags';
+import { getEntry } from '../services/codexService';
+import { getBiographyStatus } from '../utils/biographyStatus';
+import Icon from './icons';
+import './PersonCard.css';
+
+// ==================== ANIMATION VARIANTS ====================
+const CARD_VARIANTS = {
+  hidden: { opacity: 0, y: 10 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      type: 'spring',
+      damping: 20,
+      stiffness: 300
+    }
+  },
+  exit: {
+    opacity: 0,
+    y: -10,
+    transition: { duration: 0.15 }
+  }
+};
+
+const SECTION_VARIANTS = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { delay: 0.1 }
+  }
+};
+
+// ==================== LEGITIMACY COLORS ====================
+const LEGITIMACY_COLORS = {
+  legitimate: 'var(--color-success)',
+  bastard: 'var(--color-warning)',
+  adopted: 'var(--color-info)',
+  unknown: 'var(--text-tertiary)'
+};
+
 function PersonCard({ person, house, relationships = [], allPeople = [] }) {
-  // ═══════════════════════════════════════════════════════════════════════
-  // 🔗 TREE-CODEX INTEGRATION - Phase 2: Biography Status
-  // ═══════════════════════════════════════════════════════════════════════
+  // ==================== CODEX INTEGRATION ====================
   const [codexEntry, setCodexEntry] = useState(null);
   const [loadingEntry, setLoadingEntry] = useState(false);
-  
+
   useEffect(() => {
     if (person?.codexEntryId) {
       loadCodexEntry(person.codexEntryId);
@@ -29,7 +69,7 @@ function PersonCard({ person, house, relationships = [], allPeople = [] }) {
       setCodexEntry(null);
     }
   }, [person?.codexEntryId]);
-  
+
   const loadCodexEntry = async (entryId) => {
     try {
       setLoadingEntry(true);
@@ -42,284 +82,301 @@ function PersonCard({ person, house, relationships = [], allPeople = [] }) {
       setLoadingEntry(false);
     }
   };
-  
-  if (!person) {
-    return (
-      <div className="bg-white rounded-lg shadow-md p-6 text-center text-gray-500">
-        Click on a person in the tree to see their details
-      </div>
-    );
-  }
 
-  /**
-   * Get legitimacy color
-   */
-  const getLegitimacyColor = (status) => {
-    const colors = {
-      legitimate: '#22c55e',
-      bastard: '#f59e0b',
-      adopted: '#3b82f6',
-      unknown: '#6b7280'
-    };
-    return colors[status] || colors.unknown;
-  };
-
-  /**
-   * Get person name by ID
-   */
+  // ==================== HELPERS ====================
   const getPersonName = (personId) => {
     const p = allPeople.find(person => person.id === personId);
     return p ? `${p.firstName} ${p.lastName}` : 'Unknown';
   };
 
-  /**
-   * Get relationships by type
-   */
-  const getRelationshipsByType = (type) => {
-    return relationships.filter(rel => rel.relationshipType === type);
-  };
+  const legitimacyColor = person
+    ? LEGITIMACY_COLORS[person.legitimacyStatus] || LEGITIMACY_COLORS.unknown
+    : LEGITIMACY_COLORS.unknown;
 
-  const parents = relationships.filter(rel => 
-    (rel.relationshipType === 'parent' || 
-     rel.relationshipType === 'adopted-parent' || 
-     rel.relationshipType === 'foster-parent') && 
-    rel.person2Id === person.id
-  );
+  // ==================== COMPUTED RELATIONSHIPS ====================
+  const { parents, children, spouses } = useMemo(() => {
+    if (!person || !relationships.length) {
+      return { parents: [], children: [], spouses: [] };
+    }
 
-  const children = relationships.filter(rel => 
-    (rel.relationshipType === 'parent' || 
-     rel.relationshipType === 'adopted-parent' || 
-     rel.relationshipType === 'foster-parent') && 
-    rel.person1Id === person.id
-  );
+    const parentTypes = ['parent', 'adopted-parent', 'foster-parent'];
 
-  const spouses = relationships.filter(rel => 
-    rel.relationshipType === 'spouse' && 
-    (rel.person1Id === person.id || rel.person2Id === person.id)
-  );
+    return {
+      parents: relationships.filter(rel =>
+        parentTypes.includes(rel.relationshipType) && rel.person2Id === person.id
+      ),
+      children: relationships.filter(rel =>
+        parentTypes.includes(rel.relationshipType) && rel.person1Id === person.id
+      ),
+      spouses: relationships.filter(rel =>
+        rel.relationshipType === 'spouse' &&
+        (rel.person1Id === person.id || rel.person2Id === person.id)
+      )
+    };
+  }, [person, relationships]);
+
+  // ==================== EMPTY STATE ====================
+  if (!person) {
+    return (
+      <div className="person-card person-card--empty">
+        <Icon name="user" size={32} className="person-card__empty-icon" />
+        <p className="person-card__empty-text">
+          Click on a person in the tree to see their details
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden">
-      {/* Header with house color */}
-      <div 
-        className="p-4"
-        style={{ 
-          backgroundColor: house ? house.colorCode + '20' : '#f3f4f6',
-          borderLeft: `4px solid ${getLegitimacyColor(person.legitimacyStatus)}`
-        }}
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={person.id}
+        className="person-card"
+        style={{ '--legitimacy-color': legitimacyColor }}
+        variants={CARD_VARIANTS}
+        initial="hidden"
+        animate="visible"
+        exit="exit"
       >
-        <h2 className="text-2xl font-bold text-gray-900">
-          {person.firstName} {person.lastName}
-        </h2>
-        {person.maidenName && (
-          <p className="text-sm text-gray-600 italic">
-            (née {person.maidenName})
-          </p>
-        )}
-      </div>
-
-      {/* Details */}
-      <div className="p-4 space-y-3">
-        {/* House */}
-        <div>
-          <p className="text-xs font-semibold text-gray-500 uppercase mb-1">House</p>
-          <div className="flex items-center space-x-2">
-            {house && (
-              <div 
-                className="w-4 h-4 rounded"
-                style={{ backgroundColor: house.colorCode }}
-              />
-            )}
-            <p className="text-sm text-gray-900">{house?.houseName || 'Unknown'}</p>
-          </div>
+        {/* Header */}
+        <div
+          className="person-card__header"
+          style={{
+            '--house-color': house?.colorCode || 'var(--text-tertiary)',
+            backgroundColor: house?.colorCode ? `${house.colorCode}15` : 'var(--bg-tertiary)'
+          }}
+        >
+          <h2 className="person-card__name">
+            {person.firstName} {person.lastName}
+          </h2>
+          {person.maidenName && (
+            <p className="person-card__maiden-name">
+              (née {person.maidenName})
+            </p>
+          )}
         </div>
 
-        {/* Dates */}
-        {(person.dateOfBirth || person.dateOfDeath) && (
-          <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Lifespan</p>
-            <p className="text-sm text-gray-900">
-              {person.dateOfBirth && `Born: ${person.dateOfBirth}`}
-              {person.dateOfBirth && person.dateOfDeath && ' • '}
-              {person.dateOfDeath && `Died: ${person.dateOfDeath}`}
+        {/* Details */}
+        <motion.div
+          className="person-card__body"
+          variants={SECTION_VARIANTS}
+          initial="hidden"
+          animate="visible"
+        >
+          {/* House */}
+          <div className="person-card__section">
+            <h3 className="person-card__section-title">
+              <Icon name="castle" size={14} />
+              <span>House</span>
+            </h3>
+            <div className="person-card__house">
+              {house && (
+                <div
+                  className="person-card__house-color"
+                  style={{ backgroundColor: house.colorCode }}
+                />
+              )}
+              <span className="person-card__house-name">{house?.houseName || 'Unknown'}</span>
+            </div>
+          </div>
+
+          {/* Dates */}
+          {(person.dateOfBirth || person.dateOfDeath) && (
+            <div className="person-card__section">
+              <h3 className="person-card__section-title">
+                <Icon name="calendar" size={14} />
+                <span>Lifespan</span>
+              </h3>
+              <p className="person-card__text">
+                {person.dateOfBirth && `Born: ${person.dateOfBirth}`}
+                {person.dateOfBirth && person.dateOfDeath && ' • '}
+                {person.dateOfDeath && `Died: ${person.dateOfDeath}`}
+              </p>
+            </div>
+          )}
+
+          {/* Gender */}
+          <div className="person-card__section">
+            <h3 className="person-card__section-title">
+              <Icon name="user" size={14} />
+              <span>Gender</span>
+            </h3>
+            <p className="person-card__text person-card__text--capitalize">
+              {person.gender}
             </p>
           </div>
-        )}
 
-        {/* Gender */}
-        <div>
-          <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Gender</p>
-          <p className="text-sm text-gray-900 capitalize">{person.gender}</p>
-        </div>
-
-        {/* Legitimacy Status */}
-        {person.legitimacyStatus !== 'legitimate' && (
-          <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Status</p>
-            <span 
-              className="inline-block px-2 py-1 text-xs rounded"
-              style={{
-                backgroundColor: getLegitimacyColor(person.legitimacyStatus) + '20',
-                color: getLegitimacyColor(person.legitimacyStatus)
-              }}
-            >
-              {person.legitimacyStatus.charAt(0).toUpperCase() + person.legitimacyStatus.slice(1)}
-            </span>
-          </div>
-        )}
-
-        {/* ═══════════════════════════════════════════════════════════════════════
-            🔗 TREE-CODEX INTEGRATION: Biography Link with Status
-            ═══════════════════════════════════════════════════════════════════════
-            Shows biography status and link when this person has a Codex entry.
-            Status indicates: Empty (📝), Stub (📄), or Written (📖)
-            ═══════════════════════════════════════════════════════════════════════ */}
-        {person.codexEntryId && (
-          <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Biography</p>
-            {loadingEntry ? (
-              <span className="text-sm text-gray-400">Loading...</span>
-            ) : (() => {
-              const status = getBiographyStatus(codexEntry, false); // PersonCard uses light theme styling
-              return (
-                <div className="flex items-center gap-2">
-                  {/* Status Badge */}
-                  <span 
-                    className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded"
-                    style={{
-                      backgroundColor: status.style.backgroundColor,
-                      color: status.style.color,
-                      border: `1px solid ${status.style.borderColor}`
-                    }}
-                    title={status.description}
-                  >
-                    <span>{status.icon}</span>
-                    <span>{status.label}</span>
-                  </span>
-                  
-                  {/* View Link */}
-                  <a
-                    href={`/codex/entry/${person.codexEntryId}`}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-md transition-all hover:opacity-80"
-                    style={{
-                      backgroundColor: 'rgba(201, 162, 39, 0.15)',
-                      color: '#8b6914',
-                      textDecoration: 'none',
-                      border: '1px solid rgba(201, 162, 39, 0.3)'
-                    }}
-                    title="View biography in The Codex"
-                  >
-                    View →
-                  </a>
-                </div>
-              );
-            })()}
-          </div>
-        )}
-
-        {/* ═══════════════════════════════════════════════════════════════════════
-            🪝 HOOK: FANTASY_FIELDS_DISPLAY - Titles
-            ═══════════════════════════════════════════════════════════════════════ */}
-        {/* Titles - Shows when MODULE_1E.TITLES_SYSTEM is enabled */}
-        {isFeatureEnabled('MODULE_1E.TITLES_SYSTEM') && person.titles && person.titles.length > 0 && (
-          <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Titles</p>
-            <div className="flex flex-wrap gap-1">
-              {person.titles.map((title, idx) => (
-                <span 
-                  key={idx}
-                  className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded"
-                >
-                  {title}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ═══════════════════════════════════════════════════════════════════════
-            🪝 HOOK: FANTASY_FIELDS_DISPLAY - Species
-            ═══════════════════════════════════════════════════════════════════════ */}
-        {/* Species - Shows when MODULE_1E.SPECIES_FIELD is enabled */}
-        {isFeatureEnabled('MODULE_1E.SPECIES_FIELD') && person.species && (
-          <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Species</p>
-            <p className="text-sm text-gray-900">{person.species}</p>
-          </div>
-        )}
-
-        {/* ═══════════════════════════════════════════════════════════════════════
-            🪝 HOOK: FANTASY_FIELDS_DISPLAY - Magical Bloodlines
-            ═══════════════════════════════════════════════════════════════════════ */}
-        {/* Magical Bloodline - Shows when MODULE_1E.MAGICAL_BLOODLINES is enabled */}
-        {isFeatureEnabled('MODULE_1E.MAGICAL_BLOODLINES') && person.magicalBloodline && (
-          <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Magical Bloodline</p>
-            <p className="text-sm text-gray-900">{person.magicalBloodline}</p>
-          </div>
-        )}
-
-        {/* Relationships */}
-        <div className="pt-3 border-t">
-          <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Relationships</p>
-          
-          {/* Parents */}
-          {parents.length > 0 && (
-            <div className="mb-2">
-              <p className="text-xs text-gray-600 font-medium mb-1">Parents:</p>
-              {parents.map((rel, idx) => (
-                <p key={idx} className="text-sm text-gray-900 ml-2">
-                  • {getPersonName(rel.person1Id)}
-                  {rel.relationshipType === 'adopted-parent' && ' (adopted)'}
-                  {rel.relationshipType === 'foster-parent' && ' (foster)'}
-                </p>
-              ))}
+          {/* Legitimacy Status */}
+          {person.legitimacyStatus !== 'legitimate' && (
+            <div className="person-card__section">
+              <h3 className="person-card__section-title">
+                <Icon name="info" size={14} />
+                <span>Status</span>
+              </h3>
+              <span className={`person-card__badge person-card__badge--${person.legitimacyStatus}`}>
+                {person.legitimacyStatus.charAt(0).toUpperCase() + person.legitimacyStatus.slice(1)}
+              </span>
             </div>
           )}
 
-          {/* Spouses */}
-          {spouses.length > 0 && (
-            <div className="mb-2">
-              <p className="text-xs text-gray-600 font-medium mb-1">Spouse(s):</p>
-              {spouses.map((rel, idx) => {
-                const spouseId = rel.person1Id === person.id ? rel.person2Id : rel.person1Id;
+          {/* Biography Link */}
+          {person.codexEntryId && (
+            <div className="person-card__section">
+              <h3 className="person-card__section-title">
+                <Icon name="book-open" size={14} />
+                <span>Biography</span>
+              </h3>
+              {loadingEntry ? (
+                <span className="person-card__loading">Loading...</span>
+              ) : (() => {
+                const status = getBiographyStatus(codexEntry, false);
                 return (
-                  <p key={idx} className="text-sm text-gray-900 ml-2">
-                    • {getPersonName(spouseId)} ({rel.marriageStatus})
-                  </p>
+                  <div className="person-card__biography">
+                    <span
+                      className="person-card__biography-status"
+                      style={{
+                        backgroundColor: status.style.backgroundColor,
+                        color: status.style.color,
+                        borderColor: status.style.borderColor
+                      }}
+                      title={status.description}
+                    >
+                      <span>{status.icon}</span>
+                      <span>{status.label}</span>
+                    </span>
+
+                    <Link
+                      to={`/codex/entry/${person.codexEntryId}`}
+                      className="person-card__biography-link"
+                    >
+                      <span>View</span>
+                      <Icon name="arrow-right" size={12} />
+                    </Link>
+                  </div>
                 );
-              })}
+              })()}
             </div>
           )}
 
-          {/* Children */}
-          {children.length > 0 && (
-            <div>
-              <p className="text-xs text-gray-600 font-medium mb-1">Children:</p>
-              {children.map((rel, idx) => (
-                <p key={idx} className="text-sm text-gray-900 ml-2">
-                  • {getPersonName(rel.person2Id)}
-                  {rel.relationshipType === 'adopted-parent' && ' (adopted)'}
-                  {rel.relationshipType === 'foster-parent' && ' (foster)'}
-                </p>
-              ))}
+          {/* Titles */}
+          {isFeatureEnabled('MODULE_1E.TITLES_SYSTEM') && person.titles?.length > 0 && (
+            <div className="person-card__section">
+              <h3 className="person-card__section-title">
+                <Icon name="crown" size={14} />
+                <span>Titles</span>
+              </h3>
+              <div className="person-card__titles">
+                {person.titles.map((title, idx) => (
+                  <span key={idx} className="person-card__title-badge">
+                    {title}
+                  </span>
+                ))}
+              </div>
             </div>
           )}
 
-          {parents.length === 0 && spouses.length === 0 && children.length === 0 && (
-            <p className="text-sm text-gray-500 italic">No relationships recorded</p>
+          {/* Species */}
+          {isFeatureEnabled('MODULE_1E.SPECIES_FIELD') && person.species && (
+            <div className="person-card__section">
+              <h3 className="person-card__section-title">
+                <Icon name="sparkles" size={14} />
+                <span>Species</span>
+              </h3>
+              <p className="person-card__text">{person.species}</p>
+            </div>
           )}
-        </div>
 
-        {/* Notes */}
-        {person.notes && (
-          <div className="pt-3 border-t">
-            <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Notes</p>
-            <p className="text-sm text-gray-700">{person.notes}</p>
+          {/* Magical Bloodline */}
+          {isFeatureEnabled('MODULE_1E.MAGICAL_BLOODLINES') && person.magicalBloodline && (
+            <div className="person-card__section">
+              <h3 className="person-card__section-title">
+                <Icon name="zap" size={14} />
+                <span>Magical Bloodline</span>
+              </h3>
+              <p className="person-card__text">{person.magicalBloodline}</p>
+            </div>
+          )}
+
+          {/* Relationships */}
+          <div className="person-card__section person-card__section--relationships">
+            <h3 className="person-card__section-title">
+              <Icon name="users" size={14} />
+              <span>Relationships</span>
+            </h3>
+
+            {/* Parents */}
+            {parents.length > 0 && (
+              <div className="person-card__relationship-group">
+                <p className="person-card__relationship-label">Parents:</p>
+                {parents.map((rel, idx) => (
+                  <p key={idx} className="person-card__relationship-item">
+                    <Icon name="user" size={12} />
+                    <span>{getPersonName(rel.person1Id)}</span>
+                    {rel.relationshipType === 'adopted-parent' && (
+                      <span className="person-card__relationship-note">(adopted)</span>
+                    )}
+                    {rel.relationshipType === 'foster-parent' && (
+                      <span className="person-card__relationship-note">(foster)</span>
+                    )}
+                  </p>
+                ))}
+              </div>
+            )}
+
+            {/* Spouses */}
+            {spouses.length > 0 && (
+              <div className="person-card__relationship-group">
+                <p className="person-card__relationship-label">Spouse(s):</p>
+                {spouses.map((rel, idx) => {
+                  const spouseId = rel.person1Id === person.id ? rel.person2Id : rel.person1Id;
+                  return (
+                    <p key={idx} className="person-card__relationship-item">
+                      <Icon name="heart" size={12} />
+                      <span>{getPersonName(spouseId)}</span>
+                      <span className="person-card__relationship-note">({rel.marriageStatus})</span>
+                    </p>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Children */}
+            {children.length > 0 && (
+              <div className="person-card__relationship-group">
+                <p className="person-card__relationship-label">Children:</p>
+                {children.map((rel, idx) => (
+                  <p key={idx} className="person-card__relationship-item">
+                    <Icon name="user" size={12} />
+                    <span>{getPersonName(rel.person2Id)}</span>
+                    {rel.relationshipType === 'adopted-parent' && (
+                      <span className="person-card__relationship-note">(adopted)</span>
+                    )}
+                    {rel.relationshipType === 'foster-parent' && (
+                      <span className="person-card__relationship-note">(foster)</span>
+                    )}
+                  </p>
+                ))}
+              </div>
+            )}
+
+            {parents.length === 0 && spouses.length === 0 && children.length === 0 && (
+              <p className="person-card__empty-relationships">No relationships recorded</p>
+            )}
           </div>
-        )}
-      </div>
-    </div>
+
+          {/* Notes */}
+          {person.notes && (
+            <div className="person-card__section person-card__section--notes">
+              <h3 className="person-card__section-title">
+                <Icon name="file-text" size={14} />
+                <span>Notes</span>
+              </h3>
+              <p className="person-card__notes">{person.notes}</p>
+            </div>
+          )}
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
   );
 }
 

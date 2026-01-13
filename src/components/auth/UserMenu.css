@@ -1,0 +1,189 @@
+/**
+ * UserMenu.css - User Account Menu Styles
+ *
+ * PURPOSE:
+ * Styles for the user menu dropdown component.
+ * Medieval manuscript aesthetic with BEM naming.
+ * Uses CSS custom properties for theming.
+ */
+
+/* ============================================
+   MENU CONTAINER
+   ============================================ */
+
+.user-menu {
+  position: relative;
+}
+
+/* ============================================
+   TRIGGER BUTTON
+   ============================================ */
+
+.user-menu__trigger {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard);
+}
+
+.user-menu__trigger:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--border-primary);
+}
+
+/* ============================================
+   AVATAR
+   ============================================ */
+
+.user-menu__avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  object-fit: cover;
+  border: 1px solid var(--border-primary);
+}
+
+.user-menu__avatar--initials {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-primary);
+  color: var(--bg-primary);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+/* ============================================
+   USER NAME
+   ============================================ */
+
+.user-menu__name {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ============================================
+   DROPDOWN ARROW
+   ============================================ */
+
+.user-menu__arrow {
+  color: var(--text-tertiary);
+  transition: transform var(--duration-fast) var(--ease-standard);
+}
+
+.user-menu__arrow--open {
+  transform: rotate(180deg);
+}
+
+/* ============================================
+   DROPDOWN MENU
+   ============================================ */
+
+.user-menu__dropdown {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  right: 0;
+  min-width: 200px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 100;
+  overflow: hidden;
+}
+
+/* ============================================
+   DROPDOWN HEADER
+   ============================================ */
+
+.user-menu__header {
+  padding: var(--space-3);
+}
+
+.user-menu__email {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin: 0;
+  word-break: break-all;
+}
+
+/* ============================================
+   DROPDOWN DIVIDER
+   ============================================ */
+
+.user-menu__divider {
+  height: 1px;
+  background: var(--border-primary);
+}
+
+/* ============================================
+   DROPDOWN ITEM
+   ============================================ */
+
+.user-menu__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-3);
+  background: transparent;
+  border: none;
+  text-align: left;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.user-menu__item:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+}
+
+.user-menu__item:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.user-menu__item--signout {
+  color: var(--color-error);
+}
+
+.user-menu__item--signout:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 640px) {
+  .user-menu__name {
+    display: none;
+  }
+}
+
+/* ============================================
+   REDUCED MOTION
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .user-menu__trigger,
+  .user-menu__item,
+  .user-menu__arrow {
+    transition: none;
+  }
+}

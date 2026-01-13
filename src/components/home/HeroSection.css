@@ -1,0 +1,199 @@
+/**
+ * HeroSection.css - Styles for Animated Hero Section
+ * 
+ * Uses CSS custom properties for theming.
+ * Creates a medieval manuscript feel with illuminated initial letter.
+ */
+
+/* ============================================
+   HERO CONTAINER
+   ============================================ */
+
+.hero-section {
+  position: relative;
+  text-align: center;
+  padding: var(--space-12) var(--space-4) var(--space-8);
+  margin-bottom: var(--space-8);
+}
+
+/* ============================================
+   DECORATIVE FLOURISHES
+   ============================================ */
+
+.flourish {
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  color: var(--accent-primary);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.flourish-top-left {
+  top: 0;
+  left: 0;
+}
+
+.flourish-top-right {
+  top: 0;
+  right: 0;
+  transform: scaleX(-1);
+}
+
+/* ============================================
+   MAIN TITLE
+   ============================================ */
+
+.hero-title {
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 8vw, 4rem);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 var(--space-4) 0;
+  letter-spacing: var(--tracking-wide);
+  line-height: 1.1;
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+}
+
+/* Illuminated initial letter - manuscript style */
+.illuminated-letter {
+  font-size: 1.4em;
+  color: var(--accent-primary);
+  text-shadow: 
+    0 0 20px var(--accent-glow, rgba(212, 175, 55, 0.3)),
+    2px 2px 0 var(--bg-secondary);
+  margin-right: -0.05em;
+  position: relative;
+  display: inline-block;
+}
+
+/* Subtle animation on the illuminated letter */
+@keyframes gentle-glow {
+  0%, 100% {
+    text-shadow: 
+      0 0 20px var(--accent-glow, rgba(212, 175, 55, 0.3)),
+      2px 2px 0 var(--bg-secondary);
+  }
+  50% {
+    text-shadow: 
+      0 0 30px var(--accent-glow, rgba(212, 175, 55, 0.5)),
+      2px 2px 0 var(--bg-secondary);
+  }
+}
+
+.illuminated-letter {
+  animation: gentle-glow 4s ease-in-out infinite;
+}
+
+.title-rest {
+  /* Slightly smaller than the illuminated letter */
+}
+
+/* ============================================
+   SUBTITLE / TAGLINE
+   ============================================ */
+
+.hero-subtitle {
+  font-family: var(--font-body);
+  font-size: var(--text-lg);
+  color: var(--text-secondary);
+  margin: 0;
+  font-style: italic;
+  letter-spacing: var(--tracking-normal);
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+/* ============================================
+   DECORATIVE DIVIDER
+   ============================================ */
+
+.hero-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: var(--space-6);
+  position: relative;
+}
+
+.hero-divider::before,
+.hero-divider::after {
+  content: '';
+  flex: 1;
+  max-width: 120px;
+  height: 1px;
+  background: linear-gradient(
+    to var(--divider-direction, right),
+    transparent,
+    var(--border-secondary),
+    transparent
+  );
+}
+
+.hero-divider::before {
+  --divider-direction: right;
+}
+
+.hero-divider::after {
+  --divider-direction: left;
+}
+
+.divider-ornament {
+  padding: 0 var(--space-4);
+  color: var(--accent-primary);
+  opacity: 0.8;
+}
+
+/* Fleur-de-lis SVG styling */
+.fleur-de-lis {
+  display: block;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 768px) {
+  .hero-section {
+    padding: var(--space-8) var(--space-4) var(--space-6);
+  }
+  
+  .flourish {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .hero-subtitle {
+    font-size: var(--text-base);
+  }
+}
+
+/* ============================================
+   THEME-SPECIFIC ADJUSTMENTS
+   ============================================ */
+
+/* Light theme - reduce glow intensity */
+[data-theme="light"] .illuminated-letter {
+  text-shadow: 
+    0 0 10px var(--accent-glow, rgba(139, 90, 43, 0.2)),
+    1px 1px 0 var(--bg-secondary);
+}
+
+[data-theme="light"] .illuminated-letter {
+  animation: gentle-glow-light 4s ease-in-out infinite;
+}
+
+@keyframes gentle-glow-light {
+  0%, 100% {
+    text-shadow: 
+      0 0 10px var(--accent-glow, rgba(139, 90, 43, 0.2)),
+      1px 1px 0 var(--bg-secondary);
+  }
+  50% {
+    text-shadow: 
+      0 0 15px var(--accent-glow, rgba(139, 90, 43, 0.3)),
+      1px 1px 0 var(--bg-secondary);
+  }
+}

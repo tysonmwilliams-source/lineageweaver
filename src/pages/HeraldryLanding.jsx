@@ -1,116 +1,161 @@
-import { useState, useEffect } from 'react';
+/**
+ * HeraldryLanding.jsx - The Armory Landing Page
+ *
+ * PURPOSE:
+ * Gallery view for all heraldic devices in Lineageweaver.
+ * Features:
+ * - Animated hero section with illuminated initial
+ * - Statistics dashboard
+ * - Search and filter capabilities
+ * - Grid gallery of heraldry cards
+ * - House coverage progress
+ * - Quick actions
+ *
+ * DESIGN:
+ * Follows the medieval manuscript aesthetic established in Home.jsx
+ * Uses Lucide icons, Framer Motion animations, and CSS custom properties
+ */
+
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   getAllHeraldry,
   getHeraldryStatistics,
   deleteHeraldry
 } from '../services/heraldryService';
 import { getAllHouses, db } from '../services/database';
-import { getAllEntries } from '../services/codexService'; // PHASE 5 Batch 3
+import { getAllEntries } from '../services/codexService';
 import Navigation from '../components/Navigation';
+import Icon from '../components/icons';
+import { LoadingState, EmptyState, SectionHeader, Card, ActionButton } from '../components/shared';
 import './HeraldryLanding.css';
 
+// Animation variants
+const CONTAINER_VARIANTS = {
+  hidden: {},
+  visible: {
+    transition: { staggerChildren: 0.08 }
+  }
+};
+
+const ITEM_VARIANTS = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.4, ease: 'easeOut' }
+  }
+};
+
+const CARD_VARIANTS = {
+  hidden: { opacity: 0, y: 30, scale: 0.95 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }
+  }
+};
+
+// Category configuration with Lucide icons
+const CATEGORIES = [
+  { value: 'noble', label: 'Noble Houses', icon: 'castle' },
+  { value: 'personal', label: 'Personal Arms', icon: 'user' },
+  { value: 'ecclesiastical', label: 'Ecclesiastical', icon: 'church' },
+  { value: 'civic', label: 'Civic', icon: 'landmark' },
+  { value: 'guild', label: 'Guilds', icon: 'hammer' },
+  { value: 'fantasy', label: 'Fantasy', icon: 'sparkles' }
+];
+
+// Category icon mapping
+const CATEGORY_ICONS = {
+  noble: 'castle',
+  ecclesiastical: 'church',
+  civic: 'landmark',
+  guild: 'hammer',
+  personal: 'user',
+  fantasy: 'sparkles'
+};
+
 /**
- * HeraldryLanding Page - The Armory
- * 
- * PHASE 5 ENHANCED: Now shows linked houses on each heraldry card
- * 
- * Gallery view for all heraldic devices in Lineageweaver.
- * This is the fourth major system alongside Family Tree, Codex, and Manage Data.
- * 
- * Features:
- * - Grid gallery of all heraldry
- * - Search and filter capabilities (including by linked house name)
- * - Statistics overview
- * - Quick actions (create, view, edit)
- * - Integration links to houses
- * - Shows linked house on each card
+ * HeraldryLanding Component
  */
 function HeraldryLanding() {
   const navigate = useNavigate();
-  
+
   // State
   const [heraldry, setHeraldry] = useState([]);
   const [houses, setHouses] = useState([]);
-  const [heraldryLinks, setHeraldryLinks] = useState([]); // PHASE 5: Added
-  const [codexEntries, setCodexEntries] = useState([]); // PHASE 5 Batch 3: Codex integration
+  const [heraldryLinks, setHeraldryLinks] = useState([]);
+  const [codexEntries, setCodexEntries] = useState([]);
   const [statistics, setStatistics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
-  // Shield type filter - disabled since only using default shield now
-  // const [filterShield, setFilterShield] = useState('all');
   const [sortBy, setSortBy] = useState('updated');
-  
-  // Load data on mount
+
+  // Load data
   useEffect(() => {
-    loadData();
-  }, []);
-  
-  async function loadData() {
-    try {
-      setLoading(true);
-      
-      const [heraldryData, housesData, stats, linksData, codexData] = await Promise.all([
-        getAllHeraldry(),
-        getAllHouses(),
-        getHeraldryStatistics(),
-        db.heraldryLinks.toArray(), // PHASE 5: Load heraldry links
-        getAllEntries() // PHASE 5 Batch 3: Load codex entries
-      ]);
-      
-      setHeraldry(heraldryData);
-      setHouses(housesData);
-      setStatistics(stats);
-      setHeraldryLinks(linksData); // PHASE 5: Store links
-      setCodexEntries(codexData); // PHASE 5 Batch 3: Store codex entries
-      setLoading(false);
-    } catch (error) {
-      console.error('Error loading heraldry data:', error);
-      setLoading(false);
+    let cancelled = false;
+
+    async function loadData() {
+      try {
+        setLoading(true);
+
+        const [heraldryData, housesData, stats, linksData, codexData] = await Promise.all([
+          getAllHeraldry(),
+          getAllHouses(),
+          getHeraldryStatistics(),
+          db.heraldryLinks.toArray(),
+          getAllEntries()
+        ]);
+
+        if (cancelled) return;
+
+        setHeraldry(heraldryData);
+        setHouses(housesData);
+        setStatistics(stats);
+        setHeraldryLinks(linksData);
+        setCodexEntries(codexData);
+        setLoading(false);
+      } catch (error) {
+        if (!cancelled && import.meta.env.DEV) {
+          console.error('Error loading heraldry data:', error);
+        }
+        if (!cancelled) setLoading(false);
+      }
     }
-  }
-  
-  // PHASE 5: Get linked house for a heraldry item
-  function getLinkedHouse(heraldryId) {
-    // First check heraldryLinks table
-    const link = heraldryLinks.find(l => 
-      l.heraldryId === heraldryId && 
-      l.entityType === 'house' && 
+
+    loadData();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Get linked house for a heraldry item
+  const getLinkedHouse = useCallback((heraldryId) => {
+    const link = heraldryLinks.find(l =>
+      l.heraldryId === heraldryId &&
+      l.entityType === 'house' &&
       l.linkType === 'primary'
     );
-    
+
     if (link) {
       return houses.find(h => h.id === link.entityId);
     }
-    
-    // Fallback: check if any house has this heraldryId directly
+
     return houses.find(h => h.heraldryId === heraldryId);
-  }
-  
-  // PHASE 5 Batch 3: Get linked codex entry for a heraldry item
-  function getLinkedCodexEntry(heraldryId) {
+  }, [heraldryLinks, houses]);
+
+  // Get linked codex entry for a heraldry item
+  const getLinkedCodexEntry = useCallback((heraldryId) => {
     return codexEntries.find(entry => entry.heraldryId === heraldryId);
-  }
-  
-  // PHASE 5 Batch 3: Navigate to codex entry
-  function handleViewInCodex(entryId, event) {
-    event.stopPropagation();
-    navigate(`/codex/entry/${entryId}`);
-  }
-  
-  // PHASE 5 Batch 3: Create codex entry for heraldry
-  function handleCreateCodexEntry(heraldryId, heraldryName, event) {
-    event.stopPropagation();
-    // Navigate to codex create with heraldry type pre-selected and heraldryId passed
-    navigate(`/codex/create?type=heraldry&heraldryId=${heraldryId}&title=${encodeURIComponent(heraldryName)}`);
-  }
-  
+  }, [codexEntries]);
+
   // Filter and sort heraldry
-  function getFilteredHeraldry() {
+  const filteredHeraldry = useMemo(() => {
     let filtered = [...heraldry];
-    
-    // Search filter - PHASE 5: Also search by linked house name
+
+    // Search filter
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(h => {
@@ -118,24 +163,18 @@ function HeraldryLanding() {
         if (h.description?.toLowerCase().includes(term)) return true;
         if (h.blazon?.toLowerCase().includes(term)) return true;
         if (h.tags?.some(tag => tag.toLowerCase().includes(term))) return true;
-        // PHASE 5: Search by linked house name
         const linkedHouse = getLinkedHouse(h.id);
         if (linkedHouse?.houseName?.toLowerCase().includes(term)) return true;
         return false;
       });
     }
-    
+
     // Category filter
     if (filterCategory !== 'all') {
       filtered = filtered.filter(h => h.category === filterCategory);
     }
-    
-    // Shield type filter - disabled since only using default shield now
-    // if (filterShield !== 'all') {
-    //   filtered = filtered.filter(h => h.shieldType === filterShield);
-    // }
-    
-    // Sort - PHASE 5: Added sort by house option
+
+    // Sort
     filtered.sort((a, b) => {
       switch (sortBy) {
         case 'name':
@@ -152,481 +191,500 @@ function HeraldryLanding() {
           return new Date(b.updated) - new Date(a.updated);
       }
     });
-    
+
     return filtered;
-  }
-  
-  // Get houses that have heraldry from the old system but not linked to new system
-  function getHousesWithOldHeraldry() {
-    return houses.filter(house => 
-      (house.heraldrySVG || house.heraldryImageData) && !house.heraldryId
-    );
-  }
-  
-  // Get houses without any heraldry
-  function getHousesWithoutHeraldry() {
-    return houses.filter(house => 
+  }, [heraldry, searchTerm, filterCategory, sortBy, getLinkedHouse]);
+
+  // Houses without heraldry
+  const housesWithoutHeraldry = useMemo(() => {
+    return houses.filter(house =>
       !house.heraldrySVG && !house.heraldryImageData && !house.heraldryId
     );
-  }
-  
+  }, [houses]);
+
+  // Coverage percentage
+  const coveragePercent = useMemo(() => {
+    if (houses.length === 0) return 0;
+    return Math.round(((houses.length - housesWithoutHeraldry.length) / houses.length) * 100);
+  }, [houses, housesWithoutHeraldry]);
+
   // Handlers
-  function handleCreateHeraldry() {
+  const handleCreateHeraldry = useCallback(() => {
     navigate('/heraldry/create');
-  }
-  
-  function handleViewHeraldry(id) {
+  }, [navigate]);
+
+  const handleViewHeraldry = useCallback((id) => {
     navigate(`/heraldry/edit/${id}`);
-  }
-  
-  function handleEditHeraldry(id, event) {
+  }, [navigate]);
+
+  const handleEditHeraldry = useCallback((id, event) => {
     event.stopPropagation();
     navigate(`/heraldry/edit/${id}`);
-  }
-  
-  async function handleDeleteHeraldry(id, name, event) {
+  }, [navigate]);
+
+  const handleDeleteHeraldry = useCallback(async (id, name, event) => {
     event.stopPropagation();
-    
+
     if (!window.confirm(`Delete "${name}"?\n\nThis will remove the heraldry and unlink it from any houses or people.`)) {
       return;
     }
-    
+
     try {
       await deleteHeraldry(id);
-      await loadData(); // Refresh
-      alert('Heraldry deleted');
+      // Refresh data
+      const [heraldryData, stats] = await Promise.all([
+        getAllHeraldry(),
+        getHeraldryStatistics()
+      ]);
+      setHeraldry(heraldryData);
+      setStatistics(stats);
     } catch (error) {
       console.error('Error deleting heraldry:', error);
       alert('Failed to delete heraldry');
     }
-  }
-  
-  function handleSearchSubmit(e) {
+  }, []);
+
+  const handleViewInCodex = useCallback((entryId, event) => {
+    event.stopPropagation();
+    navigate(`/codex/entry/${entryId}`);
+  }, [navigate]);
+
+  const handleCreateCodexEntry = useCallback((heraldryId, heraldryName, event) => {
+    event.stopPropagation();
+    navigate(`/codex/create?type=heraldry&heraldryId=${heraldryId}&title=${encodeURIComponent(heraldryName)}`);
+  }, [navigate]);
+
+  const handleSearchSubmit = useCallback((e) => {
     e.preventDefault();
-    // Search is already handled reactively
-  }
-  
-  // Shield type display names - disabled since only using default shield
-  // function getShieldTypeName(type) {
-  //   const names = {
-  //     heater: 'Heater',
-  //     french: 'French',
-  //     spanish: 'Spanish',
-  //     english: 'English',
-  //     swiss: 'Swiss'
-  //   };
-  //   return names[type] || type;
-  // }
-  
-  // Category display names
-  function getCategoryName(category) {
-    const names = {
-      noble: 'Noble Houses',
-      ecclesiastical: 'Ecclesiastical',
-      civic: 'Civic',
-      guild: 'Guilds',
-      personal: 'Personal Arms',
-      fantasy: 'Fantasy'
-    };
-    return names[category] || category;
-  }
-  
-  // Category icons
-  function getCategoryIcon(category) {
-    const icons = {
-      noble: '🏰',
-      ecclesiastical: '⛪',
-      civic: '🏛️',
-      guild: '⚒️',
-      personal: '👤',
-      fantasy: '✨'
-    };
-    return icons[category] || '🛡️';
-  }
-  
-  // Format date for display
-  function formatDate(isoString) {
-    if (!isoString) return 'Unknown';
-    const date = new Date(isoString);
-    const now = new Date();
-    const diffInHours = (now - date) / (1000 * 60 * 60);
-    
-    if (diffInHours < 1) return 'Just now';
-    if (diffInHours < 24) return `${Math.floor(diffInHours)} hours ago`;
-    if (diffInHours < 48) return 'Yesterday';
-    if (diffInHours < 168) return `${Math.floor(diffInHours / 24)} days ago`;
-    
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric',
-      year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
-    });
-  }
-  
+  }, []);
+
+  const clearFilters = useCallback(() => {
+    setSearchTerm('');
+    setFilterCategory('all');
+  }, []);
+
+  const handleCreateForHouse = useCallback((house) => {
+    navigate(`/heraldry/create?houseId=${house.id}&houseName=${encodeURIComponent(house.houseName)}`);
+  }, [navigate]);
+
   // Loading state
   if (loading) {
     return (
       <>
         <Navigation />
-        <div className="heraldry-landing loading">
-          <div className="loading-spinner">
-            <div className="loading-icon">🛡️</div>
-            <p>Opening The Armory...</p>
+        <div className="armory-page">
+          <div className="armory-container">
+            <LoadingState message="Opening The Armory..." size="lg" />
           </div>
         </div>
       </>
     );
   }
-  
-  const filteredHeraldry = getFilteredHeraldry();
-  const housesWithOldHeraldry = getHousesWithOldHeraldry();
-  const housesWithoutHeraldry = getHousesWithoutHeraldry();
-  
+
   return (
     <>
       <Navigation />
-      <div className="heraldry-landing">
-        
-        {/* Header */}
-        <header className="heraldry-header">
-          <h1 className="heraldry-title">THE ARMORY</h1>
-          <p className="heraldry-subtitle">
-            A Gallery of Heraldic Devices
-          </p>
-        </header>
-        
-        {/* Statistics Bar */}
-        {statistics && (
-          <div className="stats-bar">
-            <div className="stat-item">
-              <span className="stat-value">{statistics.total}</span>
-              <span className="stat-label">Heraldic Devices</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-value">{statistics.linkedHouses}</span>
-              <span className="stat-label">Houses Emblazoned</span>
-            </div>
-            {/* Shield shape count - removed since only using default shield
-            <div className="stat-item">
-              <span className="stat-value">{Object.keys(statistics.byShieldType).length}</span>
-              <span className="stat-label">Shield Shapes</span>
-            </div>
-            */}
-            <div className="stat-item">
-              <span className="stat-value">{statistics.withBlazon}</span>
-              <span className="stat-label">With Blazon</span>
-            </div>
-          </div>
-        )}
-        
-        {/* Search & Filters */}
-        <div className="controls-section">
-          <form className="search-form" onSubmit={handleSearchSubmit}>
-            <input
-              type="text"
-              className="search-input"
-              placeholder="🔍 Search by name, blazon, house name..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </form>
-          
-          <div className="filters">
-            <select 
-              className="filter-select"
-              value={filterCategory}
-              onChange={(e) => setFilterCategory(e.target.value)}
+      <div className="armory-page">
+        <div className="armory-container">
+          <motion.div
+            className="armory-content"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
+          >
+            {/* Hero Section */}
+            <motion.header
+              className="armory-hero"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
             >
-              <option value="all">All Categories</option>
-              <option value="noble">Noble Houses</option>
-              <option value="personal">Personal Arms</option>
-              <option value="ecclesiastical">Ecclesiastical</option>
-              <option value="civic">Civic</option>
-              <option value="guild">Guilds</option>
-              <option value="fantasy">Fantasy</option>
-            </select>
-            
-            {/* Shield type filter - disabled since only using default shield now
-            <select 
-              className="filter-select"
-              value={filterShield}
-              onChange={(e) => setFilterShield(e.target.value)}
-            >
-              <option value="all">All Shields</option>
-              <option value="heater">Heater</option>
-              <option value="french">French</option>
-              <option value="spanish">Spanish</option>
-              <option value="english">English</option>
-              <option value="swiss">Swiss</option>
-            </select>
-            */}
-            
-            <select 
-              className="filter-select"
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-            >
-              <option value="updated">Recently Updated</option>
-              <option value="created">Recently Created</option>
-              <option value="name">Name (A-Z)</option>
-              <option value="house">By House</option>
-            </select>
-          </div>
-        </div>
-        
-        {/* Main Content */}
-        {heraldry.length === 0 ? (
-          /* Empty State */
-          <div className="empty-state">
-            <div className="empty-icon">🛡️</div>
-            <h3 className="empty-title">The Armory Awaits</h3>
-            <p className="empty-text">
-              No heraldic devices have been created yet.
-              Begin designing coats of arms for your houses and characters.
-            </p>
-            
-            {housesWithoutHeraldry.length > 0 && (
-              <p className="empty-hint">
-                <span className="hint-icon">💡</span>
-                You have {housesWithoutHeraldry.length} houses without heraldry.
-                Create arms for them to bring your world to life!
+              <h1 className="armory-hero__title">
+                <span className="armory-hero__initial">T</span>
+                <span>HE ARMORY</span>
+              </h1>
+              <p className="armory-hero__subtitle">
+                A Gallery of Heraldic Devices
               </p>
-            )}
-            
-            <button 
-              className="primary-button"
-              onClick={handleCreateHeraldry}
-            >
-              <span>✨</span> Create First Heraldry
-            </button>
-          </div>
-        ) : (
-          /* Heraldry Grid */
-          <div className="heraldry-grid-section">
-            <div className="grid-header">
-              <h2 className="section-title">
-                {searchTerm || filterCategory !== 'all'
-                  ? `${filteredHeraldry.length} Results` 
-                  : 'All Heraldic Devices'}
-              </h2>
-              <button 
-                className="create-button"
-                onClick={handleCreateHeraldry}
+              <div className="armory-hero__divider">
+                <Icon name="shield" size={20} className="armory-hero__divider-icon" />
+              </div>
+            </motion.header>
+
+            {/* Statistics Dashboard */}
+            {statistics && (
+              <motion.section
+                className="armory-stats"
+                variants={CONTAINER_VARIANTS}
+                initial="hidden"
+                animate="visible"
               >
-                <span>+</span> Create New
-              </button>
-            </div>
-            
-            {filteredHeraldry.length === 0 ? (
-              <div className="no-results">
-                <p>No heraldry matches your filters.</p>
-                <button 
-                  className="text-button"
-                  onClick={() => {
-                    setSearchTerm('');
-                    setFilterCategory('all');
-                  }}
-                >
-                  Clear Filters
-                </button>
-              </div>
-            ) : (
-              <div className="heraldry-grid">
-                {filteredHeraldry.map(h => {
-                  // PHASE 5: Get linked house for this heraldry
-                  const linkedHouse = getLinkedHouse(h.id);
-                  
-                  return (
-                    <div 
-                      key={h.id}
-                      className="heraldry-card"
-                      onClick={() => handleViewHeraldry(h.id)}
-                    >
-                      {/* Shield Display */}
-                      <div className="card-shield">
-                        {h.heraldrySVG ? (
-                          <div 
-                            className="shield-svg"
-                            dangerouslySetInnerHTML={{ __html: h.heraldrySVG }}
-                          />
-                        ) : h.heraldryDisplay || h.heraldryThumbnail ? (
-                          <img 
-                            src={h.heraldryDisplay || h.heraldryThumbnail}
-                            alt={h.name}
-                            className="shield-img"
-                          />
-                        ) : (
-                          <div className="shield-placeholder">
-                            <span>🛡️</span>
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* Card Info */}
-                      <div className="card-info">
-                        <h3 className="card-name">{h.name}</h3>
-                        
-                        {/* PHASE 5: Linked House Display */}
-                        {linkedHouse ? (
-                          <div className="card-linked-house">
-                            <span 
-                              className="linked-house-indicator"
-                              style={{ backgroundColor: linkedHouse.colorCode || '#666' }}
-                            />
-                            <span className="linked-house-name">
-                              {linkedHouse.houseName}
-                            </span>
-                          </div>
-                        ) : (
-                          <div className="card-unlinked">
-                            <span className="unlinked-text">Not linked</span>
-                          </div>
-                        )}
-                        
-                        {h.blazon && (
-                          <p className="card-blazon">{h.blazon}</p>
-                        )}
-                        
-                        <div className="card-meta">
-                          <span className="meta-category">
-                            {getCategoryIcon(h.category)} {getCategoryName(h.category)}
-                          </span>
-                          {/* Shield type display - removed since only using default shield */}
-                        </div>
-                        
-                        <div className="card-footer">
-                          <span className="card-date">
-                            Updated {formatDate(h.updated)}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      {/* Quick Actions */}
-                      <div className="card-actions">
-                        {/* PHASE 5 Batch 3: Codex integration */}
-                        {(() => {
-                          const codexEntry = getLinkedCodexEntry(h.id);
-                          return codexEntry ? (
-                            <button 
-                              className="action-btn codex"
-                              onClick={(e) => handleViewInCodex(codexEntry.id, e)}
-                              title="View in Codex"
-                            >
-                              📜
-                            </button>
-                          ) : (
-                            <button 
-                              className="action-btn codex-create"
-                              onClick={(e) => handleCreateCodexEntry(h.id, h.name, e)}
-                              title="Create Codex Entry"
-                            >
-                              📝
-                            </button>
-                          );
-                        })()}
-                        <button 
-                          className="action-btn edit"
-                          onClick={(e) => handleEditHeraldry(h.id, e)}
-                          title="Edit"
-                        >
-                          ✏️
-                        </button>
-                        <button 
-                          className="action-btn delete"
-                          onClick={(e) => handleDeleteHeraldry(h.id, h.name, e)}
-                          title="Delete"
-                        >
-                          🗑️
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                <div className="armory-stats__grid">
+                  <motion.div className="armory-stats__item" variants={ITEM_VARIANTS}>
+                    <Icon name="shield" size={24} className="armory-stats__icon" />
+                    <span className="armory-stats__value">{statistics.total}</span>
+                    <span className="armory-stats__label">Heraldic Devices</span>
+                  </motion.div>
+                  <motion.div className="armory-stats__item" variants={ITEM_VARIANTS}>
+                    <Icon name="castle" size={24} className="armory-stats__icon" />
+                    <span className="armory-stats__value">{statistics.linkedHouses}</span>
+                    <span className="armory-stats__label">Houses Emblazoned</span>
+                  </motion.div>
+                  <motion.div className="armory-stats__item" variants={ITEM_VARIANTS}>
+                    <Icon name="scroll-text" size={24} className="armory-stats__icon" />
+                    <span className="armory-stats__value">{statistics.withBlazon}</span>
+                    <span className="armory-stats__label">With Blazon</span>
+                  </motion.div>
+                </div>
+              </motion.section>
             )}
-          </div>
-        )}
-        
-        {/* Houses Overview */}
-        {houses.length > 0 && (
-          <section className="houses-section">
-            <h2 className="section-title">House Heraldry Coverage</h2>
-            
-            <div className="coverage-stats">
-              <div className="coverage-bar">
-                <div 
-                  className="coverage-fill"
-                  style={{ 
-                    width: `${houses.length > 0 
-                      ? ((houses.length - housesWithoutHeraldry.length) / houses.length) * 100 
-                      : 0}%` 
-                  }}
-                />
-              </div>
-              <p className="coverage-text">
-                {houses.length - housesWithoutHeraldry.length} of {houses.length} houses have heraldry
-              </p>
-            </div>
-            
-            {housesWithoutHeraldry.length > 0 && (
-              <div className="houses-needing-heraldry">
-                <h3>Houses Awaiting Arms</h3>
-                <div className="house-chips">
-                  {housesWithoutHeraldry.slice(0, 10).map(house => (
-                    <span 
-                      key={house.id}
-                      className="house-chip"
-                      style={{ borderColor: house.colorCode }}
-                      onClick={() => navigate(`/heraldry/create?houseId=${house.id}&houseName=${encodeURIComponent(house.houseName)}`)}
-                    >
-                      {house.houseName}
-                    </span>
-                  ))}
-                  {housesWithoutHeraldry.length > 10 && (
-                    <span className="house-chip more">
-                      +{housesWithoutHeraldry.length - 10} more
-                    </span>
-                  )}
+
+            {/* Search & Filters */}
+            <motion.section
+              className="armory-controls"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              <form onSubmit={handleSearchSubmit} className="armory-search">
+                <div className="armory-search__wrapper">
+                  <Icon name="search" size={20} className="armory-search__icon" />
+                  <input
+                    type="text"
+                    className="armory-search__input"
+                    placeholder="Search by name, blazon, house..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+              </form>
+
+              <div className="armory-filters">
+                <div className="armory-filters__select-wrapper">
+                  <Icon name="filter" size={16} className="armory-filters__select-icon" />
+                  <select
+                    className="armory-filters__select"
+                    value={filterCategory}
+                    onChange={(e) => setFilterCategory(e.target.value)}
+                  >
+                    <option value="all">All Categories</option>
+                    {CATEGORIES.map(cat => (
+                      <option key={cat.value} value={cat.value}>{cat.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="armory-filters__select-wrapper">
+                  <Icon name="arrow-up-down" size={16} className="armory-filters__select-icon" />
+                  <select
+                    className="armory-filters__select"
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                  >
+                    <option value="updated">Recently Updated</option>
+                    <option value="created">Recently Created</option>
+                    <option value="name">Name (A-Z)</option>
+                    <option value="house">By House</option>
+                  </select>
                 </div>
               </div>
+            </motion.section>
+
+            {/* Main Content */}
+            {heraldry.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5 }}
+              >
+                <EmptyState
+                  icon="shield"
+                  title="The Armory Awaits"
+                  description="No heraldic devices have been created yet. Begin designing coats of arms for your houses and characters."
+                  action={{
+                    label: 'Create First Heraldry',
+                    icon: 'plus',
+                    onClick: handleCreateHeraldry
+                  }}
+                  size="lg"
+                >
+                  {housesWithoutHeraldry.length > 0 && (
+                    <div className="armory-empty__hint">
+                      <Icon name="lightbulb" size={18} />
+                      <span>
+                        You have <strong>{housesWithoutHeraldry.length}</strong> houses without heraldry.
+                        Create arms for them to bring your world to life!
+                      </span>
+                    </div>
+                  )}
+                </EmptyState>
+              </motion.div>
+            ) : (
+              <motion.section
+                className="armory-gallery"
+                variants={CONTAINER_VARIANTS}
+                initial="hidden"
+                animate="visible"
+              >
+                <div className="armory-gallery__header">
+                  <SectionHeader
+                    icon="grid"
+                    title={searchTerm || filterCategory !== 'all'
+                      ? `${filteredHeraldry.length} Results`
+                      : 'All Heraldic Devices'}
+                    size="md"
+                  />
+                  <ActionButton icon="plus" variant="primary" onClick={handleCreateHeraldry}>
+                    Create New
+                  </ActionButton>
+                </div>
+
+                {filteredHeraldry.length === 0 ? (
+                  <div className="armory-gallery__empty">
+                    <p>No heraldry matches your filters.</p>
+                    <button className="armory-gallery__clear" onClick={clearFilters}>
+                      Clear Filters
+                    </button>
+                  </div>
+                ) : (
+                  <div className="armory-gallery__grid">
+                    {filteredHeraldry.map((h, index) => {
+                      const linkedHouse = getLinkedHouse(h.id);
+                      const codexEntry = getLinkedCodexEntry(h.id);
+
+                      return (
+                        <motion.div
+                          key={h.id}
+                          className="armory-card"
+                          variants={CARD_VARIANTS}
+                          custom={index}
+                          onClick={() => handleViewHeraldry(h.id)}
+                          whileHover={{ y: -4, transition: { duration: 0.2 } }}
+                        >
+                          {/* Shield Display */}
+                          <div className="armory-card__shield">
+                            {h.heraldrySVG ? (
+                              <div
+                                className="armory-card__shield-svg"
+                                dangerouslySetInnerHTML={{ __html: h.heraldrySVG }}
+                              />
+                            ) : h.heraldryDisplay || h.heraldryThumbnail ? (
+                              <img
+                                src={h.heraldryDisplay || h.heraldryThumbnail}
+                                alt={h.name}
+                                className="armory-card__shield-img"
+                              />
+                            ) : (
+                              <div className="armory-card__shield-placeholder">
+                                <Icon name="shield" size={48} strokeWidth={1} />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Card Info */}
+                          <div className="armory-card__info">
+                            <h3 className="armory-card__name">{h.name}</h3>
+
+                            {/* Linked House Display */}
+                            {linkedHouse ? (
+                              <div className="armory-card__house">
+                                <span
+                                  className="armory-card__house-dot"
+                                  style={{ backgroundColor: linkedHouse.colorCode || 'var(--text-tertiary)' }}
+                                />
+                                <span className="armory-card__house-name">{linkedHouse.houseName}</span>
+                              </div>
+                            ) : (
+                              <div className="armory-card__unlinked">
+                                <span>Not linked</span>
+                              </div>
+                            )}
+
+                            {h.blazon && (
+                              <p className="armory-card__blazon">{h.blazon}</p>
+                            )}
+
+                            <div className="armory-card__meta">
+                              <Icon name={CATEGORY_ICONS[h.category] || 'shield'} size={14} />
+                              <span>{getCategoryName(h.category)}</span>
+                            </div>
+
+                            <div className="armory-card__footer">
+                              <span className="armory-card__date">
+                                Updated {formatDate(h.updated)}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Quick Actions */}
+                          <div className="armory-card__actions">
+                            {codexEntry ? (
+                              <motion.button
+                                className="armory-card__action armory-card__action--codex"
+                                onClick={(e) => handleViewInCodex(codexEntry.id, e)}
+                                title="View in Codex"
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.95 }}
+                              >
+                                <Icon name="scroll-text" size={16} />
+                              </motion.button>
+                            ) : (
+                              <motion.button
+                                className="armory-card__action armory-card__action--codex-create"
+                                onClick={(e) => handleCreateCodexEntry(h.id, h.name, e)}
+                                title="Create Codex Entry"
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.95 }}
+                              >
+                                <Icon name="file-plus" size={16} />
+                              </motion.button>
+                            )}
+                            <motion.button
+                              className="armory-card__action armory-card__action--edit"
+                              onClick={(e) => handleEditHeraldry(h.id, e)}
+                              title="Edit"
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.95 }}
+                            >
+                              <Icon name="pencil" size={16} />
+                            </motion.button>
+                            <motion.button
+                              className="armory-card__action armory-card__action--delete"
+                              onClick={(e) => handleDeleteHeraldry(h.id, h.name, e)}
+                              title="Delete"
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.95 }}
+                            >
+                              <Icon name="trash-2" size={16} />
+                            </motion.button>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                )}
+              </motion.section>
             )}
-          </section>
-        )}
-        
-        {/* Action Footer */}
-        <footer className="heraldry-footer">
-          <button 
-            className="footer-button primary"
-            onClick={handleCreateHeraldry}
-          >
-            <span>✨</span> Create New Heraldry
-          </button>
-          
-          <button 
-            className="footer-button secondary"
-            onClick={() => navigate('/heraldry/charges')}
-          >
-            <span>🦁</span> Charges Library
-          </button>
-          
-          <button 
-            className="footer-button secondary"
-            onClick={() => navigate('/manage')}
-          >
-            <span>🏰</span> Manage Houses
-          </button>
-          
-          <button 
-            className="footer-button secondary"
-            onClick={() => navigate('/tree')}
-          >
-            <span>🌳</span> Family Tree
-          </button>
-        </footer>
-        
+
+            {/* House Coverage Section */}
+            {houses.length > 0 && (
+              <motion.section
+                className="armory-coverage"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.4 }}
+              >
+                <SectionHeader icon="castle" title="House Heraldry Coverage" size="md" />
+                <Card className="armory-coverage__card" padding="lg">
+                  <div className="armory-coverage__progress">
+                    <div className="armory-coverage__bar">
+                      <motion.div
+                        className="armory-coverage__fill"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${coveragePercent}%` }}
+                        transition={{ duration: 1, delay: 0.5 }}
+                      />
+                    </div>
+                    <p className="armory-coverage__label">
+                      {houses.length - housesWithoutHeraldry.length} of {houses.length} houses have heraldry
+                    </p>
+                  </div>
+
+                  {housesWithoutHeraldry.length > 0 && (
+                    <div className="armory-coverage__awaiting">
+                      <h4 className="armory-coverage__awaiting-title">
+                        <Icon name="clock" size={16} />
+                        Houses Awaiting Arms
+                      </h4>
+                      <div className="armory-coverage__chips">
+                        {housesWithoutHeraldry.slice(0, 8).map(house => (
+                          <motion.button
+                            key={house.id}
+                            className="armory-coverage__chip"
+                            style={{ borderColor: house.colorCode || 'var(--border-secondary)' }}
+                            onClick={() => handleCreateForHouse(house)}
+                            whileHover={{ y: -2 }}
+                            whileTap={{ scale: 0.98 }}
+                          >
+                            {house.houseName}
+                          </motion.button>
+                        ))}
+                        {housesWithoutHeraldry.length > 8 && (
+                          <span className="armory-coverage__chip armory-coverage__chip--more">
+                            +{housesWithoutHeraldry.length - 8} more
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </Card>
+              </motion.section>
+            )}
+
+            {/* Action Buttons */}
+            <motion.section
+              className="armory-actions"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.5 }}
+            >
+              <ActionButton icon="plus" variant="primary" onClick={handleCreateHeraldry}>
+                Create New Heraldry
+              </ActionButton>
+
+              <ActionButton icon="sparkles" variant="secondary" onClick={() => navigate('/heraldry/charges')}>
+                Charges Library
+              </ActionButton>
+
+              <ActionButton icon="castle" variant="secondary" onClick={() => navigate('/manage')}>
+                Manage Houses
+              </ActionButton>
+
+              <ActionButton icon="tree-deciduous" variant="secondary" onClick={() => navigate('/tree')}>
+                Family Tree
+              </ActionButton>
+            </motion.section>
+
+            {/* Footer */}
+            <footer className="armory-footer">
+              <p>Heraldic achievements for your world</p>
+            </footer>
+          </motion.div>
+        </div>
       </div>
     </>
   );
+}
+
+// Helper functions
+function getCategoryName(category) {
+  const names = {
+    noble: 'Noble Houses',
+    ecclesiastical: 'Ecclesiastical',
+    civic: 'Civic',
+    guild: 'Guilds',
+    personal: 'Personal Arms',
+    fantasy: 'Fantasy'
+  };
+  return names[category] || category || 'Uncategorized';
+}
+
+function formatDate(isoString) {
+  if (!isoString) return 'Unknown';
+  const date = new Date(isoString);
+  const now = new Date();
+  const diffInHours = (now - date) / (1000 * 60 * 60);
+
+  if (diffInHours < 1) return 'Just now';
+  if (diffInHours < 24) return `${Math.floor(diffInHours)}h ago`;
+  if (diffInHours < 48) return 'Yesterday';
+  if (diffInHours < 168) return `${Math.floor(diffInHours / 24)}d ago`;
+
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+  });
 }
 
 export default HeraldryLanding;

@@ -1,0 +1,974 @@
+/**
+ * QuickEditPanel.css - Quick Edit Sidebar Styles
+ *
+ * PURPOSE:
+ * Styles for the person management sidebar panel.
+ * Includes main panel, sections, form elements, and add-person modal.
+ * Follows medieval manuscript aesthetic with BEM naming.
+ * Uses CSS custom properties for theming.
+ */
+
+/* ============================================
+   MAIN PANEL
+   ============================================ */
+
+.quick-edit {
+  position: fixed;
+  right: 0;
+  top: 0;
+  height: 100vh;
+  width: 384px;
+  max-width: 100vw;
+  background: var(--bg-secondary);
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.3);
+  z-index: var(--z-panel, 100);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============================================
+   HEADER
+   ============================================ */
+
+.quick-edit__header {
+  padding: var(--space-4);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-primary);
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.quick-edit__header-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.quick-edit__title {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quick-edit__epithet {
+  font-weight: normal;
+  font-style: italic;
+  color: var(--accent-primary);
+  margin-left: var(--space-2);
+}
+
+.quick-edit__maiden-name {
+  font-size: var(--text-sm);
+  font-style: italic;
+  color: var(--text-secondary);
+  margin: var(--space-1) 0 0 0;
+}
+
+.quick-edit__badges {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.quick-edit__badge {
+  font-size: var(--text-xs);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+}
+
+.quick-edit__badge--house {
+  background: var(--bg-tertiary);
+}
+
+.quick-edit__badge--status {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  text-transform: capitalize;
+}
+
+.quick-edit__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: all var(--duration-fast) var(--ease-standard);
+  flex-shrink: 0;
+}
+
+.quick-edit__close:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+/* ============================================
+   SCROLLABLE CONTENT
+   ============================================ */
+
+.quick-edit__content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/* ============================================
+   SECTIONS
+   ============================================ */
+
+.quick-edit__section {
+  /* No background - clean look */
+}
+
+.quick-edit__section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  margin: 0 0 var(--space-3) 0;
+}
+
+.quick-edit__section-title svg {
+  color: var(--accent-primary);
+}
+
+.quick-edit__section-count {
+  opacity: 0.5;
+}
+
+/* ============================================
+   FORM FIELDS
+   ============================================ */
+
+.quick-edit__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.quick-edit__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.quick-edit__label {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.quick-edit__input {
+  padding: var(--space-2);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  transition: border-color var(--duration-fast) var(--ease-standard);
+}
+
+.quick-edit__input:focus {
+  outline: none;
+  border-color: var(--focus-ring);
+  box-shadow: 0 0 0 2px var(--focus-ring-alpha);
+}
+
+.quick-edit__input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.quick-edit__house-display {
+  padding: var(--space-2);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  margin-top: var(--space-3);
+}
+
+/* ============================================
+   LOADING STATE
+   ============================================ */
+
+.quick-edit__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+}
+
+.quick-edit__loading .spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================
+   BIOGRAPHY SECTION
+   ============================================ */
+
+.quick-edit__biography {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.quick-edit__biography-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-primary);
+}
+
+.quick-edit__biography-status--complete {
+  background: rgba(34, 197, 94, 0.1);
+  border-color: var(--color-success);
+}
+
+.quick-edit__biography-status--detailed {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: var(--color-info);
+}
+
+.quick-edit__biography-status--basic {
+  background: var(--bg-tertiary);
+}
+
+.quick-edit__biography-status--stub,
+.quick-edit__biography-status--empty {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: var(--color-warning);
+}
+
+.quick-edit__biography-icon {
+  flex-shrink: 0;
+}
+
+.quick-edit__biography-status--complete .quick-edit__biography-icon {
+  color: var(--color-success);
+}
+
+.quick-edit__biography-status--detailed .quick-edit__biography-icon {
+  color: var(--color-info);
+}
+
+.quick-edit__biography-status--stub .quick-edit__biography-icon,
+.quick-edit__biography-status--empty .quick-edit__biography-icon {
+  color: var(--color-warning);
+}
+
+.quick-edit__biography-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.quick-edit__biography-label {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.quick-edit__biography-summary {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.quick-edit__biography-attention {
+  font-size: var(--text-xs);
+  padding: var(--space-1) var(--space-2);
+  background: var(--bg-secondary);
+  color: var(--text-tertiary);
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.quick-edit__biography-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.quick-edit__biography-empty {
+  flex: 1;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+  background: var(--bg-tertiary);
+  border: 1px dashed var(--border-primary);
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+
+/* ============================================
+   DIGNITIES
+   ============================================ */
+
+.quick-edit__dignities {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-bottom: var(--space-2);
+}
+
+.quick-edit__dignity {
+  padding: var(--space-2);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.quick-edit__dignity:hover {
+  border-color: var(--accent-primary);
+}
+
+.quick-edit__dignity-main {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.quick-edit__dignity-icon {
+  font-size: var(--text-base);
+}
+
+.quick-edit__dignity-name {
+  flex: 1;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.quick-edit__dignity-arrow {
+  color: var(--text-tertiary);
+}
+
+.quick-edit__dignity-full {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  margin-top: var(--space-1);
+  margin-left: calc(var(--space-2) + 1rem);
+}
+
+/* ============================================
+   PERSON CHIPS (Relations)
+   ============================================ */
+
+.quick-edit__persons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-bottom: var(--space-2);
+}
+
+.quick-edit__persons--scrollable {
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.quick-edit__person-chip {
+  padding: var(--space-2);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.quick-edit__person-chip:hover {
+  border-color: var(--accent-primary);
+}
+
+.quick-edit__person-chip-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.quick-edit__person-chip-name {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.quick-edit__person-chip-arrow {
+  color: var(--text-tertiary);
+}
+
+.quick-edit__person-chip-subtitle {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+/* ============================================
+   ADD BUTTON
+   ============================================ */
+
+.quick-edit__add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--accent-primary);
+  background: transparent;
+  border: 1px dashed var(--accent-primary);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.quick-edit__add-btn:hover:not(:disabled) {
+  background: var(--accent-muted);
+}
+
+.quick-edit__add-btn--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  color: var(--text-tertiary);
+  border-color: var(--border-primary);
+}
+
+/* ============================================
+   EMPTY STATE
+   ============================================ */
+
+.quick-edit__empty-state {
+  padding: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+  background: var(--bg-tertiary);
+  border: 1px dashed var(--border-primary);
+  border-radius: var(--radius-md);
+  text-align: center;
+  margin-bottom: var(--space-2);
+}
+
+.quick-edit__max-reached {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  text-align: center;
+  padding: var(--space-2);
+}
+
+/* ============================================
+   FOOTER
+   ============================================ */
+
+.quick-edit__footer {
+  padding: var(--space-4);
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-primary);
+  flex-shrink: 0;
+}
+
+/* ============================================
+   MODAL OVERLAY
+   ============================================ */
+
+.quick-edit-modal__overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  z-index: var(--z-modal, 200);
+}
+
+/* ============================================
+   MODAL
+   ============================================ */
+
+.quick-edit-modal {
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  background: var(--bg-secondary);
+  border: 2px solid var(--accent-primary);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.quick-edit-modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-primary);
+  flex-shrink: 0;
+}
+
+.quick-edit-modal__header-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.quick-edit-modal__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.quick-edit-modal__title svg {
+  color: var(--accent-primary);
+}
+
+.quick-edit-modal__subtitle {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin: var(--space-1) 0 0 0;
+}
+
+.quick-edit-modal__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.quick-edit-modal__close:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+/* ============================================
+   MODE TOGGLE
+   ============================================ */
+
+.quick-edit-modal__mode-toggle {
+  display: flex;
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.quick-edit-modal__mode-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border: none;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.quick-edit-modal__mode-btn--active {
+  color: var(--bg-primary);
+  background: var(--accent-primary);
+}
+
+.quick-edit-modal__mode-btn:hover:not(.quick-edit-modal__mode-btn--active) {
+  background: var(--bg-secondary);
+}
+
+/* ============================================
+   MODAL BODY
+   ============================================ */
+
+.quick-edit-modal__body {
+  padding: var(--space-4);
+  overflow-y: auto;
+  flex: 1;
+}
+
+.quick-edit-modal__form,
+.quick-edit-modal__selector {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.quick-edit-modal__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.quick-edit-modal__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.quick-edit-modal__label {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.quick-edit-modal__label-hint {
+  opacity: 0.6;
+}
+
+.quick-edit-modal__input,
+.quick-edit-modal__select {
+  padding: var(--space-2);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  transition: border-color var(--duration-fast) var(--ease-standard);
+}
+
+.quick-edit-modal__input:focus,
+.quick-edit-modal__select:focus {
+  outline: none;
+  border-color: var(--focus-ring);
+  box-shadow: 0 0 0 2px var(--focus-ring-alpha);
+}
+
+.quick-edit-modal__input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.quick-edit-modal__select {
+  cursor: pointer;
+}
+
+/* ============================================
+   SELECTED PERSON
+   ============================================ */
+
+.quick-edit-modal__selected {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid var(--color-success);
+  border-radius: var(--radius-md);
+}
+
+.quick-edit-modal__selected-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.quick-edit-modal__selected-name {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.quick-edit-modal__selected-details {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.quick-edit-modal__selected-clear {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-standard);
+}
+
+.quick-edit-modal__selected-clear:hover {
+  background: var(--bg-tertiary);
+}
+
+/* ============================================
+   PERSON LIST
+   ============================================ */
+
+.quick-edit-modal__person-list {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+}
+
+.quick-edit-modal__no-results {
+  padding: var(--space-4);
+  text-align: center;
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+}
+
+.quick-edit-modal__person-item {
+  padding: var(--space-2);
+  border-bottom: 1px solid var(--border-primary);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-standard);
+}
+
+.quick-edit-modal__person-item:last-child {
+  border-bottom: none;
+}
+
+.quick-edit-modal__person-item:hover {
+  background: var(--bg-tertiary);
+}
+
+.quick-edit-modal__person-item--selected {
+  background: rgba(212, 175, 55, 0.15);
+}
+
+.quick-edit-modal__person-name {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.quick-edit-modal__person-details {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+/* ============================================
+   VALIDATION ALERTS
+   ============================================ */
+
+.quick-edit-modal__alert {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  margin-top: var(--space-4);
+}
+
+.quick-edit-modal__alert--error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--color-error);
+}
+
+.quick-edit-modal__alert--warning {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid var(--color-warning);
+}
+
+.quick-edit-modal__alert-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.quick-edit-modal__alert--error .quick-edit-modal__alert-icon {
+  color: var(--color-error);
+}
+
+.quick-edit-modal__alert--warning .quick-edit-modal__alert-icon {
+  color: var(--color-warning);
+}
+
+.quick-edit-modal__alert-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.quick-edit-modal__alert-title {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  margin-bottom: var(--space-1);
+}
+
+.quick-edit-modal__alert--error .quick-edit-modal__alert-title {
+  color: var(--color-error);
+}
+
+.quick-edit-modal__alert--warning .quick-edit-modal__alert-title {
+  color: var(--color-warning);
+}
+
+.quick-edit-modal__alert-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.quick-edit-modal__alert-list li {
+  font-size: var(--text-xs);
+  color: var(--text-primary);
+  padding-left: var(--space-3);
+  position: relative;
+  margin-bottom: 2px;
+}
+
+.quick-edit-modal__alert-list li::before {
+  content: '\2022';
+  position: absolute;
+  left: var(--space-1);
+  color: var(--text-tertiary);
+}
+
+.quick-edit-modal__checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid rgba(245, 158, 11, 0.3);
+  cursor: pointer;
+}
+
+.quick-edit-modal__checkbox input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent-primary);
+}
+
+.quick-edit-modal__checkbox span {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+/* ============================================
+   MODAL FOOTER
+   ============================================ */
+
+.quick-edit-modal__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--bg-tertiary);
+  border-top: 1px solid var(--border-primary);
+  flex-shrink: 0;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 768px) {
+  .quick-edit {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .quick-edit-modal {
+    max-width: 100%;
+    margin: var(--space-2);
+  }
+
+  .quick-edit-modal__row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .quick-edit__header {
+    padding: var(--space-3);
+  }
+
+  .quick-edit__content {
+    padding: var(--space-3);
+  }
+
+  .quick-edit__footer {
+    padding: var(--space-3);
+  }
+
+  .quick-edit-modal__footer {
+    flex-direction: column;
+  }
+
+  .quick-edit-modal__footer > * {
+    width: 100%;
+  }
+}
+
+/* ============================================
+   REDUCED MOTION
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .quick-edit,
+  .quick-edit-modal,
+  .quick-edit__person-chip,
+  .quick-edit__dignity,
+  .quick-edit__add-btn,
+  .quick-edit__close,
+  .quick-edit-modal__mode-btn,
+  .quick-edit-modal__person-item {
+    transition: none;
+  }
+
+  .quick-edit__loading .spin {
+    animation: none;
+  }
+}

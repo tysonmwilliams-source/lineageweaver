@@ -1,0 +1,108 @@
+/**
+ * SectionHeader.css - Section Title Styles
+ *
+ * Provides consistent styling for section headers across the app.
+ * Uses CSS custom properties for theming.
+ */
+
+/* ============================================
+   BASE STYLES
+   ============================================ */
+
+.section-header {
+  margin-bottom: var(--space-6);
+}
+
+.section-header__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  letter-spacing: var(--tracking-wide);
+}
+
+.section-header__icon {
+  color: var(--accent-primary);
+  opacity: 0.8;
+  flex-shrink: 0;
+}
+
+.section-header__subtitle {
+  font-family: var(--font-body);
+  color: var(--text-secondary);
+  margin: var(--space-2) 0 0 0;
+  font-style: italic;
+}
+
+/* ============================================
+   SIZE VARIANTS
+   ============================================ */
+
+.section-header--sm .section-header__title {
+  font-size: var(--text-lg);
+}
+
+.section-header--sm .section-header__subtitle {
+  font-size: var(--text-sm);
+}
+
+.section-header--md .section-header__title {
+  font-size: var(--text-xl);
+}
+
+.section-header--md .section-header__subtitle {
+  font-size: var(--text-base);
+}
+
+.section-header--lg .section-header__title {
+  font-size: var(--text-2xl);
+}
+
+.section-header--lg .section-header__subtitle {
+  font-size: var(--text-lg);
+}
+
+/* ============================================
+   ALIGNMENT VARIANTS
+   ============================================ */
+
+.section-header--left {
+  text-align: left;
+}
+
+.section-header--left .section-header__title {
+  justify-content: flex-start;
+}
+
+.section-header--center {
+  text-align: center;
+}
+
+.section-header--center .section-header__title {
+  justify-content: center;
+}
+
+.section-header--right {
+  text-align: right;
+}
+
+.section-header--right .section-header__title {
+  justify-content: flex-end;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 768px) {
+  .section-header--lg .section-header__title {
+    font-size: var(--text-xl);
+  }
+
+  .section-header--md .section-header__title {
+    font-size: var(--text-lg);
+  }
+}

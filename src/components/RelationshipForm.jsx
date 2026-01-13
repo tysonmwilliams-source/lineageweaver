@@ -1,26 +1,117 @@
-import { useState, useEffect } from 'react';
-import { validateRelationship, generateCascadeSuggestions } from '../utils/SmartDataValidator';
-
 /**
- * RelationshipForm Component
- * 
- * A form for creating or editing a relationship between two people.
- * Now includes SMART VALIDATION that catches biological impossibilities
+ * RelationshipForm.jsx - Relationship Creation/Editing Form
+ *
+ * A form for creating or editing relationships between people.
+ * Features smart validation that catches biological impossibilities
  * and suggests helpful cascading updates.
- * 
- * Props:
- * - relationship: Existing relationship data (for editing) or null (for new)
- * - people: Array of all people (for the dropdowns)
- * - allRelationships: Array of all existing relationships (for validation)
- * - onSave: Function to call when form is submitted
- * - onCancel: Function to call when user cancels
- * - onSuggestionAccept: Function to call when user accepts a cascade suggestion
+ *
+ * RELATIONSHIP TYPES:
+ * - parent: Parent/Child
+ * - spouse: Marriage
+ * - adopted-parent: Adopted Parent/Child
+ * - foster-parent: Foster Parent/Child
+ * - mentor: Mentor/Apprentice
+ * - twin: Twins
+ * - named-after: Namesake
+ * - lineage-gap: Distant Ancestor
  */
-function RelationshipForm({ 
-  relationship = null, 
-  people = [], 
+
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { validateRelationship, generateCascadeSuggestions } from '../utils/SmartDataValidator';
+import Icon from './icons/Icon';
+import ActionButton from './shared/ActionButton';
+import './RelationshipForm.css';
+
+const SECTION_VARIANTS = {
+  hidden: { opacity: 0, y: 10 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.3 }
+  }
+};
+
+const ALERT_VARIANTS = {
+  hidden: { opacity: 0, height: 0, marginBottom: 0 },
+  visible: {
+    opacity: 1,
+    height: 'auto',
+    marginBottom: 'var(--space-4)',
+    transition: { duration: 0.3 }
+  },
+  exit: {
+    opacity: 0,
+    height: 0,
+    marginBottom: 0,
+    transition: { duration: 0.2 }
+  }
+};
+
+const RELATIONSHIP_TYPE_CONFIG = {
+  parent: {
+    icon: 'users',
+    label: 'Parent/Child',
+    person1Label: 'Parent',
+    person2Label: 'Child',
+    description: 'Person 1 is the parent of Person 2'
+  },
+  spouse: {
+    icon: 'heart',
+    label: 'Spouse/Marriage',
+    person1Label: 'First Person',
+    person2Label: 'Second Person',
+    description: 'Person 1 and Person 2 are married'
+  },
+  'adopted-parent': {
+    icon: 'home',
+    label: 'Adopted Parent/Child',
+    person1Label: 'Adoptive Parent',
+    person2Label: 'Adopted Child',
+    description: 'Person 1 adopted Person 2'
+  },
+  'foster-parent': {
+    icon: 'hand-heart',
+    label: 'Foster Parent/Child',
+    person1Label: 'Foster Parent',
+    person2Label: 'Foster Child',
+    description: 'Person 1 is foster parent of Person 2'
+  },
+  mentor: {
+    icon: 'graduation-cap',
+    label: 'Mentor/Apprentice',
+    person1Label: 'Mentor',
+    person2Label: 'Apprentice',
+    description: 'Person 1 is mentor to Person 2'
+  },
+  twin: {
+    icon: 'copy',
+    label: 'Twins',
+    person1Label: 'First Twin',
+    person2Label: 'Second Twin',
+    description: 'Person 1 and Person 2 are twins'
+  },
+  'named-after': {
+    icon: 'bookmark',
+    label: 'Named After (Namesake)',
+    person1Label: 'Person Named',
+    person2Label: 'Named After (Honored)',
+    description: 'Person 1 was named after Person 2 (honors/namesake)'
+  },
+  'lineage-gap': {
+    icon: 'link',
+    label: 'Lineage Gap (Distant Ancestor)',
+    person1Label: 'Descendant',
+    person2Label: 'Distant Ancestor',
+    description: 'Person 2 is a distant ancestor of Person 1 (exact lineage unknown)'
+  }
+};
+
+function RelationshipForm({
+  relationship = null,
+  people = [],
   allRelationships = [],
-  onSave, 
+  onSave,
   onCancel,
   onSuggestionAccept = null
 }) {
@@ -33,79 +124,56 @@ function RelationshipForm({
     marriageDate: relationship?.marriageDate || '',
     divorceDate: relationship?.divorceDate || '',
     marriageStatus: relationship?.marriageStatus || 'married',
-    // Lineage-gap specific fields
     estimatedGenerations: relationship?.estimatedGenerations || '',
     lineageNotes: relationship?.lineageNotes || ''
   });
 
-  // Track validation errors (blocking)
+  // Validation state
   const [errors, setErrors] = useState({});
-  
-  // Track validation warnings (non-blocking, can be overridden)
   const [warnings, setWarnings] = useState([]);
-  
-  // Track whether user has acknowledged warnings
   const [warningsAcknowledged, setWarningsAcknowledged] = useState(false);
-  
-  // Cascade suggestions
   const [suggestions, setSuggestions] = useState([]);
 
-  /**
-   * Handle input changes
-   */
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
-    // Clear error for this field
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
-    // Reset warning acknowledgment when data changes
     setWarningsAcknowledged(false);
   };
 
-  /**
-   * Get person name by ID
-   */
   const getPersonName = (personId) => {
     const person = people.find(p => p.id === parseInt(personId));
     return person ? `${person.firstName} ${person.lastName}` : 'Unknown';
   };
 
-  /**
-   * Run smart validation whenever form data changes
-   * This provides real-time feedback as the user fills out the form
-   */
+  // Smart validation effect
   useEffect(() => {
-    // Only validate if both people are selected
     if (!formData.person1Id || !formData.person2Id) {
       setWarnings([]);
       setSuggestions([]);
       return;
     }
-    
-    // Build the relationship object for validation
+
     const relationshipToValidate = {
       ...formData,
       person1Id: parseInt(formData.person1Id),
       person2Id: parseInt(formData.person2Id),
-      id: relationship?.id // Include ID if editing
+      id: relationship?.id
     };
-    
-    // Run smart validation
+
     const validationResult = validateRelationship(
       relationshipToValidate,
       people,
       allRelationships
     );
-    
-    // Update warnings (errors are handled at submit time)
+
     setWarnings(validationResult.warnings || []);
-    
-    // Generate cascade suggestions for new relationships
+
     if (!relationship) {
       const newSuggestions = generateCascadeSuggestions(
         'relationship_add',
@@ -116,13 +184,9 @@ function RelationshipForm({
     }
   }, [formData, people, allRelationships, relationship]);
 
-  /**
-   * Validate the form (original validation + smart validation)
-   */
   const validate = () => {
     const newErrors = {};
 
-    // Both people must be selected
     if (!formData.person1Id) {
       newErrors.person1Id = 'Please select the first person';
     }
@@ -130,16 +194,14 @@ function RelationshipForm({
       newErrors.person2Id = 'Please select the second person';
     }
 
-    // Can't create relationship with self
-    if (formData.person1Id && formData.person2Id && 
+    if (formData.person1Id && formData.person2Id &&
         formData.person1Id === formData.person2Id) {
       newErrors.person2Id = 'Cannot create relationship with the same person';
     }
 
-    // Validate dates for spouse relationships
     if (formData.relationshipType === 'spouse') {
       const dateRegex = /^\d{4}(-\d{2}(-\d{2})?)?$/;
-      
+
       if (formData.marriageDate && !dateRegex.test(formData.marriageDate)) {
         newErrors.marriageDate = 'Date must be YYYY, YYYY-MM, or YYYY-MM-DD';
       }
@@ -147,16 +209,13 @@ function RelationshipForm({
         newErrors.divorceDate = 'Date must be YYYY, YYYY-MM, or YYYY-MM-DD';
       }
 
-      // Divorce date should be after marriage date
-      if (formData.marriageDate && formData.divorceDate && 
+      if (formData.marriageDate && formData.divorceDate &&
           formData.divorceDate < formData.marriageDate) {
         newErrors.divorceDate = 'Divorce date cannot be before marriage date';
       }
     }
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // SMART VALIDATION - Check for biological/logical impossibilities
-    // ═══════════════════════════════════════════════════════════════════════
+    // Smart validation errors
     if (formData.person1Id && formData.person2Id) {
       const relationshipToValidate = {
         ...formData,
@@ -164,16 +223,14 @@ function RelationshipForm({
         person2Id: parseInt(formData.person2Id),
         id: relationship?.id
       };
-      
+
       const smartResult = validateRelationship(
         relationshipToValidate,
         people,
         allRelationships
       );
-      
-      // Add blocking errors from smart validation
+
       smartResult.errors.forEach(err => {
-        // Map error codes to form fields where appropriate
         switch (err.code) {
           case 'CIRCULAR_ANCESTRY':
           case 'PARENT_BORN_AFTER_CHILD':
@@ -199,227 +256,223 @@ function RelationshipForm({
     return Object.keys(newErrors).length === 0;
   };
 
-  /**
-   * Handle form submission
-   */
   const handleSubmit = (e) => {
     e.preventDefault();
-    
-    // Check for unacknowledged warnings
+
     if (warnings.length > 0 && !warningsAcknowledged) {
-      // Don't submit yet - user needs to acknowledge warnings
       return;
     }
-    
+
     if (validate()) {
-      // Prepare relationship data
       const relationshipData = {
         person1Id: parseInt(formData.person1Id),
         person2Id: parseInt(formData.person2Id),
         relationshipType: formData.relationshipType,
         biologicalParent: formData.relationshipType === 'parent' ? formData.biologicalParent : null,
-        marriageDate: formData.relationshipType === 'spouse' && formData.marriageDate 
+        marriageDate: formData.relationshipType === 'spouse' && formData.marriageDate
           ? formData.marriageDate : null,
-        divorceDate: formData.relationshipType === 'spouse' && formData.divorceDate 
+        divorceDate: formData.relationshipType === 'spouse' && formData.divorceDate
           ? formData.divorceDate : null,
-        marriageStatus: formData.relationshipType === 'spouse' 
+        marriageStatus: formData.relationshipType === 'spouse'
           ? formData.marriageStatus : null,
-        // Lineage-gap specific fields
         estimatedGenerations: formData.relationshipType === 'lineage-gap' && formData.estimatedGenerations
           ? parseInt(formData.estimatedGenerations) : null,
         lineageNotes: formData.relationshipType === 'lineage-gap' && formData.lineageNotes
           ? formData.lineageNotes : null
       };
 
-      // If editing, include the ID
       if (relationship?.id) {
         relationshipData.id = relationship.id;
       }
-      
+
       onSave(relationshipData);
     }
   };
 
-  /**
-   * Handle cascade suggestion acceptance
-   */
   const handleAcceptSuggestion = (suggestion) => {
     if (onSuggestionAccept) {
       onSuggestionAccept(suggestion);
     }
-    // Remove the accepted suggestion from the list
     setSuggestions(prev => prev.filter(s => s !== suggestion));
   };
 
+  const currentConfig = RELATIONSHIP_TYPE_CONFIG[formData.relationshipType];
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Relationship Type */}
-      <div>
-        <label htmlFor="relationshipType" className="block text-sm font-medium text-gray-700 mb-1">
-          Relationship Type
-        </label>
-        <select
-          id="relationshipType"
-          name="relationshipType"
-          value={formData.relationshipType}
-          onChange={handleChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-        >
-          <option value="parent">Parent/Child</option>
-          <option value="spouse">Spouse/Marriage</option>
-          <option value="adopted-parent">Adopted Parent/Child</option>
-          <option value="foster-parent">Foster Parent/Child</option>
-          <option value="mentor">Mentor/Apprentice</option>
-          <option value="twin">Twins</option>
-          <option value="named-after">Named After (Namesake)</option>
-          <option value="lineage-gap">Lineage Gap (Distant Ancestor)</option>
-        </select>
-        <p className="mt-1 text-xs text-gray-500">
-          {formData.relationshipType === 'parent' && 'Person 1 is the parent of Person 2'}
-          {formData.relationshipType === 'spouse' && 'Person 1 and Person 2 are married'}
-          {formData.relationshipType === 'adopted-parent' && 'Person 1 adopted Person 2'}
-          {formData.relationshipType === 'foster-parent' && 'Person 1 is foster parent of Person 2'}
-          {formData.relationshipType === 'mentor' && 'Person 1 is mentor to Person 2'}
-          {formData.relationshipType === 'twin' && 'Person 1 and Person 2 are twins'}
-          {formData.relationshipType === 'named-after' && 'Person 1 was named after Person 2 (honors/namesake)'}
-          {formData.relationshipType === 'lineage-gap' && 'Person 2 is a distant ancestor of Person 1 (exact lineage unknown)'}
-        </p>
-        {errors.relationshipType && (
-          <p className="mt-1 text-sm text-red-600">{errors.relationshipType}</p>
-        )}
-      </div>
+    <form className="relationship-form" onSubmit={handleSubmit}>
+      {/* Relationship Type Section */}
+      <motion.div
+        className="relationship-form__section"
+        variants={SECTION_VARIANTS}
+        initial="hidden"
+        animate="visible"
+      >
+        <h3 className="relationship-form__section-title">
+          <Icon name="link-2" size={16} />
+          <span>Relationship Type</span>
+        </h3>
 
-      {/* Person Selection */}
-      <div className="grid grid-cols-2 gap-4">
-        {/* Person 1 */}
-        <div>
-          <label htmlFor="person1Id" className="block text-sm font-medium text-gray-700 mb-1">
-            {formData.relationshipType === 'spouse' ? 'First Person *' : 
-             formData.relationshipType === 'parent' ? 'Parent *' :
-             formData.relationshipType === 'adopted-parent' ? 'Adoptive Parent *' :
-             formData.relationshipType === 'foster-parent' ? 'Foster Parent *' :
-             formData.relationshipType === 'twin' ? 'First Twin *' :
-             formData.relationshipType === 'named-after' ? 'Person Named *' :
-             formData.relationshipType === 'lineage-gap' ? 'Descendant *' :
-             'Mentor *'}
+        <div className="relationship-form__group">
+          <label htmlFor="relationshipType" className="relationship-form__label">
+            Type
           </label>
           <select
-            id="person1Id"
-            name="person1Id"
-            value={formData.person1Id}
+            id="relationshipType"
+            name="relationshipType"
+            value={formData.relationshipType}
             onChange={handleChange}
-            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-              errors.person1Id ? 'border-red-500' : 'border-gray-300'
-            }`}
+            className="relationship-form__select"
           >
-            <option value="">Select person</option>
-            {people.map(person => (
-              <option key={person.id} value={person.id}>
-                {person.firstName} {person.lastName}
-                {person.dateOfBirth ? ` (b. ${person.dateOfBirth.split('-')[0]})` : ''}
+            {Object.entries(RELATIONSHIP_TYPE_CONFIG).map(([value, config]) => (
+              <option key={value} value={value}>
+                {config.label}
               </option>
             ))}
           </select>
-          {errors.person1Id && (
-            <p className="mt-1 text-sm text-red-600">{errors.person1Id}</p>
+          <span className="relationship-form__hint">
+            <Icon name={currentConfig.icon} size={12} />
+            {currentConfig.description}
+          </span>
+          {errors.relationshipType && (
+            <span className="relationship-form__error">
+              <Icon name="alert-circle" size={12} />
+              {errors.relationshipType}
+            </span>
           )}
         </div>
+      </motion.div>
 
-        {/* Person 2 */}
-        <div>
-          <label htmlFor="person2Id" className="block text-sm font-medium text-gray-700 mb-1">
-            {formData.relationshipType === 'spouse' ? 'Second Person *' : 
-             formData.relationshipType === 'parent' ? 'Child *' :
-             formData.relationshipType === 'adopted-parent' ? 'Adopted Child *' :
-             formData.relationshipType === 'foster-parent' ? 'Foster Child *' :
-             formData.relationshipType === 'twin' ? 'Second Twin *' :
-             formData.relationshipType === 'named-after' ? 'Named After (Honored) *' :
-             formData.relationshipType === 'lineage-gap' ? 'Distant Ancestor *' :
-             'Apprentice *'}
-          </label>
-          <select
-            id="person2Id"
-            name="person2Id"
-            value={formData.person2Id}
-            onChange={handleChange}
-            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-              errors.person2Id ? 'border-red-500' : 'border-gray-300'
-            }`}
+      {/* Person Selection Section */}
+      <motion.div
+        className="relationship-form__section"
+        variants={SECTION_VARIANTS}
+        initial="hidden"
+        animate="visible"
+        transition={{ delay: 0.1 }}
+      >
+        <h3 className="relationship-form__section-title">
+          <Icon name="users" size={16} />
+          <span>People</span>
+        </h3>
+
+        <div className="relationship-form__row">
+          {/* Person 1 */}
+          <div className="relationship-form__group">
+            <label htmlFor="person1Id" className="relationship-form__label relationship-form__label--required">
+              {currentConfig.person1Label}
+            </label>
+            <select
+              id="person1Id"
+              name="person1Id"
+              value={formData.person1Id}
+              onChange={handleChange}
+              className={`relationship-form__select ${errors.person1Id ? 'relationship-form__select--error' : ''}`}
+            >
+              <option value="">Select person</option>
+              {people.map(person => (
+                <option key={person.id} value={person.id}>
+                  {person.firstName} {person.lastName}
+                  {person.dateOfBirth ? ` (b. ${person.dateOfBirth.split('-')[0]})` : ''}
+                </option>
+              ))}
+            </select>
+            {errors.person1Id && (
+              <span className="relationship-form__error">
+                <Icon name="alert-circle" size={12} />
+                {errors.person1Id}
+              </span>
+            )}
+          </div>
+
+          {/* Person 2 */}
+          <div className="relationship-form__group">
+            <label htmlFor="person2Id" className="relationship-form__label relationship-form__label--required">
+              {currentConfig.person2Label}
+            </label>
+            <select
+              id="person2Id"
+              name="person2Id"
+              value={formData.person2Id}
+              onChange={handleChange}
+              className={`relationship-form__select ${errors.person2Id ? 'relationship-form__select--error' : ''}`}
+            >
+              <option value="">Select person</option>
+              {people.map(person => (
+                <option key={person.id} value={person.id}>
+                  {person.firstName} {person.lastName}
+                  {person.dateOfBirth ? ` (b. ${person.dateOfBirth.split('-')[0]})` : ''}
+                </option>
+              ))}
+            </select>
+            {errors.person2Id && (
+              <span className="relationship-form__error">
+                <Icon name="alert-circle" size={12} />
+                {errors.person2Id}
+              </span>
+            )}
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Smart Validation Warnings */}
+      <AnimatePresence>
+        {warnings.length > 0 && (
+          <motion.div
+            className="relationship-form__alert relationship-form__alert--warning"
+            variants={ALERT_VARIANTS}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
           >
-            <option value="">Select person</option>
-            {people.map(person => (
-              <option key={person.id} value={person.id}>
-                {person.firstName} {person.lastName}
-                {person.dateOfBirth ? ` (b. ${person.dateOfBirth.split('-')[0]})` : ''}
-              </option>
-            ))}
-          </select>
-          {errors.person2Id && (
-            <p className="mt-1 text-sm text-red-600">{errors.person2Id}</p>
-          )}
-        </div>
-      </div>
-
-      {/* ═══════════════════════════════════════════════════════════════════
-          SMART VALIDATION WARNINGS
-          Non-blocking issues that the user can override
-          ═══════════════════════════════════════════════════════════════════ */}
-      {warnings.length > 0 && (
-        <div className="rounded-lg border border-amber-300 bg-amber-50 p-4">
-          <div className="flex items-start gap-3">
-            <span className="text-amber-600 text-xl">⚠️</span>
-            <div className="flex-1">
-              <h4 className="font-semibold text-amber-800 mb-2">
-                Potential Issues Detected
-              </h4>
-              <ul className="space-y-1">
+            <Icon name="alert-triangle" size={20} className="relationship-form__alert-icon" />
+            <div className="relationship-form__alert-content">
+              <h4 className="relationship-form__alert-title">Potential Issues Detected</h4>
+              <ul className="relationship-form__alert-list">
                 {warnings.map((warning, index) => (
-                  <li key={index} className="text-sm text-amber-700">
-                    • {warning.message}
-                  </li>
+                  <li key={index}>{warning.message}</li>
                 ))}
               </ul>
-              
+
               {!warningsAcknowledged && (
-                <div className="mt-3 pt-3 border-t border-amber-200">
-                  <label className="flex items-center gap-2 cursor-pointer">
+                <div className="relationship-form__alert-action">
+                  <label className="relationship-form__checkbox">
                     <input
                       type="checkbox"
                       checked={warningsAcknowledged}
                       onChange={(e) => setWarningsAcknowledged(e.target.checked)}
-                      className="rounded border-amber-400 text-amber-600 focus:ring-amber-500"
                     />
-                    <span className="text-sm text-amber-800">
-                      I understand these warnings and want to proceed anyway
-                    </span>
+                    <span>I understand these warnings and want to proceed anyway</span>
                   </label>
                 </div>
               )}
             </div>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* ═══════════════════════════════════════════════════════════════════
-          CASCADE SUGGESTIONS
-          Helpful prompts for related updates
-          ═══════════════════════════════════════════════════════════════════ */}
-      {suggestions.length > 0 && onSuggestionAccept && (
-        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-          <div className="flex items-start gap-3">
-            <span className="text-blue-600 text-xl">💡</span>
-            <div className="flex-1">
-              <h4 className="font-semibold text-blue-800 mb-2">
-                Suggestions
-              </h4>
-              <div className="space-y-2">
+      {/* Cascade Suggestions */}
+      <AnimatePresence>
+        {suggestions.length > 0 && onSuggestionAccept && (
+          <motion.div
+            className="relationship-form__alert relationship-form__alert--info"
+            variants={ALERT_VARIANTS}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+          >
+            <Icon name="lightbulb" size={20} className="relationship-form__alert-icon" />
+            <div className="relationship-form__alert-content">
+              <h4 className="relationship-form__alert-title">Suggestions</h4>
+              <div className="relationship-form__suggestions">
                 {suggestions.map((suggestion, index) => (
-                  <div key={index} className="flex items-center justify-between bg-white rounded-lg p-2 border border-blue-100">
-                    <span className="text-sm text-blue-700">{suggestion.message}</span>
+                  <div key={index} className="relationship-form__suggestion">
+                    <span className="relationship-form__suggestion-text">
+                      {suggestion.message}
+                    </span>
                     <button
                       type="button"
                       onClick={() => handleAcceptSuggestion(suggestion)}
-                      className="px-3 py-1 text-xs font-medium text-blue-700 bg-blue-100 rounded hover:bg-blue-200 transition"
+                      className="relationship-form__suggestion-btn"
                     >
                       Yes
                     </button>
@@ -427,182 +480,236 @@ function RelationshipForm({
                 ))}
               </div>
             </div>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* General Errors */}
-      {errors.general && (
-        <div className="rounded-lg border border-red-300 bg-red-50 p-4">
-          <p className="text-sm text-red-700">{errors.general}</p>
-        </div>
-      )}
+      <AnimatePresence>
+        {errors.general && (
+          <motion.div
+            className="relationship-form__alert relationship-form__alert--error"
+            variants={ALERT_VARIANTS}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+          >
+            <Icon name="x-circle" size={20} className="relationship-form__alert-icon" />
+            <div className="relationship-form__alert-content">
+              <p className="relationship-form__alert-text">{errors.general}</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Parent-specific fields */}
-      {formData.relationshipType === 'parent' && (
-        <div>
-          <label className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              name="biologicalParent"
-              checked={formData.biologicalParent}
-              onChange={handleChange}
-              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-            />
-            <span className="text-sm text-gray-700">Biological parent</span>
-          </label>
-          <p className="mt-1 text-xs text-gray-500">
-            Uncheck if this is a non-biological parental relationship
-          </p>
-        </div>
-      )}
+      <AnimatePresence>
+        {formData.relationshipType === 'parent' && (
+          <motion.div
+            className="relationship-form__section"
+            variants={SECTION_VARIANTS}
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
+            transition={{ delay: 0.2 }}
+          >
+            <h3 className="relationship-form__section-title">
+              <Icon name="dna" size={16} />
+              <span>Parent Details</span>
+            </h3>
+
+            <div className="relationship-form__group">
+              <label className="relationship-form__checkbox">
+                <input
+                  type="checkbox"
+                  name="biologicalParent"
+                  checked={formData.biologicalParent}
+                  onChange={handleChange}
+                />
+                <span>Biological parent</span>
+              </label>
+              <span className="relationship-form__hint">
+                Uncheck if this is a non-biological parental relationship
+              </span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Lineage-gap specific fields */}
-      {formData.relationshipType === 'lineage-gap' && (
-        <>
-          <div className="rounded-lg border border-purple-200 bg-purple-50 p-4">
-            <div className="flex items-start gap-3">
-              <span className="text-purple-600 text-xl">🔗</span>
-              <div className="flex-1">
-                <h4 className="font-semibold text-purple-800 mb-2">
-                  Lineage Gap Connection
-                </h4>
-                <p className="text-sm text-purple-700 mb-3">
-                  Use this to connect family members who are related but separated by 
-                  unknown or unrecorded generations. This creates a "loose" connection 
-                  that links tree fragments without implying direct parent-child relationships.
-                </p>
-              </div>
+      <AnimatePresence>
+        {formData.relationshipType === 'lineage-gap' && (
+          <motion.div
+            className="relationship-form__section relationship-form__section--lineage"
+            variants={SECTION_VARIANTS}
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
+            transition={{ delay: 0.2 }}
+          >
+            <h3 className="relationship-form__section-title">
+              <Icon name="git-branch" size={16} />
+              <span>Lineage Gap Details</span>
+            </h3>
+
+            <div className="relationship-form__info-box">
+              <Icon name="info" size={16} className="relationship-form__info-icon" />
+              <p className="relationship-form__info-text">
+                Use this to connect family members who are related but separated by
+                unknown or unrecorded generations. This creates a "loose" connection
+                that links tree fragments without implying direct parent-child relationships.
+              </p>
             </div>
-          </div>
-          
-          <div>
-            <label htmlFor="estimatedGenerations" className="block text-sm font-medium text-gray-700 mb-1">
-              Estimated Generations Apart
-            </label>
-            <input
-              type="number"
-              id="estimatedGenerations"
-              name="estimatedGenerations"
-              value={formData.estimatedGenerations}
-              onChange={handleChange}
-              min="1"
-              max="50"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="e.g., 5 for great-great-great grandparent"
-            />
-            <p className="mt-1 text-xs text-gray-500">
-              Approximate number of generations between these people (optional)
-            </p>
-          </div>
-          
-          <div>
-            <label htmlFor="lineageNotes" className="block text-sm font-medium text-gray-700 mb-1">
-              Connection Notes
-            </label>
-            <textarea
-              id="lineageNotes"
-              name="lineageNotes"
-              value={formData.lineageNotes}
-              onChange={handleChange}
-              rows="3"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="e.g., 'Aldric is believed to be Cair's ancestor through the main Salomon line, exact connection unknown'"
-            />
-            <p className="mt-1 text-xs text-gray-500">
-              Notes about how these people are connected or why the exact lineage is unknown
-            </p>
-          </div>
-        </>
-      )}
+
+            <div className="relationship-form__group">
+              <label htmlFor="estimatedGenerations" className="relationship-form__label">
+                Estimated Generations Apart
+              </label>
+              <input
+                type="number"
+                id="estimatedGenerations"
+                name="estimatedGenerations"
+                value={formData.estimatedGenerations}
+                onChange={handleChange}
+                min="1"
+                max="50"
+                className="relationship-form__input"
+                placeholder="e.g., 5 for great-great-great grandparent"
+              />
+              <span className="relationship-form__hint">
+                Approximate number of generations between these people (optional)
+              </span>
+            </div>
+
+            <div className="relationship-form__group">
+              <label htmlFor="lineageNotes" className="relationship-form__label">
+                Connection Notes
+              </label>
+              <textarea
+                id="lineageNotes"
+                name="lineageNotes"
+                value={formData.lineageNotes}
+                onChange={handleChange}
+                rows="3"
+                className="relationship-form__textarea"
+                placeholder="e.g., 'Aldric is believed to be Cair's ancestor through the main Salomon line, exact connection unknown'"
+              />
+              <span className="relationship-form__hint">
+                Notes about how these people are connected or why the exact lineage is unknown
+              </span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Spouse-specific fields */}
-      {formData.relationshipType === 'spouse' && (
-        <>
-          <div className="grid grid-cols-2 gap-4">
-            {/* Marriage Date */}
-            <div>
-              <label htmlFor="marriageDate" className="block text-sm font-medium text-gray-700 mb-1">
-                Marriage Date
-              </label>
-              <input
-                type="text"
-                id="marriageDate"
-                name="marriageDate"
-                value={formData.marriageDate}
-                onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.marriageDate ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="YYYY-MM-DD or YYYY"
-              />
-              {errors.marriageDate && (
-                <p className="mt-1 text-sm text-red-600">{errors.marriageDate}</p>
-              )}
+      <AnimatePresence>
+        {formData.relationshipType === 'spouse' && (
+          <motion.div
+            className="relationship-form__section relationship-form__section--marriage"
+            variants={SECTION_VARIANTS}
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
+            transition={{ delay: 0.2 }}
+          >
+            <h3 className="relationship-form__section-title">
+              <Icon name="heart" size={16} />
+              <span>Marriage Details</span>
+            </h3>
+
+            <div className="relationship-form__row">
+              {/* Marriage Date */}
+              <div className="relationship-form__group">
+                <label htmlFor="marriageDate" className="relationship-form__label">
+                  Marriage Date
+                </label>
+                <input
+                  type="text"
+                  id="marriageDate"
+                  name="marriageDate"
+                  value={formData.marriageDate}
+                  onChange={handleChange}
+                  className={`relationship-form__input ${errors.marriageDate ? 'relationship-form__input--error' : ''}`}
+                  placeholder="YYYY-MM-DD or YYYY"
+                />
+                {errors.marriageDate ? (
+                  <span className="relationship-form__error">
+                    <Icon name="alert-circle" size={12} />
+                    {errors.marriageDate}
+                  </span>
+                ) : (
+                  <span className="relationship-form__hint">
+                    Format: YYYY-MM-DD, YYYY-MM, or YYYY
+                  </span>
+                )}
+              </div>
+
+              {/* Divorce Date */}
+              <div className="relationship-form__group">
+                <label htmlFor="divorceDate" className="relationship-form__label">
+                  Divorce Date
+                </label>
+                <input
+                  type="text"
+                  id="divorceDate"
+                  name="divorceDate"
+                  value={formData.divorceDate}
+                  onChange={handleChange}
+                  className={`relationship-form__input ${errors.divorceDate ? 'relationship-form__input--error' : ''}`}
+                  placeholder="Leave blank if still married"
+                />
+                {errors.divorceDate ? (
+                  <span className="relationship-form__error">
+                    <Icon name="alert-circle" size={12} />
+                    {errors.divorceDate}
+                  </span>
+                ) : (
+                  <span className="relationship-form__hint">
+                    Leave blank if still married
+                  </span>
+                )}
+              </div>
             </div>
 
-            {/* Divorce Date */}
-            <div>
-              <label htmlFor="divorceDate" className="block text-sm font-medium text-gray-700 mb-1">
-                Divorce Date
+            {/* Marriage Status */}
+            <div className="relationship-form__group">
+              <label htmlFor="marriageStatus" className="relationship-form__label">
+                Marriage Status
               </label>
-              <input
-                type="text"
-                id="divorceDate"
-                name="divorceDate"
-                value={formData.divorceDate}
+              <select
+                id="marriageStatus"
+                name="marriageStatus"
+                value={formData.marriageStatus}
                 onChange={handleChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.divorceDate ? 'border-red-500' : 'border-gray-300'
-                }`}
-                placeholder="Leave blank if still married"
-              />
-              {errors.divorceDate && (
-                <p className="mt-1 text-sm text-red-600">{errors.divorceDate}</p>
-              )}
+                className="relationship-form__select"
+              >
+                <option value="married">Married</option>
+                <option value="divorced">Divorced</option>
+                <option value="widowed">Widowed</option>
+              </select>
             </div>
-          </div>
-
-          {/* Marriage Status */}
-          <div>
-            <label htmlFor="marriageStatus" className="block text-sm font-medium text-gray-700 mb-1">
-              Marriage Status
-            </label>
-            <select
-              id="marriageStatus"
-              name="marriageStatus"
-              value={formData.marriageStatus}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="married">Married</option>
-              <option value="divorced">Divorced</option>
-              <option value="widowed">Widowed</option>
-            </select>
-          </div>
-        </>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Form Actions */}
-      <div className="flex justify-end space-x-3 pt-4 border-t">
-        <button
+      <div className="relationship-form__actions">
+        <ActionButton
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
+          variant="ghost"
         >
           Cancel
-        </button>
-        <button
+        </ActionButton>
+        <ActionButton
           type="submit"
+          icon={relationship ? 'save' : 'plus'}
+          variant="primary"
           disabled={warnings.length > 0 && !warningsAcknowledged}
-          className={`px-4 py-2 text-white rounded-lg transition ${
-            warnings.length > 0 && !warningsAcknowledged
-              ? 'bg-gray-400 cursor-not-allowed'
-              : 'bg-blue-600 hover:bg-blue-700'
-          }`}
         >
           {relationship ? 'Update Relationship' : 'Create Relationship'}
-        </button>
+        </ActionButton>
       </div>
     </form>
   );

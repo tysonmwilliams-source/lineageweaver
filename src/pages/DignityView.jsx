@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import {
   getDignity,
@@ -13,7 +14,6 @@ import {
   updateDignity,
   calculateSuccessionLine,
   addDispute,
-  updateDispute,
   resolveDispute,
   removeDispute,
   setInterregnum,
@@ -29,27 +29,70 @@ import {
   CLAIM_TYPES,
   CLAIM_STRENGTHS,
   DISPUTE_RESOLUTIONS,
-  INTERREGNUM_REASONS,
-  getDignityIcon
+  INTERREGNUM_REASONS
 } from '../services/dignityService';
 import { getAllHouses, getAllPeople, getAllRelationships } from '../services/database';
 import Navigation from '../components/Navigation';
+import Icon from '../components/icons/Icon';
+import LoadingState from '../components/shared/LoadingState';
+import EmptyState from '../components/shared/EmptyState';
+import ActionButton from '../components/shared/ActionButton';
 import './DignityView.css';
 
 /**
- * DignityView - View Single Dignity
- * 
- * Displays comprehensive information about a dignity including:
+ * DignityView - Comprehensive Dignity Detail Page
+ *
+ * Displays a single dignity with:
  * - Classification and rank
  * - Current holder and house
  * - Feudal hierarchy (sworn to / subordinates)
- * - Tenure history (all who have held this dignity)
+ * - Tenure history
+ * - Succession line and disputes
+ * - Interregnum management
  */
+
+// Animation variants
+const CONTAINER_VARIANTS = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.08, delayChildren: 0.1 }
+  }
+};
+
+const ITEM_VARIANTS = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }
+  }
+};
+
+const CARD_VARIANTS = {
+  hidden: { opacity: 0, y: 30, scale: 0.95 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }
+  }
+};
+
+// Class icons mapping
+const CLASS_ICONS = {
+  crown: 'crown',
+  driht: 'castle',
+  ward: 'shield-check',
+  sir: 'sword',
+  other: 'scroll-text'
+};
+
 function DignityView() {
   const navigate = useNavigate();
   const { id } = useParams();
-  const { user } = useAuth(); // Get current user for cloud sync
-  
+  const { user } = useAuth();
+
   // State
   const [dignity, setDignity] = useState(null);
   const [tenures, setTenures] = useState([]);
@@ -60,7 +103,7 @@ function DignityView() {
   const [relationships, setRelationships] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   // Succession state
   const [successionLine, setSuccessionLine] = useState([]);
   const [loadingSuccession, setLoadingSuccession] = useState(false);
@@ -75,10 +118,10 @@ function DignityView() {
     designatedHeirId: ''
   });
   const [savingRules, setSavingRules] = useState(false);
-  
+
   // Dispute state
   const [showDisputeModal, setShowDisputeModal] = useState(false);
-  const [disputeMode, setDisputeMode] = useState('add'); // 'add' | 'edit' | 'resolve'
+  const [disputeMode, setDisputeMode] = useState('add');
   const [editingDispute, setEditingDispute] = useState(null);
   const [disputeForm, setDisputeForm] = useState({
     claimantId: '',
@@ -92,7 +135,7 @@ function DignityView() {
     resolvedDate: ''
   });
   const [savingDispute, setSavingDispute] = useState(false);
-  
+
   // Interregnum state
   const [showInterregnumModal, setShowInterregnumModal] = useState(false);
   const [interregnumForm, setInterregnumForm] = useState({
@@ -103,10 +146,10 @@ function DignityView() {
     notes: ''
   });
   const [savingInterregnum, setSavingInterregnum] = useState(false);
-  
+
   // Tenure form state
   const [showTenureModal, setShowTenureModal] = useState(false);
-  const [tenureMode, setTenureMode] = useState('add'); // 'add' | 'end' | 'edit'
+  const [tenureMode, setTenureMode] = useState('add');
   const [editingTenure, setEditingTenure] = useState(null);
   const [tenureForm, setTenureForm] = useState({
     personId: '',
@@ -117,19 +160,106 @@ function DignityView() {
     notes: ''
   });
   const [savingTenure, setSavingTenure] = useState(false);
-  
+
+  // Helper functions
+  const getHouseName = useCallback((houseId) => {
+    if (!houseId) return null;
+    const house = houses.find(h => h.id === houseId);
+    return house?.houseName || null;
+  }, [houses]);
+
+  const getHouseColor = useCallback((houseId) => {
+    if (!houseId) return '#666';
+    const house = houses.find(h => h.id === houseId);
+    return house?.colorCode || '#666';
+  }, [houses]);
+
+  const getPersonName = useCallback((personId) => {
+    if (!personId) return null;
+    const person = people.find(p => p.id === personId);
+    if (!person) return null;
+    return `${person.firstName} ${person.lastName}`;
+  }, [people]);
+
+  const getClassInfo = useCallback((dignityClass) => {
+    return DIGNITY_CLASSES[dignityClass] || DIGNITY_CLASSES.other;
+  }, []);
+
+  const getRankInfo = useCallback((dignityClass, dignityRank) => {
+    const classRanks = DIGNITY_RANKS[dignityClass];
+    if (!classRanks) return null;
+    return classRanks[dignityRank] || null;
+  }, []);
+
+  const formatDate = useCallback((dateStr) => {
+    if (!dateStr) return 'Unknown';
+    if (dateStr.length === 4) return dateStr;
+    const date = new Date(dateStr);
+    if (isNaN(date)) return dateStr;
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  }, []);
+
+  const formatTimestamp = useCallback((isoString) => {
+    if (!isoString) return 'Unknown';
+    const date = new Date(isoString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  }, []);
+
+  // Calculate succession line
+  const calculateSuccession = useCallback(async (dignityData, peopleData, relationshipsData) => {
+    try {
+      setLoadingSuccession(true);
+
+      const parentMap = new Map();
+      const childrenMap = new Map();
+      const spouseMap = new Map();
+
+      for (const rel of relationshipsData) {
+        if (rel.relationshipType === 'parent') {
+          const existingParents = parentMap.get(rel.person2Id) || [];
+          parentMap.set(rel.person2Id, [...existingParents, rel.person1Id]);
+          const existingChildren = childrenMap.get(rel.person1Id) || [];
+          childrenMap.set(rel.person1Id, [...existingChildren, rel.person2Id]);
+        } else if (rel.relationshipType === 'spouse') {
+          spouseMap.set(rel.person1Id, rel.person2Id);
+          spouseMap.set(rel.person2Id, rel.person1Id);
+        }
+      }
+
+      const line = await calculateSuccessionLine(
+        dignityData.id,
+        peopleData,
+        parentMap,
+        childrenMap,
+        spouseMap,
+        10
+      );
+
+      setSuccessionLine(line);
+    } catch (err) {
+      console.error('Error calculating succession:', err);
+      setSuccessionLine([]);
+    } finally {
+      setLoadingSuccession(false);
+    }
+  }, []);
+
   // Load data
-  useEffect(() => {
-    loadData();
-  }, [id]);
-  
-  async function loadData() {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const dignityId = parseInt(id);
-      
+
       const [
         dignityData,
         tenuresData,
@@ -147,13 +277,13 @@ function DignityView() {
         getAllPeople(),
         getAllRelationships()
       ]);
-      
+
       if (!dignityData) {
         setError('Dignity not found');
         setLoading(false);
         return;
       }
-      
+
       setDignity(dignityData);
       setTenures(tenuresData);
       setSubordinates(subordinatesData);
@@ -162,8 +292,7 @@ function DignityView() {
       setPeople(peopleData);
       setRelationships(relationshipsData);
       setLoading(false);
-      
-      // Calculate succession line after main data loads
+
       if (dignityData.currentHolderId) {
         calculateSuccession(dignityData, peopleData, relationshipsData);
       }
@@ -172,129 +301,22 @@ function DignityView() {
       setError('Failed to load dignity');
       setLoading(false);
     }
-  }
-  
-  // Calculate succession line
-  async function calculateSuccession(dignityData, peopleData, relationshipsData) {
-    try {
-      setLoadingSuccession(true);
-      
-      // Build relationship maps for succession calculation
-      const parentMap = new Map(); // childId -> [parentIds]
-      const childrenMap = new Map(); // parentId -> [childIds]
-      const spouseMap = new Map(); // personId -> spouseId
-      
-      for (const rel of relationshipsData) {
-        if (rel.relationshipType === 'parent') {
-          // person1 is parent of person2
-          const existingParents = parentMap.get(rel.person2Id) || [];
-          parentMap.set(rel.person2Id, [...existingParents, rel.person1Id]);
-          
-          const existingChildren = childrenMap.get(rel.person1Id) || [];
-          childrenMap.set(rel.person1Id, [...existingChildren, rel.person2Id]);
-        } else if (rel.relationshipType === 'spouse') {
-          spouseMap.set(rel.person1Id, rel.person2Id);
-          spouseMap.set(rel.person2Id, rel.person1Id);
-        }
-      }
-      
-      const line = await calculateSuccessionLine(
-        dignityData.id,
-        peopleData,
-        parentMap,
-        childrenMap,
-        spouseMap,
-        10
-      );
-      
-      setSuccessionLine(line);
-    } catch (err) {
-      console.error('Error calculating succession:', err);
-      setSuccessionLine([]);
-    } finally {
-      setLoadingSuccession(false);
-    }
-  }
-  
-  // Helper functions
-  function getHouseName(houseId) {
-    if (!houseId) return null;
-    const house = houses.find(h => h.id === houseId);
-    return house?.houseName || null;
-  }
-  
-  function getHouseColor(houseId) {
-    if (!houseId) return '#666';
-    const house = houses.find(h => h.id === houseId);
-    return house?.colorCode || '#666';
-  }
-  
-  function getPersonName(personId) {
-    if (!personId) return null;
-    const person = people.find(p => p.id === personId);
-    if (!person) return null;
-    return `${person.firstName} ${person.lastName}`;
-  }
-  
-  function getClassInfo(dignityClass) {
-    return DIGNITY_CLASSES[dignityClass] || DIGNITY_CLASSES.other;
-  }
-  
-  function getRankInfo(dignityClass, dignityRank) {
-    const classRanks = DIGNITY_RANKS[dignityClass];
-    if (!classRanks) return null;
-    return classRanks[dignityRank] || null;
-  }
-  
-  function getTenureTypeInfo(tenureType) {
-    return TENURE_TYPES[tenureType] || TENURE_TYPES.of;
-  }
-  
-  function getFealtyTypeInfo(fealtyType) {
-    return FEALTY_TYPES[fealtyType] || FEALTY_TYPES['sworn-to'];
-  }
-  
-  function getAcquisitionInfo(type) {
-    return ACQUISITION_TYPES[type] || { name: type || 'Unknown' };
-  }
-  
-  function getEndInfo(type) {
-    return END_TYPES[type] || { name: type || 'Unknown' };
-  }
-  
-  function formatDate(dateStr) {
-    if (!dateStr) return 'Unknown';
-    // Handle various date formats
-    if (dateStr.length === 4) return dateStr; // Year only
-    const date = new Date(dateStr);
-    if (isNaN(date)) return dateStr;
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  }
-  
-  function formatTimestamp(isoString) {
-    if (!isoString) return 'Unknown';
-    const date = new Date(isoString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  }
-  
-  // Handlers
-  function handleEdit() {
+  }, [id, calculateSuccession]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Navigation handlers
+  const handleEdit = useCallback(() => {
     navigate(`/dignities/edit/${id}`);
-  }
-  
-  async function handleDelete() {
+  }, [navigate, id]);
+
+  const handleDelete = useCallback(async () => {
     if (!window.confirm(`Delete "${dignity.name}"?\n\nThis will remove the dignity and all associated tenure records. This action cannot be undone.`)) {
       return;
     }
-    
+
     try {
       await deleteDignity(parseInt(id), user?.uid);
       navigate('/dignities');
@@ -302,25 +324,18 @@ function DignityView() {
       console.error('Error deleting dignity:', err);
       alert('Failed to delete dignity');
     }
-  }
-  
-  function handleNavigateToDignity(dignityId) {
+  }, [dignity?.name, id, navigate, user?.uid]);
+
+  const handleNavigateToDignity = useCallback((dignityId) => {
     navigate(`/dignities/view/${dignityId}`);
-  }
-  
-  function handleNavigateToPerson(personId) {
-    // 🪝 Future: navigate to person detail or open in tree
-    console.log('Navigate to person:', personId);
-  }
-  
-  function handleNavigateToHouse(houseId) {
-    // 🪝 Future: navigate to house detail
-    console.log('Navigate to house:', houseId);
-  }
-  
-  // ==================== TENURE MANAGEMENT ====================
-  
-  function handleOpenAddTenure() {
+  }, [navigate]);
+
+  const handleBackToRolls = useCallback(() => {
+    navigate('/dignities');
+  }, [navigate]);
+
+  // Tenure management handlers
+  const handleOpenAddTenure = useCallback(() => {
     setTenureMode('add');
     setEditingTenure(null);
     setTenureForm({
@@ -332,9 +347,9 @@ function DignityView() {
       notes: ''
     });
     setShowTenureModal(true);
-  }
-  
-  function handleOpenEndTenure(tenure) {
+  }, [dignity?.currentHolderId]);
+
+  const handleOpenEndTenure = useCallback((tenure) => {
     setTenureMode('end');
     setEditingTenure(tenure);
     setTenureForm({
@@ -346,9 +361,9 @@ function DignityView() {
       notes: tenure.notes || ''
     });
     setShowTenureModal(true);
-  }
-  
-  function handleCloseTenureModal() {
+  }, []);
+
+  const handleCloseTenureModal = useCallback(() => {
     setShowTenureModal(false);
     setEditingTenure(null);
     setTenureForm({
@@ -359,26 +374,24 @@ function DignityView() {
       endType: '',
       notes: ''
     });
-  }
-  
-  async function handleSaveTenure() {
+  }, []);
+
+  const handleSaveTenure = useCallback(async () => {
     if (tenureMode === 'add' && !tenureForm.personId) {
       alert('Please select who held this dignity');
       return;
     }
-    
+
     try {
       setSavingTenure(true);
-      
+
       if (tenureMode === 'end' && editingTenure) {
-        // End an existing tenure
         await updateDignityTenure(editingTenure.id, {
           dateEnded: tenureForm.dateEnded || null,
           endType: tenureForm.endType || null,
           notes: tenureForm.notes || null
         }, user?.uid);
-        
-        // If ending current tenure, mark dignity as vacant or update holder
+
         if (!editingTenure.dateEnded) {
           await updateDignity(parseInt(id), {
             currentHolderId: null,
@@ -386,7 +399,6 @@ function DignityView() {
           }, user?.uid);
         }
       } else {
-        // Add new tenure
         await createDignityTenure({
           dignityId: parseInt(id),
           personId: parseInt(tenureForm.personId),
@@ -396,8 +408,7 @@ function DignityView() {
           endType: tenureForm.dateEnded ? tenureForm.endType : null,
           notes: tenureForm.notes || null
         }, user?.uid);
-        
-        // If this is a current tenure (no end date), update dignity's current holder
+
         if (!tenureForm.dateEnded) {
           const selectedPerson = people.find(p => p.id === parseInt(tenureForm.personId));
           await updateDignity(parseInt(id), {
@@ -407,8 +418,7 @@ function DignityView() {
           }, user?.uid);
         }
       }
-      
-      // Refresh data
+
       await loadData();
       handleCloseTenureModal();
     } catch (err) {
@@ -417,13 +427,13 @@ function DignityView() {
     } finally {
       setSavingTenure(false);
     }
-  }
-  
-  async function handleDeleteTenure(tenureId) {
+  }, [tenureMode, tenureForm, editingTenure, id, user?.uid, people, dignity?.currentHouseId, loadData, handleCloseTenureModal]);
+
+  const handleDeleteTenure = useCallback(async (tenureId) => {
     if (!window.confirm('Delete this tenure record? This cannot be undone.')) {
       return;
     }
-    
+
     try {
       await deleteDignityTenure(tenureId, user?.uid);
       await loadData();
@@ -431,11 +441,10 @@ function DignityView() {
       console.error('Error deleting tenure:', err);
       alert('Failed to delete tenure record');
     }
-  }
-  
-  // ==================== SUCCESSION MANAGEMENT ====================
-  
-  function handleOpenSuccessionRules() {
+  }, [user?.uid, loadData]);
+
+  // Succession management handlers
+  const handleOpenSuccessionRules = useCallback(() => {
     const rules = dignity?.successionRules || {};
     setSuccessionRulesForm({
       successionType: dignity?.successionType || 'male-primogeniture',
@@ -447,16 +456,16 @@ function DignityView() {
       designatedHeirId: dignity?.designatedHeirId || ''
     });
     setShowSuccessionRulesModal(true);
-  }
-  
-  function handleCloseSuccessionRulesModal() {
+  }, [dignity]);
+
+  const handleCloseSuccessionRulesModal = useCallback(() => {
     setShowSuccessionRulesModal(false);
-  }
-  
-  async function handleSaveSuccessionRules() {
+  }, []);
+
+  const handleSaveSuccessionRules = useCallback(async () => {
     try {
       setSavingRules(true);
-      
+
       await updateDignity(parseInt(id), {
         successionType: successionRulesForm.successionType,
         successionRules: {
@@ -466,11 +475,11 @@ function DignityView() {
           requiresConfirmation: successionRulesForm.requiresConfirmation,
           customNotes: successionRulesForm.customNotes || null
         },
-        designatedHeirId: successionRulesForm.designatedHeirId 
-          ? parseInt(successionRulesForm.designatedHeirId) 
+        designatedHeirId: successionRulesForm.designatedHeirId
+          ? parseInt(successionRulesForm.designatedHeirId)
           : null
       }, user?.uid);
-      
+
       await loadData();
       handleCloseSuccessionRulesModal();
     } catch (err) {
@@ -479,11 +488,10 @@ function DignityView() {
     } finally {
       setSavingRules(false);
     }
-  }
-  
-  // ==================== DISPUTE MANAGEMENT ====================
-  
-  function handleOpenAddDispute() {
+  }, [successionRulesForm, id, user?.uid, loadData, handleCloseSuccessionRulesModal]);
+
+  // Dispute management handlers
+  const handleOpenAddDispute = useCallback(() => {
     setDisputeMode('add');
     setEditingDispute(null);
     setDisputeForm({
@@ -498,34 +506,34 @@ function DignityView() {
       resolvedDate: ''
     });
     setShowDisputeModal(true);
-  }
-  
-  function handleOpenResolveDispute(dispute) {
+  }, []);
+
+  const handleOpenResolveDispute = useCallback((dispute) => {
     setDisputeMode('resolve');
     setEditingDispute(dispute);
-    setDisputeForm({
-      ...disputeForm,
+    setDisputeForm(prev => ({
+      ...prev,
       claimantId: dispute.claimantId,
       resolution: '',
       resolvedDate: ''
-    });
+    }));
     setShowDisputeModal(true);
-  }
-  
-  function handleCloseDisputeModal() {
+  }, []);
+
+  const handleCloseDisputeModal = useCallback(() => {
     setShowDisputeModal(false);
     setEditingDispute(null);
-  }
-  
-  async function handleSaveDispute() {
+  }, []);
+
+  const handleSaveDispute = useCallback(async () => {
     if (disputeMode === 'add' && !disputeForm.claimantId) {
       alert('Please select a claimant');
       return;
     }
-    
+
     try {
       setSavingDispute(true);
-      
+
       if (disputeMode === 'resolve' && editingDispute) {
         await resolveDispute(
           parseInt(id),
@@ -547,7 +555,7 @@ function DignityView() {
           notes: disputeForm.notes || null
         }, user?.uid);
       }
-      
+
       await loadData();
       handleCloseDisputeModal();
     } catch (err) {
@@ -556,13 +564,13 @@ function DignityView() {
     } finally {
       setSavingDispute(false);
     }
-  }
-  
-  async function handleRemoveDispute(disputeId) {
+  }, [disputeMode, disputeForm, editingDispute, id, user?.uid, loadData, handleCloseDisputeModal]);
+
+  const handleRemoveDispute = useCallback(async (disputeId) => {
     if (!window.confirm('Remove this disputed claim? This cannot be undone.')) {
       return;
     }
-    
+
     try {
       await removeDispute(parseInt(id), disputeId, user?.uid);
       await loadData();
@@ -570,11 +578,10 @@ function DignityView() {
       console.error('Error removing dispute:', err);
       alert('Failed to remove dispute');
     }
-  }
-  
-  // ==================== INTERREGNUM MANAGEMENT ====================
-  
-  function handleOpenInterregnum() {
+  }, [id, user?.uid, loadData]);
+
+  // Interregnum management handlers
+  const handleOpenInterregnum = useCallback(() => {
     const existing = dignity?.interregnum || {};
     setInterregnumForm({
       startDate: existing.startDate || '',
@@ -584,26 +591,26 @@ function DignityView() {
       notes: existing.notes || ''
     });
     setShowInterregnumModal(true);
-  }
-  
-  function handleCloseInterregnumModal() {
+  }, [dignity?.interregnum]);
+
+  const handleCloseInterregnumModal = useCallback(() => {
     setShowInterregnumModal(false);
-  }
-  
-  async function handleSaveInterregnum() {
+  }, []);
+
+  const handleSaveInterregnum = useCallback(async () => {
     try {
       setSavingInterregnum(true);
-      
+
       await setInterregnum(parseInt(id), {
         startDate: interregnumForm.startDate || null,
-        regentId: interregnumForm.regentId 
-          ? parseInt(interregnumForm.regentId) 
+        regentId: interregnumForm.regentId
+          ? parseInt(interregnumForm.regentId)
           : null,
         regentTitle: interregnumForm.regentTitle || 'Regent',
         reason: interregnumForm.reason,
         notes: interregnumForm.notes || null
       }, user?.uid);
-      
+
       await loadData();
       handleCloseInterregnumModal();
     } catch (err) {
@@ -612,20 +619,19 @@ function DignityView() {
     } finally {
       setSavingInterregnum(false);
     }
-  }
-  
-  async function handleEndInterregnum() {
-    // Get first eligible heir
+  }, [interregnumForm, id, user?.uid, loadData, handleCloseInterregnumModal]);
+
+  const handleEndInterregnum = useCallback(async () => {
     const heir = successionLine.find(c => !c.excluded);
     if (!heir) {
       alert('No eligible heir found. Please add a tenure record manually.');
       return;
     }
-    
+
     if (!window.confirm(`End interregnum and install ${getPersonName(heir.personId)} as the new holder?`)) {
       return;
     }
-    
+
     try {
       await endInterregnum(parseInt(id), heir.personId, user?.uid);
       await loadData();
@@ -633,1209 +639,1218 @@ function DignityView() {
       console.error('Error ending interregnum:', err);
       alert('Failed to end interregnum');
     }
-  }
-  
+  }, [successionLine, getPersonName, id, user?.uid, loadData]);
+
+  // Derived values
+  const classInfo = useMemo(() => dignity ? getClassInfo(dignity.dignityClass) : null, [dignity, getClassInfo]);
+  const rankInfo = useMemo(() => dignity ? getRankInfo(dignity.dignityClass, dignity.dignityRank) : null, [dignity, getRankInfo]);
+  const holderName = useMemo(() => dignity ? getPersonName(dignity.currentHolderId) : null, [dignity, getPersonName]);
+  const houseName = useMemo(() => dignity ? getHouseName(dignity.currentHouseId) : null, [dignity, getHouseName]);
+  const houseColor = useMemo(() => dignity ? getHouseColor(dignity.currentHouseId) : '#666', [dignity, getHouseColor]);
+  const swornToDignity = useMemo(() => feudalChain.length > 1 ? feudalChain[1] : null, [feudalChain]);
+  const classIcon = useMemo(() => dignity ? (CLASS_ICONS[dignity.dignityClass] || 'scroll-text') : 'scroll-text', [dignity]);
+
   // Loading state
   if (loading) {
     return (
       <>
         <Navigation />
-        <div className="dignity-view-page loading">
-          <div className="loading-spinner">
-            <div className="loading-icon">📜</div>
-            <p>Loading dignity...</p>
+        <div className="dignity-view-page">
+          <div className="dignity-view-container">
+            <LoadingState message="Loading dignity..." icon="scroll-text" />
           </div>
         </div>
       </>
     );
   }
-  
+
   // Error state
-  if (error) {
+  if (error || !dignity) {
     return (
       <>
         <Navigation />
-        <div className="dignity-view-page error">
-          <div className="error-content">
-            <div className="error-icon">⚠️</div>
-            <h2>Error</h2>
-            <p>{error}</p>
-            <button 
-              className="back-btn"
-              onClick={() => navigate('/dignities')}
-            >
-              Back to Rolls
-            </button>
+        <div className="dignity-view-page">
+          <div className="dignity-view-container">
+            <EmptyState
+              icon="alert-triangle"
+              title="Error"
+              description={error || 'Dignity not found'}
+              action={{
+                label: 'Back to Rolls',
+                onClick: handleBackToRolls,
+                icon: 'arrow-left'
+              }}
+            />
           </div>
         </div>
       </>
     );
   }
-  
-  const classInfo = getClassInfo(dignity.dignityClass);
-  const rankInfo = getRankInfo(dignity.dignityClass, dignity.dignityRank);
-  const tenureTypeInfo = getTenureTypeInfo(dignity.tenureType);
-  const icon = getDignityIcon(dignity);
-  const holderName = getPersonName(dignity.currentHolderId);
-  const houseName = getHouseName(dignity.currentHouseId);
-  const houseColor = getHouseColor(dignity.currentHouseId);
-  
-  // Get sworn-to dignity info
-  const swornToDignity = feudalChain.length > 1 ? feudalChain[1] : null;
-  
+
   return (
     <>
       <Navigation />
+
       <div className="dignity-view-page">
-        
-        {/* Header */}
-        <header className="view-header">
-          <button 
-            className="back-button"
-            onClick={() => navigate('/dignities')}
-          >
-            ← Back to Rolls
-          </button>
-          
-          <div className="header-content">
-            <div className={`class-badge ${dignity.dignityClass}`}>
-              <span className="badge-icon">{classInfo.icon}</span>
-              <span className="badge-text">{classInfo.name}</span>
-            </div>
-            
-            <div className="title-row">
-              <span className="title-icon">{icon}</span>
-              <h1 className="title-name">{dignity.name}</h1>
-            </div>
-            
-            {rankInfo && (
-              <p className="title-rank">{rankInfo.name} — {rankInfo.description}</p>
-            )}
-            
-            {dignity.isVacant && (
-              <span className="vacant-badge">⚠️ Currently Vacant</span>
-            )}
-          </div>
-          
-          <div className="header-actions">
-            <button 
-              className="edit-button"
-              onClick={handleEdit}
-            >
-              ✏️ Edit
+        <motion.div
+          className="dignity-view-container"
+          variants={CONTAINER_VARIANTS}
+          initial="hidden"
+          animate="visible"
+        >
+          {/* Header */}
+          <motion.header className="dignity-view-header" variants={ITEM_VARIANTS}>
+            <button className="dignity-view-header__back" onClick={handleBackToRolls}>
+              <Icon name="arrow-left" size={16} />
+              <span>Back to Rolls</span>
             </button>
-            <button 
-              className="delete-button"
-              onClick={handleDelete}
-            >
-              🗑️ Delete
-            </button>
-          </div>
-        </header>
-        
-        {/* Main Content */}
-        <div className="view-content">
-          
-          {/* Left Column */}
-          <div className="main-column">
-            
-            {/* Current Holder Section */}
-            <section className="view-section">
-              <h2 className="section-title">
-                <span className="section-icon">👤</span>
-                Current Holder
-              </h2>
-              
-              {holderName ? (
-                <div className="holder-card">
-                  <div 
-                    className="holder-indicator"
-                    style={{ backgroundColor: houseColor }}
-                  />
-                  <div className="holder-info">
-                    <span 
-                      className="holder-name"
-                      onClick={() => handleNavigateToPerson(dignity.currentHolderId)}
-                    >
-                      {holderName}
-                    </span>
-                    {houseName && (
-                      <span 
-                        className="holder-house"
-                        onClick={() => handleNavigateToHouse(dignity.currentHouseId)}
-                      >
-                        of {houseName}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="no-holder">
-                  <span className="vacant-icon">⚪</span>
-                  <span className="vacant-text">
-                    {dignity.isVacant ? 'This dignity is currently vacant' : 'No holder assigned'}
-                  </span>
-                </div>
+
+            <div className="dignity-view-header__content">
+              <div className={`dignity-view-header__badge dignity-view-header__badge--${dignity.dignityClass}`}>
+                <Icon name={classIcon} size={16} />
+                <span>{classInfo?.name}</span>
+              </div>
+
+              <h1 className="dignity-view-header__title">
+                <Icon name={classIcon} size={32} className="dignity-view-header__title-icon" />
+                <span className="dignity-view-header__initial">{dignity.name.charAt(0)}</span>
+                {dignity.name.slice(1)}
+              </h1>
+
+              {rankInfo && (
+                <p className="dignity-view-header__rank">{rankInfo.name} — {rankInfo.description}</p>
               )}
-              
-              {houseName && dignity.isHereditary && (
-                <div className="hereditary-note">
-                  <span className="note-icon">🏠</span>
-                  <span>Held hereditarily by <strong>{houseName}</strong></span>
-                </div>
+
+              {dignity.isVacant && (
+                <span className="dignity-view-header__vacant">
+                  <Icon name="alert-triangle" size={14} />
+                  <span>Currently Vacant</span>
+                </span>
               )}
-            </section>
-            
-            {/* Feudal Hierarchy Section */}
-            <section className="view-section">
-              <h2 className="section-title">
-                <span className="section-icon">⚔️</span>
-                Feudal Hierarchy
-              </h2>
-              
-              {/* Sworn To */}
-              {swornToDignity ? (
-                <div className="hierarchy-item sworn-to">
-                  <span className="hierarchy-label">Sworn To:</span>
-                  <div 
-                    className="hierarchy-link"
-                    onClick={() => handleNavigateToDignity(swornToDignity.id)}
-                  >
-                    <span className="link-icon">{getDignityIcon(swornToDignity)}</span>
-                    <span className="link-name">{swornToDignity.name}</span>
-                  </div>
-                  {dignity.fealtyType && (
-                    <span className="fealty-type">
-                      ({getFealtyTypeInfo(dignity.fealtyType).name})
-                    </span>
-                  )}
-                </div>
-              ) : (
-                <div className="hierarchy-item apex">
-                  <span className="hierarchy-label">Sworn To:</span>
-                  <span className="apex-text">
-                    ♛ The Crown of Estargenn (Apex)
-                  </span>
-                </div>
-              )}
-              
-              {/* Full Chain */}
-              {feudalChain.length > 2 && (
-                <div className="feudal-chain">
-                  <h4 className="chain-title">Chain of Fealty:</h4>
-                  <div className="chain-list">
-                    {feudalChain.map((d, index) => (
-                      <div key={d.id} className="chain-item">
-                        {index > 0 && <span className="chain-arrow">↑</span>}
-                        <span 
-                          className={`chain-name ${d.id === parseInt(id) ? 'current' : ''}`}
-                          onClick={() => d.id !== parseInt(id) && handleNavigateToDignity(d.id)}
-                        >
-                          {getDignityIcon(d)} {d.name}
-                        </span>
-                      </div>
-                    ))}
-                    <div className="chain-item">
-                      <span className="chain-arrow">↑</span>
-                      <span className="chain-name crown">♛ Crown of Estargenn</span>
+            </div>
+
+            <div className="dignity-view-header__actions">
+              <ActionButton icon="edit-3" onClick={handleEdit} variant="primary" size="sm">
+                Edit
+              </ActionButton>
+              <ActionButton icon="trash-2" onClick={handleDelete} variant="danger" size="sm">
+                Delete
+              </ActionButton>
+            </div>
+          </motion.header>
+
+          {/* Main Content */}
+          <div className="dignity-view-content">
+            {/* Left Column */}
+            <div className="dignity-view-main">
+              {/* Current Holder Section */}
+              <motion.section className="dignity-section" variants={CARD_VARIANTS}>
+                <h2 className="dignity-section__title">
+                  <Icon name="user" size={18} />
+                  <span>Current Holder</span>
+                </h2>
+
+                {holderName ? (
+                  <div className="dignity-holder">
+                    <div
+                      className="dignity-holder__indicator"
+                      style={{ backgroundColor: houseColor }}
+                    />
+                    <div className="dignity-holder__info">
+                      <span className="dignity-holder__name">{holderName}</span>
+                      {houseName && (
+                        <span className="dignity-holder__house">of {houseName}</span>
+                      )}
                     </div>
                   </div>
-                </div>
-              )}
-              
-              {/* Subordinates */}
-              {subordinates.length > 0 && (
-                <div className="subordinates">
-                  <h4 className="sub-title">Sworn Subordinates ({subordinates.length}):</h4>
-                  <div className="sub-list">
-                    {subordinates.map(sub => (
-                      <div 
-                        key={sub.id}
-                        className="sub-item"
-                        onClick={() => handleNavigateToDignity(sub.id)}
-                      >
-                        <span className="sub-icon">{getDignityIcon(sub)}</span>
-                        <span className="sub-name">{sub.name}</span>
-                        {sub.currentHolderId && (
-                          <span className="sub-holder">
-                            ({getPersonName(sub.currentHolderId)})
-                          </span>
-                        )}
-                      </div>
-                    ))}
+                ) : (
+                  <div className="dignity-holder--vacant">
+                    <Icon name="circle-off" size={18} />
+                    <span>{dignity.isVacant ? 'This dignity is currently vacant' : 'No holder assigned'}</span>
                   </div>
-                </div>
-              )}
-            </section>
-            
-            {/* ==================== SUCCESSION SECTION ==================== */}
-            <section className="view-section succession-section">
-              <h2 className="section-title">
-                <span className="section-icon">👑</span>
-                Succession
-                {dignity.successionStatus && dignity.successionStatus !== 'stable' && (
-                  <span className={`succession-status-badge ${dignity.successionStatus}`}>
-                    {SUCCESSION_STATUS[dignity.successionStatus]?.icon} {SUCCESSION_STATUS[dignity.successionStatus]?.name}
-                  </span>
                 )}
-              </h2>
-              
-              {/* Succession Rules Summary */}
-              <div className="succession-rules-summary">
-                <div className="rules-header">
-                  <h4>Succession Rules</h4>
-                  <button 
-                    className="edit-rules-btn"
-                    onClick={handleOpenSuccessionRules}
-                  >
-                    ⚙️ Configure
-                  </button>
-                </div>
-                <div className="rules-details">
-                  <div className="rule-item">
-                    <span className="rule-label">Type:</span>
-                    <span className="rule-value">
-                      {SUCCESSION_TYPES[dignity.successionType || 'male-primogeniture']?.icon}{' '}
-                      {SUCCESSION_TYPES[dignity.successionType || 'male-primogeniture']?.name}
+
+                {houseName && dignity.isHereditary && (
+                  <div className="dignity-hereditary-note">
+                    <Icon name="home" size={14} />
+                    <span>Held hereditarily by <strong>{houseName}</strong></span>
+                  </div>
+                )}
+              </motion.section>
+
+              {/* Feudal Hierarchy Section */}
+              <motion.section className="dignity-section" variants={CARD_VARIANTS}>
+                <h2 className="dignity-section__title">
+                  <Icon name="swords" size={18} />
+                  <span>Feudal Hierarchy</span>
+                </h2>
+
+                {/* Sworn To */}
+                {swornToDignity ? (
+                  <div className="dignity-hierarchy__item">
+                    <span className="dignity-hierarchy__label">Sworn To:</span>
+                    <button
+                      className="dignity-hierarchy__link"
+                      onClick={() => handleNavigateToDignity(swornToDignity.id)}
+                    >
+                      <Icon name={CLASS_ICONS[swornToDignity.dignityClass] || 'scroll-text'} size={16} />
+                      <span>{swornToDignity.name}</span>
+                      <Icon name="arrow-right" size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="dignity-hierarchy__item">
+                    <span className="dignity-hierarchy__label">Sworn To:</span>
+                    <span className="dignity-hierarchy__apex">
+                      <Icon name="crown" size={16} />
+                      <span>The Crown of Estargenn (Apex)</span>
                     </span>
                   </div>
-                  {dignity.designatedHeirId && (
-                    <div className="rule-item designated">
-                      <span className="rule-label">Designated Heir:</span>
-                      <span className="rule-value">
-                        {getPersonName(dignity.designatedHeirId)}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              {/* Interregnum Alert */}
-              {dignity.interregnum && (
-                <div className="interregnum-alert">
-                  <div className="interregnum-header">
-                    <span className="interregnum-icon">⏳</span>
-                    <span className="interregnum-title">Currently in Interregnum</span>
-                  </div>
-                  <div className="interregnum-details">
-                    {dignity.interregnum.regentId && (
-                      <p>
-                        <strong>{dignity.interregnum.regentTitle}:</strong>{' '}
-                        {getPersonName(dignity.interregnum.regentId)}
-                      </p>
-                    )}
-                    {dignity.interregnum.reason && (
-                      <p>
-                        <strong>Reason:</strong>{' '}
-                        {INTERREGNUM_REASONS[dignity.interregnum.reason]?.name || dignity.interregnum.reason}
-                      </p>
-                    )}
-                    {dignity.interregnum.startDate && (
-                      <p><strong>Since:</strong> {formatDate(dignity.interregnum.startDate)}</p>
-                    )}
-                  </div>
-                  <div className="interregnum-actions">
-                    <button 
-                      className="end-interregnum-btn"
-                      onClick={handleEndInterregnum}
-                      disabled={successionLine.length === 0}
-                    >
-                      ✅ End Interregnum
-                    </button>
-                    <button 
-                      className="edit-interregnum-btn"
-                      onClick={handleOpenInterregnum}
-                    >
-                      ✏️ Edit
-                    </button>
-                  </div>
-                </div>
-              )}
-              
-              {/* Line of Succession */}
-              <div className="succession-line">
-                <div className="line-header">
-                  <h4>Line of Succession</h4>
-                  {!dignity.interregnum && !dignity.isVacant && (
-                    <button 
-                      className="set-interregnum-btn"
-                      onClick={handleOpenInterregnum}
-                    >
-                      ⏳ Set Interregnum
-                    </button>
-                  )}
-                </div>
-                
-                {loadingSuccession ? (
-                  <div className="loading-succession">
-                    <span>Calculating succession...</span>
-                  </div>
-                ) : successionLine.length === 0 ? (
-                  <div className="no-succession">
-                    <p>
-                      {!dignity.currentHolderId 
-                        ? 'No current holder - cannot calculate succession.'
-                        : SUCCESSION_TYPES[dignity.successionType]?.autoCalculate === false
-                          ? `${SUCCESSION_TYPES[dignity.successionType]?.name} does not auto-calculate succession.`
-                          : 'No eligible heirs found in the family tree.'
-                      }
-                    </p>
-                  </div>
-                ) : (
-                  <div className="succession-list">
-                    {successionLine.slice(0, 10).map((candidate, index) => (
-                      <div 
-                        key={candidate.personId}
-                        className={`succession-item ${candidate.excluded ? 'excluded' : ''} ${index === 0 && !candidate.excluded ? 'heir' : ''}`}
-                      >
-                        <div className="succession-position">
-                          {candidate.excluded ? '✕' : candidate.position}
-                        </div>
-                        <div className="succession-person">
-                          <span 
-                            className="succession-name"
-                            onClick={() => handleNavigateToPerson(candidate.personId)}
-                          >
-                            {getPersonName(candidate.personId)}
-                          </span>
-                          <span className="succession-relationship">
-                            {candidate.relationship}
-                            {candidate.branch === 'collateral' && ' (collateral)'}
-                          </span>
-                        </div>
-                        {candidate.excluded && (
-                          <span className="exclusion-reason">
-                            {candidate.exclusionReason}
-                          </span>
-                        )}
-                        {index === 0 && !candidate.excluded && (
-                          <span className="heir-badge">Heir</span>
-                        )}
-                      </div>
-                    ))}
-                    {successionLine.length > 10 && (
-                      <div className="succession-more">
-                        +{successionLine.length - 10} more in line
-                      </div>
-                    )}
-                  </div>
                 )}
-              </div>
-              
-              {/* Disputed Claims */}
-              <div className="disputes-section">
-                <div className="disputes-header">
-                  <h4>
-                    Disputed Claims
-                    {dignity.disputes && dignity.disputes.filter(d => d.resolution === 'ongoing').length > 0 && (
-                      <span className="disputes-count">
-                        ({dignity.disputes.filter(d => d.resolution === 'ongoing').length} active)
-                      </span>
-                    )}
-                  </h4>
-                  <button 
-                    className="add-dispute-btn"
-                    onClick={handleOpenAddDispute}
-                  >
-                    + Add Claim
-                  </button>
-                </div>
-                
-                {(!dignity.disputes || dignity.disputes.length === 0) ? (
-                  <div className="no-disputes">
-                    <p>No disputed claims on this dignity.</p>
-                  </div>
-                ) : (
-                  <div className="disputes-list">
-                    {dignity.disputes.map(dispute => (
-                      <div 
-                        key={dispute.id}
-                        className={`dispute-item ${dispute.resolution}`}
-                      >
-                        <div className="dispute-header">
-                          <span className="dispute-claimant">
-                            {CLAIM_TYPES[dispute.claimType]?.icon} {getPersonName(dispute.claimantId)}
-                          </span>
-                          <span className={`claim-strength ${dispute.claimStrength}`}>
-                            {CLAIM_STRENGTHS[dispute.claimStrength]?.name}
-                          </span>
-                        </div>
-                        <div className="dispute-details">
-                          <span className="claim-type">
-                            {CLAIM_TYPES[dispute.claimType]?.name} claim
-                          </span>
-                          {dispute.startDate && (
-                            <span className="dispute-date">
-                              Since {formatDate(dispute.startDate)}
-                            </span>
-                          )}
-                        </div>
-                        {dispute.claimBasis && (
-                          <p className="claim-basis">"{dispute.claimBasis}"</p>
-                        )}
-                        {dispute.resolution !== 'ongoing' && (
-                          <div className="dispute-resolution">
-                            <span className="resolution-badge">
-                              {DISPUTE_RESOLUTIONS[dispute.resolution]?.name}
-                            </span>
-                            {dispute.resolvedDate && (
-                              <span className="resolved-date">
-                                {formatDate(dispute.resolvedDate)}
-                              </span>
-                            )}
-                          </div>
-                        )}
-                        <div className="dispute-actions">
-                          {dispute.resolution === 'ongoing' && (
-                            <button
-                              className="resolve-dispute-btn"
-                              onClick={() => handleOpenResolveDispute(dispute)}
-                            >
-                              ✓ Resolve
-                            </button>
-                          )}
+
+                {/* Full Chain */}
+                {feudalChain.length > 2 && (
+                  <div className="dignity-chain">
+                    <h4 className="dignity-chain__title">Chain of Fealty:</h4>
+                    <div className="dignity-chain__list">
+                      {feudalChain.map((d, index) => (
+                        <div key={d.id} className="dignity-chain__item">
+                          {index > 0 && <Icon name="arrow-up" size={12} className="dignity-chain__arrow" />}
                           <button
-                            className="remove-dispute-btn"
-                            onClick={() => handleRemoveDispute(dispute.id)}
+                            className={`dignity-chain__name ${d.id === parseInt(id) ? 'dignity-chain__name--current' : ''}`}
+                            onClick={() => d.id !== parseInt(id) && handleNavigateToDignity(d.id)}
+                            disabled={d.id === parseInt(id)}
                           >
-                            🗑️
+                            <Icon name={CLASS_ICONS[d.dignityClass] || 'scroll-text'} size={14} />
+                            <span>{d.name}</span>
                           </button>
                         </div>
+                      ))}
+                      <div className="dignity-chain__item">
+                        <Icon name="arrow-up" size={12} className="dignity-chain__arrow" />
+                        <span className="dignity-chain__name dignity-chain__name--crown">
+                          <Icon name="crown" size={14} />
+                          <span>Crown of Estargenn</span>
+                        </span>
                       </div>
-                    ))}
+                    </div>
                   </div>
                 )}
-              </div>
-            </section>
-            
-            {/* Tenure History Section */}
-            <section className="view-section">
-              <h2 className="section-title">
-                <span className="section-icon">📜</span>
-                Tenure History
-              </h2>
-              
-              {/* Add Tenure Button - Always visible */}
-              <div className="tenure-actions">
-                <button 
-                  className="add-tenure-btn"
-                  onClick={handleOpenAddTenure}
-                >
-                  + Add Tenure Record
-                </button>
-              </div>
-              
-              {tenures.length === 0 ? (
-                <div className="no-tenures">
-                  <p>No tenure records have been added yet.</p>
-                </div>
-              ) : (
-                <div className="tenure-list">
-                  {tenures.map((tenure, index) => {
-                    const isCurrentTenure = !tenure.dateEnded;
-                    const personName = getPersonName(tenure.personId);
-                    
-                    return (
-                      <div 
-                        key={tenure.id}
-                        className={`tenure-item ${isCurrentTenure ? 'current' : ''}`}
-                      >
-                        <div className="tenure-number">
-                          {tenures.length - index}
-                        </div>
-                        <div className="tenure-content">
-                          <div className="tenure-header">
-                            <span 
-                              className="tenure-holder"
-                              onClick={() => handleNavigateToPerson(tenure.personId)}
-                            >
-                              {personName || 'Unknown Person'}
+
+                {/* Subordinates */}
+                {subordinates.length > 0 && (
+                  <div className="dignity-subordinates">
+                    <h4 className="dignity-subordinates__title">
+                      Sworn Subordinates ({subordinates.length}):
+                    </h4>
+                    <div className="dignity-subordinates__list">
+                      {subordinates.map(sub => (
+                        <button
+                          key={sub.id}
+                          className="dignity-subordinates__item"
+                          onClick={() => handleNavigateToDignity(sub.id)}
+                        >
+                          <Icon name={CLASS_ICONS[sub.dignityClass] || 'scroll-text'} size={16} />
+                          <span className="dignity-subordinates__name">{sub.name}</span>
+                          {sub.currentHolderId && (
+                            <span className="dignity-subordinates__holder">
+                              ({getPersonName(sub.currentHolderId)})
                             </span>
-                            {isCurrentTenure && (
-                              <span className="current-badge">Current</span>
-                            )}
-                          </div>
-                          <div className="tenure-dates">
-                            {formatDate(tenure.dateStarted)} — {tenure.dateEnded ? formatDate(tenure.dateEnded) : 'Present'}
-                          </div>
-                          <div className="tenure-details">
-                            {tenure.acquisitionType && (
-                              <span className="acquisition">
-                                Acquired by: {getAcquisitionInfo(tenure.acquisitionType).name}
-                              </span>
-                            )}
-                            {tenure.endType && (
-                              <span className="end-type">
-                                Ended by: {getEndInfo(tenure.endType).name}
-                              </span>
-                            )}
-                          </div>
-                          {tenure.notes && (
-                            <div className="tenure-notes">{tenure.notes}</div>
                           )}
-                          
-                          {/* Tenure Actions */}
-                          <div className="tenure-item-actions">
-                            {isCurrentTenure && (
+                          <Icon name="arrow-right" size={14} />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </motion.section>
+
+              {/* Succession Section */}
+              <motion.section className="dignity-section dignity-section--succession" variants={CARD_VARIANTS}>
+                <h2 className="dignity-section__title">
+                  <Icon name="crown" size={18} />
+                  <span>Succession</span>
+                  {dignity.successionStatus && dignity.successionStatus !== 'stable' && (
+                    <span className={`dignity-section__status dignity-section__status--${dignity.successionStatus}`}>
+                      {SUCCESSION_STATUS[dignity.successionStatus]?.name}
+                    </span>
+                  )}
+                </h2>
+
+                {/* Succession Rules Summary */}
+                <div className="dignity-succession-rules">
+                  <div className="dignity-succession-rules__header">
+                    <h4>Succession Rules</h4>
+                    <button className="dignity-succession-rules__edit" onClick={handleOpenSuccessionRules}>
+                      <Icon name="settings" size={14} />
+                      <span>Configure</span>
+                    </button>
+                  </div>
+                  <div className="dignity-succession-rules__details">
+                    <div className="dignity-succession-rules__item">
+                      <span className="dignity-succession-rules__label">Type:</span>
+                      <span className="dignity-succession-rules__value">
+                        {SUCCESSION_TYPES[dignity.successionType || 'male-primogeniture']?.name}
+                      </span>
+                    </div>
+                    {dignity.designatedHeirId && (
+                      <div className="dignity-succession-rules__item dignity-succession-rules__item--designated">
+                        <span className="dignity-succession-rules__label">Designated Heir:</span>
+                        <span className="dignity-succession-rules__value">
+                          {getPersonName(dignity.designatedHeirId)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Interregnum Alert */}
+                {dignity.interregnum && (
+                  <div className="dignity-interregnum">
+                    <div className="dignity-interregnum__header">
+                      <Icon name="hourglass" size={18} />
+                      <span>Currently in Interregnum</span>
+                    </div>
+                    <div className="dignity-interregnum__details">
+                      {dignity.interregnum.regentId && (
+                        <p>
+                          <strong>{dignity.interregnum.regentTitle}:</strong>{' '}
+                          {getPersonName(dignity.interregnum.regentId)}
+                        </p>
+                      )}
+                      {dignity.interregnum.reason && (
+                        <p>
+                          <strong>Reason:</strong>{' '}
+                          {INTERREGNUM_REASONS[dignity.interregnum.reason]?.name || dignity.interregnum.reason}
+                        </p>
+                      )}
+                      {dignity.interregnum.startDate && (
+                        <p><strong>Since:</strong> {formatDate(dignity.interregnum.startDate)}</p>
+                      )}
+                    </div>
+                    <div className="dignity-interregnum__actions">
+                      <button
+                        className="dignity-interregnum__end"
+                        onClick={handleEndInterregnum}
+                        disabled={successionLine.length === 0}
+                      >
+                        <Icon name="check" size={14} />
+                        <span>End Interregnum</span>
+                      </button>
+                      <button className="dignity-interregnum__edit" onClick={handleOpenInterregnum}>
+                        <Icon name="edit-3" size={14} />
+                        <span>Edit</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Line of Succession */}
+                <div className="dignity-succession-line">
+                  <div className="dignity-succession-line__header">
+                    <h4>Line of Succession</h4>
+                    {!dignity.interregnum && !dignity.isVacant && (
+                      <button className="dignity-succession-line__set-interregnum" onClick={handleOpenInterregnum}>
+                        <Icon name="hourglass" size={14} />
+                        <span>Set Interregnum</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {loadingSuccession ? (
+                    <div className="dignity-succession-line__loading">
+                      <Icon name="loader-2" size={16} className="spin" />
+                      <span>Calculating succession...</span>
+                    </div>
+                  ) : successionLine.length === 0 ? (
+                    <div className="dignity-succession-line__empty">
+                      <p>
+                        {!dignity.currentHolderId
+                          ? 'No current holder - cannot calculate succession.'
+                          : 'No eligible heirs found in the family tree.'}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="dignity-succession-line__list">
+                      {successionLine.slice(0, 10).map((candidate, index) => (
+                        <div
+                          key={candidate.personId}
+                          className={`dignity-succession-line__item ${candidate.excluded ? 'dignity-succession-line__item--excluded' : ''} ${index === 0 && !candidate.excluded ? 'dignity-succession-line__item--heir' : ''}`}
+                        >
+                          <div className="dignity-succession-line__position">
+                            {candidate.excluded ? <Icon name="x" size={12} /> : candidate.position}
+                          </div>
+                          <div className="dignity-succession-line__person">
+                            <span className="dignity-succession-line__name">
+                              {getPersonName(candidate.personId)}
+                            </span>
+                            <span className="dignity-succession-line__relationship">
+                              {candidate.relationship}
+                              {candidate.branch === 'collateral' && ' (collateral)'}
+                            </span>
+                          </div>
+                          {candidate.excluded && (
+                            <span className="dignity-succession-line__exclusion">
+                              {candidate.exclusionReason}
+                            </span>
+                          )}
+                          {index === 0 && !candidate.excluded && (
+                            <span className="dignity-succession-line__heir-badge">Heir</span>
+                          )}
+                        </div>
+                      ))}
+                      {successionLine.length > 10 && (
+                        <div className="dignity-succession-line__more">
+                          +{successionLine.length - 10} more in line
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Disputed Claims */}
+                <div className="dignity-disputes">
+                  <div className="dignity-disputes__header">
+                    <h4>
+                      Disputed Claims
+                      {dignity.disputes && dignity.disputes.filter(d => d.resolution === 'ongoing').length > 0 && (
+                        <span className="dignity-disputes__count">
+                          ({dignity.disputes.filter(d => d.resolution === 'ongoing').length} active)
+                        </span>
+                      )}
+                    </h4>
+                    <button className="dignity-disputes__add" onClick={handleOpenAddDispute}>
+                      <Icon name="plus" size={14} />
+                      <span>Add Claim</span>
+                    </button>
+                  </div>
+
+                  {(!dignity.disputes || dignity.disputes.length === 0) ? (
+                    <div className="dignity-disputes__empty">
+                      <p>No disputed claims on this dignity.</p>
+                    </div>
+                  ) : (
+                    <div className="dignity-disputes__list">
+                      {dignity.disputes.map(dispute => (
+                        <div
+                          key={dispute.id}
+                          className={`dignity-disputes__item dignity-disputes__item--${dispute.resolution}`}
+                        >
+                          <div className="dignity-disputes__item-header">
+                            <span className="dignity-disputes__claimant">
+                              <Icon name={CLAIM_TYPES[dispute.claimType]?.icon || 'user'} size={14} />
+                              {getPersonName(dispute.claimantId)}
+                            </span>
+                            <span className={`dignity-disputes__strength dignity-disputes__strength--${dispute.claimStrength}`}>
+                              {CLAIM_STRENGTHS[dispute.claimStrength]?.name}
+                            </span>
+                          </div>
+                          <div className="dignity-disputes__item-details">
+                            <span>{CLAIM_TYPES[dispute.claimType]?.name} claim</span>
+                            {dispute.startDate && (
+                              <span>Since {formatDate(dispute.startDate)}</span>
+                            )}
+                          </div>
+                          {dispute.claimBasis && (
+                            <p className="dignity-disputes__basis">"{dispute.claimBasis}"</p>
+                          )}
+                          {dispute.resolution !== 'ongoing' && (
+                            <div className="dignity-disputes__resolution">
+                              <span className="dignity-disputes__resolution-badge">
+                                {DISPUTE_RESOLUTIONS[dispute.resolution]?.name}
+                              </span>
+                              {dispute.resolvedDate && (
+                                <span className="dignity-disputes__resolved-date">
+                                  {formatDate(dispute.resolvedDate)}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                          <div className="dignity-disputes__actions">
+                            {dispute.resolution === 'ongoing' && (
                               <button
-                                className="tenure-action-btn end"
-                                onClick={() => handleOpenEndTenure(tenure)}
-                                title="End this tenure"
+                                className="dignity-disputes__resolve"
+                                onClick={() => handleOpenResolveDispute(dispute)}
                               >
-                                ⏹️ End Tenure
+                                <Icon name="check" size={12} />
+                                <span>Resolve</span>
                               </button>
                             )}
                             <button
-                              className="tenure-action-btn delete"
-                              onClick={() => handleDeleteTenure(tenure.id)}
-                              title="Delete record"
+                              className="dignity-disputes__remove"
+                              onClick={() => handleRemoveDispute(dispute.id)}
                             >
-                              🗑️
+                              <Icon name="trash-2" size={12} />
                             </button>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
-            </section>
-            
-          </div>
-          
-          {/* Right Column - Details Sidebar */}
-          <aside className="details-sidebar">
-            
-            {/* Quick Facts */}
-            <div className="sidebar-section">
-              <h3 className="sidebar-title">Quick Facts</h3>
-              <dl className="facts-list">
-                <div className="fact-item">
-                  <dt>Class</dt>
-                  <dd>{classInfo.icon} {classInfo.name}</dd>
+              </motion.section>
+
+              {/* Tenure History Section */}
+              <motion.section className="dignity-section" variants={CARD_VARIANTS}>
+                <h2 className="dignity-section__title">
+                  <Icon name="scroll-text" size={18} />
+                  <span>Tenure History</span>
+                </h2>
+
+                <div className="dignity-tenure__actions">
+                  <button className="dignity-tenure__add" onClick={handleOpenAddTenure}>
+                    <Icon name="plus" size={14} />
+                    <span>Add Tenure Record</span>
+                  </button>
                 </div>
-                <div className="fact-item">
-                  <dt>Rank</dt>
-                  <dd>{rankInfo?.name || 'Unknown'}</dd>
-                </div>
-                <div className="fact-item">
-                  <dt>Type</dt>
-                  <dd>{dignity.isHereditary ? 'Hereditary' : 'Personal/Appointed'}</dd>
-                </div>
-                <div className="fact-item">
-                  <dt>Status</dt>
-                  <dd>{dignity.isVacant ? '⚠️ Vacant' : '✓ Held'}</dd>
-                </div>
-              </dl>
+
+                {tenures.length === 0 ? (
+                  <div className="dignity-tenure__empty">
+                    <p>No tenure records have been added yet.</p>
+                  </div>
+                ) : (
+                  <div className="dignity-tenure__list">
+                    {tenures.map((tenure, index) => {
+                      const isCurrentTenure = !tenure.dateEnded;
+                      const personName = getPersonName(tenure.personId);
+
+                      return (
+                        <div
+                          key={tenure.id}
+                          className={`dignity-tenure__item ${isCurrentTenure ? 'dignity-tenure__item--current' : ''}`}
+                        >
+                          <div className="dignity-tenure__number">
+                            {tenures.length - index}
+                          </div>
+                          <div className="dignity-tenure__content">
+                            <div className="dignity-tenure__header">
+                              <span className="dignity-tenure__holder">
+                                {personName || 'Unknown Person'}
+                              </span>
+                              {isCurrentTenure && (
+                                <span className="dignity-tenure__current-badge">Current</span>
+                              )}
+                            </div>
+                            <div className="dignity-tenure__dates">
+                              {formatDate(tenure.dateStarted)} — {tenure.dateEnded ? formatDate(tenure.dateEnded) : 'Present'}
+                            </div>
+                            <div className="dignity-tenure__details">
+                              {tenure.acquisitionType && (
+                                <span>Acquired by: {ACQUISITION_TYPES[tenure.acquisitionType]?.name || tenure.acquisitionType}</span>
+                              )}
+                              {tenure.endType && (
+                                <span>Ended by: {END_TYPES[tenure.endType]?.name || tenure.endType}</span>
+                              )}
+                            </div>
+                            {tenure.notes && (
+                              <div className="dignity-tenure__notes">{tenure.notes}</div>
+                            )}
+                            <div className="dignity-tenure__item-actions">
+                              {isCurrentTenure && (
+                                <button
+                                  className="dignity-tenure__end-btn"
+                                  onClick={() => handleOpenEndTenure(tenure)}
+                                >
+                                  <Icon name="square" size={12} />
+                                  <span>End Tenure</span>
+                                </button>
+                              )}
+                              <button
+                                className="dignity-tenure__delete-btn"
+                                onClick={() => handleDeleteTenure(tenure.id)}
+                              >
+                                <Icon name="trash-2" size={12} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </motion.section>
             </div>
-            
-            {/* Location */}
-            {(dignity.placeName || dignity.seatName) && (
-              <div className="sidebar-section">
-                <h3 className="sidebar-title">Location</h3>
-                <dl className="facts-list">
-                  {dignity.placeName && (
-                    <div className="fact-item">
-                      <dt>Place</dt>
-                      <dd>📍 {dignity.placeName}</dd>
-                    </div>
-                  )}
-                  {dignity.seatName && (
-                    <div className="fact-item">
-                      <dt>Seat</dt>
-                      <dd>🏰 {dignity.seatName}</dd>
-                    </div>
-                  )}
-                  {dignity.tenureType && (
-                    <div className="fact-item">
-                      <dt>Tenure Style</dt>
-                      <dd>{tenureTypeInfo.name}</dd>
-                    </div>
-                  )}
+
+            {/* Right Column - Sidebar */}
+            <motion.aside className="dignity-view-sidebar" variants={ITEM_VARIANTS}>
+              {/* Quick Facts */}
+              <div className="dignity-sidebar-section">
+                <h3 className="dignity-sidebar-section__title">Quick Facts</h3>
+                <dl className="dignity-sidebar-facts">
+                  <div className="dignity-sidebar-facts__item">
+                    <dt>Class</dt>
+                    <dd>
+                      <Icon name={classIcon} size={14} />
+                      <span>{classInfo?.name}</span>
+                    </dd>
+                  </div>
+                  <div className="dignity-sidebar-facts__item">
+                    <dt>Rank</dt>
+                    <dd>{rankInfo?.name || 'Unknown'}</dd>
+                  </div>
+                  <div className="dignity-sidebar-facts__item">
+                    <dt>Type</dt>
+                    <dd>{dignity.isHereditary ? 'Hereditary' : 'Personal/Appointed'}</dd>
+                  </div>
+                  <div className="dignity-sidebar-facts__item">
+                    <dt>Status</dt>
+                    <dd>
+                      {dignity.isVacant ? (
+                        <>
+                          <Icon name="alert-triangle" size={12} />
+                          <span>Vacant</span>
+                        </>
+                      ) : (
+                        <>
+                          <Icon name="check" size={12} />
+                          <span>Held</span>
+                        </>
+                      )}
+                    </dd>
+                  </div>
                 </dl>
               </div>
-            )}
-            
-            {/* Notes */}
-            {dignity.notes && (
-              <div className="sidebar-section">
-                <h3 className="sidebar-title">Notes</h3>
-                <p className="notes-text">{dignity.notes}</p>
+
+              {/* Location */}
+              {(dignity.placeName || dignity.seatName) && (
+                <div className="dignity-sidebar-section">
+                  <h3 className="dignity-sidebar-section__title">Location</h3>
+                  <dl className="dignity-sidebar-facts">
+                    {dignity.placeName && (
+                      <div className="dignity-sidebar-facts__item">
+                        <dt>Place</dt>
+                        <dd>
+                          <Icon name="map-pin" size={12} />
+                          <span>{dignity.placeName}</span>
+                        </dd>
+                      </div>
+                    )}
+                    {dignity.seatName && (
+                      <div className="dignity-sidebar-facts__item">
+                        <dt>Seat</dt>
+                        <dd>
+                          <Icon name="castle" size={12} />
+                          <span>{dignity.seatName}</span>
+                        </dd>
+                      </div>
+                    )}
+                    {dignity.tenureType && (
+                      <div className="dignity-sidebar-facts__item">
+                        <dt>Tenure Style</dt>
+                        <dd>{TENURE_TYPES[dignity.tenureType]?.name || dignity.tenureType}</dd>
+                      </div>
+                    )}
+                  </dl>
+                </div>
+              )}
+
+              {/* Notes */}
+              {dignity.notes && (
+                <div className="dignity-sidebar-section">
+                  <h3 className="dignity-sidebar-section__title">Notes</h3>
+                  <p className="dignity-sidebar-notes">{dignity.notes}</p>
+                </div>
+              )}
+
+              {/* Metadata */}
+              <div className="dignity-sidebar-section dignity-sidebar-section--metadata">
+                <h3 className="dignity-sidebar-section__title">Record Info</h3>
+                <dl className="dignity-sidebar-facts">
+                  <div className="dignity-sidebar-facts__item">
+                    <dt>Created</dt>
+                    <dd>{formatTimestamp(dignity.created)}</dd>
+                  </div>
+                  <div className="dignity-sidebar-facts__item">
+                    <dt>Updated</dt>
+                    <dd>{formatTimestamp(dignity.updated)}</dd>
+                  </div>
+                  <div className="dignity-sidebar-facts__item">
+                    <dt>Record ID</dt>
+                    <dd>#{dignity.id}</dd>
+                  </div>
+                </dl>
               </div>
-            )}
-            
-            {/* Metadata */}
-            <div className="sidebar-section metadata">
-              <h3 className="sidebar-title">Record Info</h3>
-              <dl className="facts-list">
-                <div className="fact-item">
-                  <dt>Created</dt>
-                  <dd>{formatTimestamp(dignity.created)}</dd>
-                </div>
-                <div className="fact-item">
-                  <dt>Updated</dt>
-                  <dd>{formatTimestamp(dignity.updated)}</dd>
-                </div>
-                <div className="fact-item">
-                  <dt>Record ID</dt>
-                  <dd>#{dignity.id}</dd>
-                </div>
-              </dl>
-            </div>
-            
-          </aside>
-          
-        </div>
-        
+            </motion.aside>
+          </div>
+        </motion.div>
       </div>
-      
-      {/* ==================== TENURE MODAL ==================== */}
-      {showTenureModal && (
-        <div className="tenure-modal-overlay" onClick={handleCloseTenureModal}>
-          <div className="tenure-modal" onClick={e => e.stopPropagation()}>
-            <div className="tenure-modal-header">
-              <h3>
-                {tenureMode === 'end' ? '⏹️ End Tenure' : '📜 Add Tenure Record'}
-              </h3>
-              <button 
-                className="modal-close-btn"
-                onClick={handleCloseTenureModal}
-              >
-                ✕
-              </button>
-            </div>
-            
-            <div className="tenure-modal-body">
-              {tenureMode === 'end' ? (
-                /* End Tenure Mode */
-                <>
-                  <p className="modal-description">
-                    Recording the end of <strong>{getPersonName(editingTenure?.personId)}</strong>'s 
-                    tenure as <strong>{dignity?.name}</strong>.
-                  </p>
-                  
-                  <div className="form-group">
-                    <label>Date Ended</label>
-                    <input
-                      type="text"
-                      value={tenureForm.dateEnded}
-                      onChange={(e) => setTenureForm({...tenureForm, dateEnded: e.target.value})}
-                      placeholder="e.g., 1287 or 1287-03-15"
-                    />
-                  </div>
-                  
-                  <div className="form-group">
-                    <label>How Did It End?</label>
-                    <select
-                      value={tenureForm.endType}
-                      onChange={(e) => setTenureForm({...tenureForm, endType: e.target.value})}
-                    >
-                      <option value="">— Select —</option>
-                      {Object.entries(END_TYPES).map(([key, info]) => (
-                        <option key={key} value={key}>{info.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                </>
-              ) : (
-                /* Add Tenure Mode */
-                <>
-                  <div className="form-group">
-                    <label>Who Held This Dignity? *</label>
-                    <select
-                      value={tenureForm.personId}
-                      onChange={(e) => setTenureForm({...tenureForm, personId: e.target.value})}
-                      required
-                    >
-                      <option value="">— Select Person —</option>
-                      {people
-                        .sort((a, b) => `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`))
-                        .map(p => (
-                          <option key={p.id} value={p.id}>
-                            {p.firstName} {p.lastName}
-                            {houses.find(h => h.id === p.houseId)?.houseName && 
-                              ` (${houses.find(h => h.id === p.houseId).houseName})`
-                            }
-                          </option>
-                        ))
-                      }
-                    </select>
-                  </div>
-                  
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>Date Started</label>
-                      <input
-                        type="text"
-                        value={tenureForm.dateStarted}
-                        onChange={(e) => setTenureForm({...tenureForm, dateStarted: e.target.value})}
-                        placeholder="e.g., 1245"
-                      />
-                    </div>
-                    
-                    <div className="form-group">
+
+      {/* Modals */}
+      <AnimatePresence>
+        {/* Tenure Modal */}
+        {showTenureModal && (
+          <motion.div
+            className="dignity-modal-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={handleCloseTenureModal}
+          >
+            <motion.div
+              className="dignity-modal"
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="dignity-modal__header">
+                <h3>
+                  <Icon name={tenureMode === 'end' ? 'square' : 'scroll-text'} size={18} />
+                  <span>{tenureMode === 'end' ? 'End Tenure' : 'Add Tenure Record'}</span>
+                </h3>
+                <button className="dignity-modal__close" onClick={handleCloseTenureModal}>
+                  <Icon name="x" size={18} />
+                </button>
+              </div>
+
+              <div className="dignity-modal__body">
+                {tenureMode === 'end' ? (
+                  <>
+                    <p className="dignity-modal__description">
+                      Recording the end of <strong>{getPersonName(editingTenure?.personId)}</strong>'s
+                      tenure as <strong>{dignity?.name}</strong>.
+                    </p>
+
+                    <div className="dignity-form__group">
                       <label>Date Ended</label>
                       <input
                         type="text"
                         value={tenureForm.dateEnded}
-                        onChange={(e) => setTenureForm({...tenureForm, dateEnded: e.target.value})}
-                        placeholder="Leave blank if current"
+                        onChange={(e) => setTenureForm({ ...tenureForm, dateEnded: e.target.value })}
+                        placeholder="e.g., 1287 or 1287-03-15"
                       />
                     </div>
-                  </div>
-                  
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>How Acquired?</label>
+
+                    <div className="dignity-form__group">
+                      <label>How Did It End?</label>
                       <select
-                        value={tenureForm.acquisitionType}
-                        onChange={(e) => setTenureForm({...tenureForm, acquisitionType: e.target.value})}
+                        value={tenureForm.endType}
+                        onChange={(e) => setTenureForm({ ...tenureForm, endType: e.target.value })}
                       >
-                        {Object.entries(ACQUISITION_TYPES).map(([key, info]) => (
+                        <option value="">— Select —</option>
+                        {Object.entries(END_TYPES).map(([key, info]) => (
                           <option key={key} value={key}>{info.name}</option>
                         ))}
                       </select>
                     </div>
-                    
-                    {tenureForm.dateEnded && (
-                      <div className="form-group">
-                        <label>How Ended?</label>
+                  </>
+                ) : (
+                  <>
+                    <div className="dignity-form__group">
+                      <label>Who Held This Dignity? *</label>
+                      <select
+                        value={tenureForm.personId}
+                        onChange={(e) => setTenureForm({ ...tenureForm, personId: e.target.value })}
+                        required
+                      >
+                        <option value="">— Select Person —</option>
+                        {people
+                          .sort((a, b) => `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`))
+                          .map(p => (
+                            <option key={p.id} value={p.id}>
+                              {p.firstName} {p.lastName}
+                              {houses.find(h => h.id === p.houseId)?.houseName &&
+                                ` (${houses.find(h => h.id === p.houseId).houseName})`
+                              }
+                            </option>
+                          ))
+                        }
+                      </select>
+                    </div>
+
+                    <div className="dignity-form__row">
+                      <div className="dignity-form__group">
+                        <label>Date Started</label>
+                        <input
+                          type="text"
+                          value={tenureForm.dateStarted}
+                          onChange={(e) => setTenureForm({ ...tenureForm, dateStarted: e.target.value })}
+                          placeholder="e.g., 1245"
+                        />
+                      </div>
+
+                      <div className="dignity-form__group">
+                        <label>Date Ended</label>
+                        <input
+                          type="text"
+                          value={tenureForm.dateEnded}
+                          onChange={(e) => setTenureForm({ ...tenureForm, dateEnded: e.target.value })}
+                          placeholder="Leave blank if current"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="dignity-form__row">
+                      <div className="dignity-form__group">
+                        <label>How Acquired?</label>
                         <select
-                          value={tenureForm.endType}
-                          onChange={(e) => setTenureForm({...tenureForm, endType: e.target.value})}
+                          value={tenureForm.acquisitionType}
+                          onChange={(e) => setTenureForm({ ...tenureForm, acquisitionType: e.target.value })}
                         >
-                          <option value="">— Select —</option>
-                          {Object.entries(END_TYPES).map(([key, info]) => (
+                          {Object.entries(ACQUISITION_TYPES).map(([key, info]) => (
                             <option key={key} value={key}>{info.name}</option>
                           ))}
                         </select>
                       </div>
-                    )}
-                  </div>
-                </>
-              )}
-              
-              <div className="form-group">
-                <label>Notes</label>
-                <textarea
-                  value={tenureForm.notes}
-                  onChange={(e) => setTenureForm({...tenureForm, notes: e.target.value})}
-                  placeholder="Any additional details..."
-                  rows={3}
-                />
+
+                      {tenureForm.dateEnded && (
+                        <div className="dignity-form__group">
+                          <label>How Ended?</label>
+                          <select
+                            value={tenureForm.endType}
+                            onChange={(e) => setTenureForm({ ...tenureForm, endType: e.target.value })}
+                          >
+                            <option value="">— Select —</option>
+                            {Object.entries(END_TYPES).map(([key, info]) => (
+                              <option key={key} value={key}>{info.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                <div className="dignity-form__group">
+                  <label>Notes</label>
+                  <textarea
+                    value={tenureForm.notes}
+                    onChange={(e) => setTenureForm({ ...tenureForm, notes: e.target.value })}
+                    placeholder="Any additional details..."
+                    rows={3}
+                  />
+                </div>
               </div>
-            </div>
-            
-            <div className="tenure-modal-footer">
-              <button 
-                className="modal-cancel-btn"
-                onClick={handleCloseTenureModal}
-              >
-                Cancel
-              </button>
-              <button 
-                className="modal-save-btn"
-                onClick={handleSaveTenure}
-                disabled={savingTenure || (tenureMode === 'add' && !tenureForm.personId)}
-              >
-                {savingTenure ? 'Saving...' : (tenureMode === 'end' ? 'End Tenure' : 'Add Record')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* ==================== SUCCESSION RULES MODAL ==================== */}
-      {showSuccessionRulesModal && (
-        <div className="modal-overlay" onClick={handleCloseSuccessionRulesModal}>
-          <div className="modal succession-modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>👑 Succession Rules</h3>
-              <button 
-                className="modal-close-btn"
-                onClick={handleCloseSuccessionRulesModal}
-              >
-                ✕
-              </button>
-            </div>
-            
-            <div className="modal-body">
-              <div className="form-group">
-                <label>Succession Type *</label>
-                <select
-                  value={successionRulesForm.successionType}
-                  onChange={(e) => setSuccessionRulesForm({...successionRulesForm, successionType: e.target.value})}
+
+              <div className="dignity-modal__footer">
+                <button className="dignity-modal__cancel" onClick={handleCloseTenureModal}>
+                  Cancel
+                </button>
+                <button
+                  className="dignity-modal__save"
+                  onClick={handleSaveTenure}
+                  disabled={savingTenure || (tenureMode === 'add' && !tenureForm.personId)}
                 >
-                  {Object.entries(SUCCESSION_TYPES).map(([key, info]) => (
-                    <option key={key} value={key}>
-                      {info.icon} {info.name}
-                    </option>
-                  ))}
-                </select>
-                <p className="form-hint">
-                  {SUCCESSION_TYPES[successionRulesForm.successionType]?.description}
-                </p>
+                  {savingTenure ? 'Saving...' : (tenureMode === 'end' ? 'End Tenure' : 'Add Record')}
+                </button>
               </div>
-              
-              {SUCCESSION_TYPES[successionRulesForm.successionType]?.autoCalculate && (
-                <>
-                  <div className="form-group checkbox-group">
-                    <label>
-                      <input
-                        type="checkbox"
-                        checked={successionRulesForm.excludeBastards}
-                        onChange={(e) => setSuccessionRulesForm({...successionRulesForm, excludeBastards: e.target.checked})}
-                      />
-                      Exclude bastards from succession
-                    </label>
-                  </div>
-                  
-                  {successionRulesForm.excludeBastards && (
-                    <div className="form-group checkbox-group indent">
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* Succession Rules Modal */}
+        {showSuccessionRulesModal && (
+          <motion.div
+            className="dignity-modal-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={handleCloseSuccessionRulesModal}
+          >
+            <motion.div
+              className="dignity-modal"
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="dignity-modal__header">
+                <h3>
+                  <Icon name="crown" size={18} />
+                  <span>Succession Rules</span>
+                </h3>
+                <button className="dignity-modal__close" onClick={handleCloseSuccessionRulesModal}>
+                  <Icon name="x" size={18} />
+                </button>
+              </div>
+
+              <div className="dignity-modal__body">
+                <div className="dignity-form__group">
+                  <label>Succession Type *</label>
+                  <select
+                    value={successionRulesForm.successionType}
+                    onChange={(e) => setSuccessionRulesForm({ ...successionRulesForm, successionType: e.target.value })}
+                  >
+                    {Object.entries(SUCCESSION_TYPES).map(([key, info]) => (
+                      <option key={key} value={key}>
+                        {info.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="dignity-form__hint">
+                    {SUCCESSION_TYPES[successionRulesForm.successionType]?.description}
+                  </p>
+                </div>
+
+                {SUCCESSION_TYPES[successionRulesForm.successionType]?.autoCalculate && (
+                  <>
+                    <div className="dignity-form__group dignity-form__group--checkbox">
                       <label>
                         <input
                           type="checkbox"
-                          checked={successionRulesForm.legitimizedBastardsEligible}
-                          onChange={(e) => setSuccessionRulesForm({...successionRulesForm, legitimizedBastardsEligible: e.target.checked})}
+                          checked={successionRulesForm.excludeBastards}
+                          onChange={(e) => setSuccessionRulesForm({ ...successionRulesForm, excludeBastards: e.target.checked })}
                         />
-                        Legitimized bastards are eligible
+                        Exclude bastards from succession
                       </label>
                     </div>
-                  )}
-                </>
-              )}
-              
-              <div className="form-group">
-                <label>Designated Heir (Override)</label>
-                <select
-                  value={successionRulesForm.designatedHeirId}
-                  onChange={(e) => setSuccessionRulesForm({...successionRulesForm, designatedHeirId: e.target.value})}
-                >
-                  <option value="">— Use calculated succession —</option>
-                  {people
-                    .filter(p => !p.dateOfDeath)
-                    .sort((a, b) => `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`))
-                    .map(p => (
-                      <option key={p.id} value={p.id}>
-                        {p.firstName} {p.lastName}
-                        {houses.find(h => h.id === p.houseId)?.houseName && 
-                          ` (${houses.find(h => h.id === p.houseId).houseName})`
-                        }
-                      </option>
-                    ))
-                  }
-                </select>
-                <p className="form-hint">
-                  Override automatic succession with a specific heir.
-                </p>
-              </div>
-              
-              <div className="form-group">
-                <label>Custom Notes</label>
-                <textarea
-                  value={successionRulesForm.customNotes}
-                  onChange={(e) => setSuccessionRulesForm({...successionRulesForm, customNotes: e.target.value})}
-                  placeholder="Any special succession rules or notes..."
-                  rows={3}
-                />
-              </div>
-            </div>
-            
-            <div className="modal-footer">
-              <button 
-                className="modal-cancel-btn"
-                onClick={handleCloseSuccessionRulesModal}
-              >
-                Cancel
-              </button>
-              <button 
-                className="modal-save-btn"
-                onClick={handleSaveSuccessionRules}
-                disabled={savingRules}
-              >
-                {savingRules ? 'Saving...' : 'Save Rules'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* ==================== DISPUTE MODAL ==================== */}
-      {showDisputeModal && (
-        <div className="modal-overlay" onClick={handleCloseDisputeModal}>
-          <div className="modal dispute-modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>
-                {disputeMode === 'resolve' ? '✓ Resolve Dispute' : '⚔️ Add Disputed Claim'}
-              </h3>
-              <button 
-                className="modal-close-btn"
-                onClick={handleCloseDisputeModal}
-              >
-                ✕
-              </button>
-            </div>
-            
-            <div className="modal-body">
-              {disputeMode === 'resolve' ? (
-                /* Resolve Mode */
-                <>
-                  <p className="modal-description">
-                    Resolving <strong>{getPersonName(editingDispute?.claimantId)}</strong>'s 
-                    claim to <strong>{dignity?.name}</strong>.
+
+                    {successionRulesForm.excludeBastards && (
+                      <div className="dignity-form__group dignity-form__group--checkbox dignity-form__group--indent">
+                        <label>
+                          <input
+                            type="checkbox"
+                            checked={successionRulesForm.legitimizedBastardsEligible}
+                            onChange={(e) => setSuccessionRulesForm({ ...successionRulesForm, legitimizedBastardsEligible: e.target.checked })}
+                          />
+                          Legitimized bastards are eligible
+                        </label>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                <div className="dignity-form__group">
+                  <label>Designated Heir (Override)</label>
+                  <select
+                    value={successionRulesForm.designatedHeirId}
+                    onChange={(e) => setSuccessionRulesForm({ ...successionRulesForm, designatedHeirId: e.target.value })}
+                  >
+                    <option value="">— Use calculated succession —</option>
+                    {people
+                      .filter(p => !p.dateOfDeath)
+                      .sort((a, b) => `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`))
+                      .map(p => (
+                        <option key={p.id} value={p.id}>
+                          {p.firstName} {p.lastName}
+                          {houses.find(h => h.id === p.houseId)?.houseName &&
+                            ` (${houses.find(h => h.id === p.houseId).houseName})`
+                          }
+                        </option>
+                      ))
+                    }
+                  </select>
+                  <p className="dignity-form__hint">
+                    Override automatic succession with a specific heir.
                   </p>
-                  
-                  <div className="form-group">
-                    <label>Resolution *</label>
-                    <select
-                      value={disputeForm.resolution}
-                      onChange={(e) => setDisputeForm({...disputeForm, resolution: e.target.value})}
-                    >
-                      <option value="">— Select Resolution —</option>
-                      {Object.entries(DISPUTE_RESOLUTIONS)
-                        .filter(([key]) => key !== 'ongoing')
-                        .map(([key, info]) => (
-                          <option key={key} value={key}>{info.name}</option>
-                        ))
-                      }
-                    </select>
-                  </div>
-                  
-                  <div className="form-group">
-                    <label>Date Resolved</label>
-                    <input
-                      type="text"
-                      value={disputeForm.resolvedDate}
-                      onChange={(e) => setDisputeForm({...disputeForm, resolvedDate: e.target.value})}
-                      placeholder="e.g., 1287"
-                    />
-                  </div>
-                </>
-              ) : (
-                /* Add Mode */
-                <>
-                  <div className="form-group">
-                    <label>Claimant *</label>
-                    <select
-                      value={disputeForm.claimantId}
-                      onChange={(e) => setDisputeForm({...disputeForm, claimantId: e.target.value})}
-                    >
-                      <option value="">— Select Claimant —</option>
-                      {people
-                        .filter(p => !p.dateOfDeath)
-                        .sort((a, b) => `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`))
-                        .map(p => (
-                          <option key={p.id} value={p.id}>
-                            {p.firstName} {p.lastName}
-                            {houses.find(h => h.id === p.houseId)?.houseName && 
-                              ` (${houses.find(h => h.id === p.houseId).houseName})`
-                            }
-                          </option>
-                        ))
-                      }
-                    </select>
-                  </div>
-                  
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>Claim Type</label>
-                      <select
-                        value={disputeForm.claimType}
-                        onChange={(e) => setDisputeForm({...disputeForm, claimType: e.target.value})}
-                      >
-                        {Object.entries(CLAIM_TYPES).map(([key, info]) => (
-                          <option key={key} value={key}>
-                            {info.icon} {info.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    
-                    <div className="form-group">
-                      <label>Claim Strength</label>
-                      <select
-                        value={disputeForm.claimStrength}
-                        onChange={(e) => setDisputeForm({...disputeForm, claimStrength: e.target.value})}
-                      >
-                        {Object.entries(CLAIM_STRENGTHS).map(([key, info]) => (
-                          <option key={key} value={key}>{info.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                  
-                  <div className="form-group">
-                    <label>Claim Basis</label>
-                    <input
-                      type="text"
-                      value={disputeForm.claimBasis}
-                      onChange={(e) => setDisputeForm({...disputeForm, claimBasis: e.target.value})}
-                      placeholder="e.g., Grandson of King Aldric through female line"
-                    />
-                  </div>
-                  
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>Date Claim Made</label>
-                      <input
-                        type="text"
-                        value={disputeForm.startDate}
-                        onChange={(e) => setDisputeForm({...disputeForm, startDate: e.target.value})}
-                        placeholder="e.g., 1285"
-                      />
-                    </div>
-                    
-                    <div className="form-group">
-                      <label>Supporting Factions</label>
-                      <input
-                        type="text"
-                        value={disputeForm.supportingFactions}
-                        onChange={(e) => setDisputeForm({...disputeForm, supportingFactions: e.target.value})}
-                        placeholder="Comma-separated list"
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="form-group">
-                    <label>Notes</label>
-                    <textarea
-                      value={disputeForm.notes}
-                      onChange={(e) => setDisputeForm({...disputeForm, notes: e.target.value})}
-                      placeholder="Additional details about the claim..."
-                      rows={3}
-                    />
-                  </div>
-                </>
-              )}
-            </div>
-            
-            <div className="modal-footer">
-              <button 
-                className="modal-cancel-btn"
-                onClick={handleCloseDisputeModal}
-              >
-                Cancel
-              </button>
-              <button 
-                className="modal-save-btn"
-                onClick={handleSaveDispute}
-                disabled={savingDispute || (disputeMode === 'add' && !disputeForm.claimantId) || (disputeMode === 'resolve' && !disputeForm.resolution)}
-              >
-                {savingDispute ? 'Saving...' : (disputeMode === 'resolve' ? 'Resolve Claim' : 'Add Claim')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* ==================== INTERREGNUM MODAL ==================== */}
-      {showInterregnumModal && (
-        <div className="modal-overlay" onClick={handleCloseInterregnumModal}>
-          <div className="modal interregnum-modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>⏳ Set Interregnum</h3>
-              <button 
-                className="modal-close-btn"
-                onClick={handleCloseInterregnumModal}
-              >
-                ✕
-              </button>
-            </div>
-            
-            <div className="modal-body">
-              <p className="modal-description">
-                An interregnum is a period between rulers when the dignity is vacant or 
-                the holder cannot exercise power (e.g., minority, incapacity).
-              </p>
-              
-              <div className="form-group">
-                <label>Reason</label>
-                <select
-                  value={interregnumForm.reason}
-                  onChange={(e) => setInterregnumForm({...interregnumForm, reason: e.target.value})}
-                >
-                  {Object.entries(INTERREGNUM_REASONS).map(([key, info]) => (
-                    <option key={key} value={key}>{info.name}</option>
-                  ))}
-                </select>
-                <p className="form-hint">
-                  {INTERREGNUM_REASONS[interregnumForm.reason]?.description}
-                </p>
-              </div>
-              
-              <div className="form-group">
-                <label>Start Date</label>
-                <input
-                  type="text"
-                  value={interregnumForm.startDate}
-                  onChange={(e) => setInterregnumForm({...interregnumForm, startDate: e.target.value})}
-                  placeholder="e.g., 1287"
-                />
-              </div>
-              
-              <div className="form-group">
-                <label>Regent (if applicable)</label>
-                <select
-                  value={interregnumForm.regentId}
-                  onChange={(e) => setInterregnumForm({...interregnumForm, regentId: e.target.value})}
-                >
-                  <option value="">— No Regent —</option>
-                  {people
-                    .filter(p => !p.dateOfDeath)
-                    .sort((a, b) => `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`))
-                    .map(p => (
-                      <option key={p.id} value={p.id}>
-                        {p.firstName} {p.lastName}
-                        {houses.find(h => h.id === p.houseId)?.houseName && 
-                          ` (${houses.find(h => h.id === p.houseId).houseName})`
-                        }
-                      </option>
-                    ))
-                  }
-                </select>
-              </div>
-              
-              {interregnumForm.regentId && (
-                <div className="form-group">
-                  <label>Regent's Title</label>
-                  <input
-                    type="text"
-                    value={interregnumForm.regentTitle}
-                    onChange={(e) => setInterregnumForm({...interregnumForm, regentTitle: e.target.value})}
-                    placeholder="e.g., Lord Protector, Queen Regent"
+                </div>
+
+                <div className="dignity-form__group">
+                  <label>Custom Notes</label>
+                  <textarea
+                    value={successionRulesForm.customNotes}
+                    onChange={(e) => setSuccessionRulesForm({ ...successionRulesForm, customNotes: e.target.value })}
+                    placeholder="Any special succession rules or notes..."
+                    rows={3}
                   />
                 </div>
-              )}
-              
-              <div className="form-group">
-                <label>Notes</label>
-                <textarea
-                  value={interregnumForm.notes}
-                  onChange={(e) => setInterregnumForm({...interregnumForm, notes: e.target.value})}
-                  placeholder="Additional details about the interregnum..."
-                  rows={3}
-                />
               </div>
-            </div>
-            
-            <div className="modal-footer">
-              <button 
-                className="modal-cancel-btn"
-                onClick={handleCloseInterregnumModal}
-              >
-                Cancel
-              </button>
-              <button 
-                className="modal-save-btn"
-                onClick={handleSaveInterregnum}
-                disabled={savingInterregnum}
-              >
-                {savingInterregnum ? 'Saving...' : 'Set Interregnum'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+
+              <div className="dignity-modal__footer">
+                <button className="dignity-modal__cancel" onClick={handleCloseSuccessionRulesModal}>
+                  Cancel
+                </button>
+                <button
+                  className="dignity-modal__save"
+                  onClick={handleSaveSuccessionRules}
+                  disabled={savingRules}
+                >
+                  {savingRules ? 'Saving...' : 'Save Rules'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* Dispute Modal */}
+        {showDisputeModal && (
+          <motion.div
+            className="dignity-modal-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={handleCloseDisputeModal}
+          >
+            <motion.div
+              className="dignity-modal"
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="dignity-modal__header">
+                <h3>
+                  <Icon name={disputeMode === 'resolve' ? 'check' : 'swords'} size={18} />
+                  <span>{disputeMode === 'resolve' ? 'Resolve Dispute' : 'Add Disputed Claim'}</span>
+                </h3>
+                <button className="dignity-modal__close" onClick={handleCloseDisputeModal}>
+                  <Icon name="x" size={18} />
+                </button>
+              </div>
+
+              <div className="dignity-modal__body">
+                {disputeMode === 'resolve' ? (
+                  <>
+                    <p className="dignity-modal__description">
+                      Resolving <strong>{getPersonName(editingDispute?.claimantId)}</strong>'s
+                      claim to <strong>{dignity?.name}</strong>.
+                    </p>
+
+                    <div className="dignity-form__group">
+                      <label>Resolution *</label>
+                      <select
+                        value={disputeForm.resolution}
+                        onChange={(e) => setDisputeForm({ ...disputeForm, resolution: e.target.value })}
+                      >
+                        <option value="">— Select Resolution —</option>
+                        {Object.entries(DISPUTE_RESOLUTIONS)
+                          .filter(([key]) => key !== 'ongoing')
+                          .map(([key, info]) => (
+                            <option key={key} value={key}>{info.name}</option>
+                          ))
+                        }
+                      </select>
+                    </div>
+
+                    <div className="dignity-form__group">
+                      <label>Date Resolved</label>
+                      <input
+                        type="text"
+                        value={disputeForm.resolvedDate}
+                        onChange={(e) => setDisputeForm({ ...disputeForm, resolvedDate: e.target.value })}
+                        placeholder="e.g., 1287"
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="dignity-form__group">
+                      <label>Claimant *</label>
+                      <select
+                        value={disputeForm.claimantId}
+                        onChange={(e) => setDisputeForm({ ...disputeForm, claimantId: e.target.value })}
+                      >
+                        <option value="">— Select Claimant —</option>
+                        {people
+                          .filter(p => !p.dateOfDeath)
+                          .sort((a, b) => `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`))
+                          .map(p => (
+                            <option key={p.id} value={p.id}>
+                              {p.firstName} {p.lastName}
+                              {houses.find(h => h.id === p.houseId)?.houseName &&
+                                ` (${houses.find(h => h.id === p.houseId).houseName})`
+                              }
+                            </option>
+                          ))
+                        }
+                      </select>
+                    </div>
+
+                    <div className="dignity-form__row">
+                      <div className="dignity-form__group">
+                        <label>Claim Type</label>
+                        <select
+                          value={disputeForm.claimType}
+                          onChange={(e) => setDisputeForm({ ...disputeForm, claimType: e.target.value })}
+                        >
+                          {Object.entries(CLAIM_TYPES).map(([key, info]) => (
+                            <option key={key} value={key}>{info.name}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="dignity-form__group">
+                        <label>Claim Strength</label>
+                        <select
+                          value={disputeForm.claimStrength}
+                          onChange={(e) => setDisputeForm({ ...disputeForm, claimStrength: e.target.value })}
+                        >
+                          {Object.entries(CLAIM_STRENGTHS).map(([key, info]) => (
+                            <option key={key} value={key}>{info.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="dignity-form__group">
+                      <label>Claim Basis</label>
+                      <input
+                        type="text"
+                        value={disputeForm.claimBasis}
+                        onChange={(e) => setDisputeForm({ ...disputeForm, claimBasis: e.target.value })}
+                        placeholder="e.g., Grandson of King Aldric through female line"
+                      />
+                    </div>
+
+                    <div className="dignity-form__row">
+                      <div className="dignity-form__group">
+                        <label>Date Claim Made</label>
+                        <input
+                          type="text"
+                          value={disputeForm.startDate}
+                          onChange={(e) => setDisputeForm({ ...disputeForm, startDate: e.target.value })}
+                          placeholder="e.g., 1285"
+                        />
+                      </div>
+
+                      <div className="dignity-form__group">
+                        <label>Supporting Factions</label>
+                        <input
+                          type="text"
+                          value={disputeForm.supportingFactions}
+                          onChange={(e) => setDisputeForm({ ...disputeForm, supportingFactions: e.target.value })}
+                          placeholder="Comma-separated list"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="dignity-form__group">
+                      <label>Notes</label>
+                      <textarea
+                        value={disputeForm.notes}
+                        onChange={(e) => setDisputeForm({ ...disputeForm, notes: e.target.value })}
+                        placeholder="Additional details about the claim..."
+                        rows={3}
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="dignity-modal__footer">
+                <button className="dignity-modal__cancel" onClick={handleCloseDisputeModal}>
+                  Cancel
+                </button>
+                <button
+                  className="dignity-modal__save"
+                  onClick={handleSaveDispute}
+                  disabled={savingDispute || (disputeMode === 'add' && !disputeForm.claimantId) || (disputeMode === 'resolve' && !disputeForm.resolution)}
+                >
+                  {savingDispute ? 'Saving...' : (disputeMode === 'resolve' ? 'Resolve Claim' : 'Add Claim')}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* Interregnum Modal */}
+        {showInterregnumModal && (
+          <motion.div
+            className="dignity-modal-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={handleCloseInterregnumModal}
+          >
+            <motion.div
+              className="dignity-modal"
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="dignity-modal__header">
+                <h3>
+                  <Icon name="hourglass" size={18} />
+                  <span>Set Interregnum</span>
+                </h3>
+                <button className="dignity-modal__close" onClick={handleCloseInterregnumModal}>
+                  <Icon name="x" size={18} />
+                </button>
+              </div>
+
+              <div className="dignity-modal__body">
+                <p className="dignity-modal__description">
+                  An interregnum is a period between rulers when the dignity is vacant or
+                  the holder cannot exercise power (e.g., minority, incapacity).
+                </p>
+
+                <div className="dignity-form__group">
+                  <label>Reason</label>
+                  <select
+                    value={interregnumForm.reason}
+                    onChange={(e) => setInterregnumForm({ ...interregnumForm, reason: e.target.value })}
+                  >
+                    {Object.entries(INTERREGNUM_REASONS).map(([key, info]) => (
+                      <option key={key} value={key}>{info.name}</option>
+                    ))}
+                  </select>
+                  <p className="dignity-form__hint">
+                    {INTERREGNUM_REASONS[interregnumForm.reason]?.description}
+                  </p>
+                </div>
+
+                <div className="dignity-form__group">
+                  <label>Start Date</label>
+                  <input
+                    type="text"
+                    value={interregnumForm.startDate}
+                    onChange={(e) => setInterregnumForm({ ...interregnumForm, startDate: e.target.value })}
+                    placeholder="e.g., 1287"
+                  />
+                </div>
+
+                <div className="dignity-form__group">
+                  <label>Regent (if applicable)</label>
+                  <select
+                    value={interregnumForm.regentId}
+                    onChange={(e) => setInterregnumForm({ ...interregnumForm, regentId: e.target.value })}
+                  >
+                    <option value="">— No Regent —</option>
+                    {people
+                      .filter(p => !p.dateOfDeath)
+                      .sort((a, b) => `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`))
+                      .map(p => (
+                        <option key={p.id} value={p.id}>
+                          {p.firstName} {p.lastName}
+                          {houses.find(h => h.id === p.houseId)?.houseName &&
+                            ` (${houses.find(h => h.id === p.houseId).houseName})`
+                          }
+                        </option>
+                      ))
+                    }
+                  </select>
+                </div>
+
+                {interregnumForm.regentId && (
+                  <div className="dignity-form__group">
+                    <label>Regent's Title</label>
+                    <input
+                      type="text"
+                      value={interregnumForm.regentTitle}
+                      onChange={(e) => setInterregnumForm({ ...interregnumForm, regentTitle: e.target.value })}
+                      placeholder="e.g., Lord Protector, Queen Regent"
+                    />
+                  </div>
+                )}
+
+                <div className="dignity-form__group">
+                  <label>Notes</label>
+                  <textarea
+                    value={interregnumForm.notes}
+                    onChange={(e) => setInterregnumForm({ ...interregnumForm, notes: e.target.value })}
+                    placeholder="Additional details about the interregnum..."
+                    rows={3}
+                  />
+                </div>
+              </div>
+
+              <div className="dignity-modal__footer">
+                <button className="dignity-modal__cancel" onClick={handleCloseInterregnumModal}>
+                  Cancel
+                </button>
+                <button
+                  className="dignity-modal__save"
+                  onClick={handleSaveInterregnum}
+                  disabled={savingInterregnum}
+                >
+                  {savingInterregnum ? 'Saving...' : 'Set Interregnum'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

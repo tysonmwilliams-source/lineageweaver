@@ -1,0 +1,429 @@
+/**
+ * BugContext.jsx - Global Bug Tracking Provider for Lineageweaver
+ * 
+ * PURPOSE:
+ * This context provides a global bug tracking system accessible from
+ * anywhere in the app. It works similarly to GenealogyContext but
+ * specifically for managing bug reports.
+ * 
+ * HOW IT WORKS:
+ * 1. On app load, the context fetches all bugs from IndexedDB
+ * 2. Any component can access bugs via useBugTracker() hook
+ * 3. The floating BugReporterButton uses this context to submit bugs
+ * 4. When bugs change, all subscribed components re-render
+ * 
+ * WHAT'S A CONTEXT?
+ * Think of a React Context like a "global variable" that any component
+ * can access without passing props through every level. It's like
+ * having a shared bulletin board that anyone can read or write to.
+ * 
+ * CLOUD SYNC:
+ * Bugs sync to Firestore when user is logged in, so you can track
+ * bugs across devices and sessions.
+ */
+
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import {
+  createBug as dbCreateBug,
+  getBug as dbGetBug,
+  getAllBugs as dbGetAllBugs,
+  updateBug as dbUpdateBug,
+  deleteBug as dbDeleteBug,
+  getBugStatistics,
+  exportBugsForClaudeCode
+} from '../services/bugService';
+import { useAuth } from './AuthContext';
+
+// Import Firestore functions for cloud sync
+import {
+  collection,
+  doc,
+  setDoc,
+  deleteDoc,
+  getDocs,
+  serverTimestamp
+} from 'firebase/firestore';
+import { db as firestoreDb } from '../config/firebase';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CREATE THE CONTEXT
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// This creates an empty "container" that we'll fill with bug data
+const BugContext = createContext(null);
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CLOUD SYNC HELPERS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Add a bug to Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {Object} bugData - Bug data including local id
+ */
+async function syncBugToCloud(userId, bugData) {
+  try {
+    const bugsRef = collection(firestoreDb, 'users', userId, 'bugs');
+    const docRef = doc(bugsRef, String(bugData.id));
+    
+    await setDoc(docRef, {
+      ...bugData,
+      localId: bugData.id,
+      syncedAt: serverTimestamp()
+    });
+    
+    console.log('☁️ Bug synced to cloud:', bugData.title);
+  } catch (error) {
+    console.error('☁️ Error syncing bug to cloud:', error);
+    // Don't throw - local-first approach, cloud sync is optional
+  }
+}
+
+/**
+ * Delete a bug from Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {number} bugId - The bug's local ID
+ */
+async function deleteBugFromCloud(userId, bugId) {
+  try {
+    const docRef = doc(firestoreDb, 'users', userId, 'bugs', String(bugId));
+    await deleteDoc(docRef);
+    console.log('☁️ Bug deleted from cloud:', bugId);
+  } catch (error) {
+    console.error('☁️ Error deleting bug from cloud:', error);
+  }
+}
+
+/**
+ * Get all bugs from Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @returns {Array} Array of bug objects
+ */
+async function getAllBugsFromCloud(userId) {
+  try {
+    const bugsRef = collection(firestoreDb, 'users', userId, 'bugs');
+    const snapshot = await getDocs(bugsRef);
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+  } catch (error) {
+    console.error('☁️ Error getting bugs from cloud:', error);
+    return [];
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// BUG TRACKER PROVIDER COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * BugTrackerProvider Component
+ * 
+ * This wraps your app and provides bug tracking functionality to all children.
+ * Any component inside this provider can access bugs via useBugTracker().
+ * 
+ * @param {Object} props
+ * @param {React.ReactNode} props.children - Child components to wrap
+ */
+export function BugTrackerProvider({ children }) {
+  // ==================== STATE ====================
+  // These are the "buckets" that hold our bug data
+  
+  const [bugs, setBugs] = useState([]);           // Array of all bug records
+  const [loading, setLoading] = useState(true);   // True while loading from DB
+  const [error, setError] = useState(null);       // Error message if something fails
+  
+  // Get current user from auth context (for cloud sync)
+  const { user } = useAuth();
+
+  // ==================== LOAD BUGS ON MOUNT ====================
+  
+  /**
+   * Load all bugs from IndexedDB
+   * This runs once when the component first mounts (appears on screen)
+   */
+  const loadBugs = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const allBugs = await dbGetAllBugs();
+      setBugs(allBugs);
+      
+      console.log('🐛 Loaded', allBugs.length, 'bugs');
+    } catch (err) {
+      console.error('❌ Error loading bugs:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Run loadBugs when component mounts
+  useEffect(() => {
+    loadBugs();
+  }, [loadBugs]);
+
+  // ==================== CRUD OPERATIONS ====================
+  // These functions let components create, update, and delete bugs
+
+  /**
+   * Create a new bug report
+   * 
+   * This is what gets called when you submit the bug report form.
+   * It saves to local DB first (instant), then syncs to cloud (background).
+   * 
+   * @param {Object} bugData - The bug information
+   * @returns {Promise<number>} The new bug's ID
+   */
+  const addBug = useCallback(async (bugData) => {
+    try {
+      // Save to local database (instant)
+      const id = await dbCreateBug(bugData);
+      
+      // Get the full record with ID
+      const newBug = await dbGetBug(id);
+      
+      // Update state so UI refreshes immediately
+      setBugs(prev => [...prev, newBug]);
+      
+      // Sync to cloud in background (if logged in)
+      if (user) {
+        syncBugToCloud(user.uid, newBug);
+      }
+      
+      return id;
+    } catch (err) {
+      console.error('❌ Error adding bug:', err);
+      throw err;
+    }
+  }, [user]);
+
+  /**
+   * Update an existing bug
+   * 
+   * @param {number} id - The bug's ID
+   * @param {Object} updates - Fields to update
+   */
+  const updateBug = useCallback(async (id, updates) => {
+    try {
+      // Update in local database
+      await dbUpdateBug(id, updates);
+      
+      // Get updated record
+      const updatedBug = await dbGetBug(id);
+      
+      // Update state
+      setBugs(prev => prev.map(bug => 
+        bug.id === id ? updatedBug : bug
+      ));
+      
+      // Sync to cloud
+      if (user && updatedBug) {
+        syncBugToCloud(user.uid, updatedBug);
+      }
+    } catch (err) {
+      console.error('❌ Error updating bug:', err);
+      throw err;
+    }
+  }, [user]);
+
+  /**
+   * Delete a bug
+   * 
+   * @param {number} id - The bug's ID
+   */
+  const deleteBug = useCallback(async (id) => {
+    try {
+      // Delete from local database
+      await dbDeleteBug(id);
+      
+      // Update state
+      setBugs(prev => prev.filter(bug => bug.id !== id));
+      
+      // Delete from cloud
+      if (user) {
+        deleteBugFromCloud(user.uid, id);
+      }
+    } catch (err) {
+      console.error('❌ Error deleting bug:', err);
+      throw err;
+    }
+  }, [user]);
+
+  /**
+   * Resolve a bug (set status to 'resolved')
+   * Convenience wrapper around updateBug
+   * 
+   * @param {number} id - The bug's ID
+   */
+  const resolveBug = useCallback(async (id) => {
+    await updateBug(id, { status: 'resolved' });
+  }, [updateBug]);
+
+  // ==================== COMPUTED VALUES ====================
+  // These are derived from the bugs array using useMemo for performance
+
+  /**
+   * Get statistics about bugs
+   * useMemo = "remember this calculation until bugs changes"
+   */
+  const statistics = useMemo(() => {
+    return {
+      total: bugs.length,
+      open: bugs.filter(b => b.status === 'open').length,
+      inProgress: bugs.filter(b => b.status === 'in-progress').length,
+      resolved: bugs.filter(b => b.status === 'resolved').length,
+      critical: bugs.filter(b => b.priority === 'critical' && b.status !== 'resolved').length,
+      high: bugs.filter(b => b.priority === 'high' && b.status !== 'resolved').length
+    };
+  }, [bugs]);
+
+  /**
+   * Get bugs filtered by status
+   */
+  const openBugs = useMemo(() => 
+    bugs.filter(b => b.status === 'open')
+  , [bugs]);
+
+  const inProgressBugs = useMemo(() => 
+    bugs.filter(b => b.status === 'in-progress')
+  , [bugs]);
+
+  const resolvedBugs = useMemo(() => 
+    bugs.filter(b => b.status === 'resolved')
+  , [bugs]);
+
+  // ==================== EXPORT FOR CLAUDE CODE ====================
+
+  /**
+   * Export bugs for Claude Code
+   * Returns markdown formatted for AI diagnosis
+   * 
+   * @param {Object} options - Export options
+   * @returns {Promise<string>} Markdown content
+   */
+  const exportForClaudeCode = useCallback(async (options = {}) => {
+    return exportBugsForClaudeCode(options);
+  }, []);
+
+  /**
+   * Download export as a file
+   * Creates and triggers download of markdown file
+   */
+  const downloadExport = useCallback(async () => {
+    try {
+      const markdown = await exportBugsForClaudeCode();
+      
+      // Create a blob (binary large object) with the markdown content
+      const blob = new Blob([markdown], { type: 'text/markdown' });
+      
+      // Create a download link
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `lineageweaver-bugs-${new Date().toISOString().split('T')[0]}.md`;
+      
+      // Trigger download
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up
+      URL.revokeObjectURL(url);
+      
+      console.log('📥 Bug report downloaded');
+    } catch (err) {
+      console.error('❌ Error downloading export:', err);
+      throw err;
+    }
+  }, []);
+
+  // ==================== CONTEXT VALUE ====================
+  // This is what gets shared with all child components
+
+  const contextValue = useMemo(() => ({
+    // Data
+    bugs,
+    loading,
+    error,
+    
+    // Stats
+    statistics,
+    openBugs,
+    inProgressBugs,
+    resolvedBugs,
+    
+    // Actions
+    addBug,
+    updateBug,
+    deleteBug,
+    resolveBug,
+    refreshBugs: loadBugs,
+    
+    // Export
+    exportForClaudeCode,
+    downloadExport
+  }), [
+    bugs,
+    loading,
+    error,
+    statistics,
+    openBugs,
+    inProgressBugs,
+    resolvedBugs,
+    addBug,
+    updateBug,
+    deleteBug,
+    resolveBug,
+    loadBugs,
+    exportForClaudeCode,
+    downloadExport
+  ]);
+
+  return (
+    <BugContext.Provider value={contextValue}>
+      {children}
+    </BugContext.Provider>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CUSTOM HOOK
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * useBugTracker Hook
+ * 
+ * This is how components access the bug tracker.
+ * 
+ * USAGE:
+ * ```jsx
+ * function MyComponent() {
+ *   const { bugs, addBug, statistics } = useBugTracker();
+ *   
+ *   const handleSubmit = async () => {
+ *     await addBug({ title: 'Something broke', priority: 'high' });
+ *   };
+ *   
+ *   return <div>Open bugs: {statistics.open}</div>;
+ * }
+ * ```
+ * 
+ * @returns {Object} Bug tracker context value
+ */
+export function useBugTracker() {
+  const context = useContext(BugContext);
+  
+  if (!context) {
+    throw new Error(
+      'useBugTracker must be used within a BugTrackerProvider. ' +
+      'Make sure your app is wrapped with <BugTrackerProvider>.'
+    );
+  }
+  
+  return context;
+}
+
+export default BugContext;

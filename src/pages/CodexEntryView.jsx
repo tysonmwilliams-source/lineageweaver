@@ -1,79 +1,170 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { getEntry, getAllLinksForEntry, getEntry as getBacklinkEntry } from '../services/codexService';
-import { getHeraldry } from '../services/heraldryService'; // PHASE 5 Batch 3
-import { db } from '../services/database'; // For loading linked person data
+import { getHeraldry } from '../services/heraldryService';
+import { db } from '../services/database';
 import { parseWikiLinks, getContextSnippet } from '../utils/wikiLinkParser';
-import { getPrimaryEpithet, getEpithetsSummary, EPITHET_SOURCES, EPITHET_EARNED_FROM } from '../utils/epithetUtils';
+import { getPrimaryEpithet } from '../utils/epithetUtils';
 import Navigation from '../components/Navigation';
-import HeraldryThumbnail from '../components/HeraldryThumbnail'; // PHASE 5 Batch 3
+import HeraldryThumbnail from '../components/HeraldryThumbnail';
+import Icon from '../components/icons/Icon';
+import LoadingState from '../components/shared/LoadingState';
+import EmptyState from '../components/shared/EmptyState';
+import ActionButton from '../components/shared/ActionButton';
 import './CodexEntryView.css';
 
 /**
- * Codex Entry View Page - ENHANCED
- * 
+ * CodexEntryView - Detail View for Codex Entries
+ *
  * Displays a single codex entry with:
  * - Rendered markdown content with wiki-links
  * - Entry metadata (type, tags, era)
- * - Edit button
- * - BACKLINKS PANEL - Shows all entries that reference this one
+ * - Backlinks panel showing entries that reference this one
+ * - Linked heraldry display
+ * - Epithets for personage entries
  */
+
+// Animation variants
+const CONTAINER_VARIANTS = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.08, delayChildren: 0.1 }
+  }
+};
+
+const ITEM_VARIANTS = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }
+  }
+};
+
+const CARD_VARIANTS = {
+  hidden: { opacity: 0, y: 30, scale: 0.95 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] }
+  }
+};
+
+// Entry type configuration
+const TYPE_CONFIG = {
+  personage: { icon: 'user', label: 'Personage' },
+  house: { icon: 'castle', label: 'House' },
+  location: { icon: 'map-pin', label: 'Location' },
+  event: { icon: 'swords', label: 'Event' },
+  mysteria: { icon: 'sparkles', label: 'Mysteria' },
+  heraldry: { icon: 'shield', label: 'Heraldry' },
+  custom: { icon: 'scroll-text', label: 'Entry' }
+};
+
 function CodexEntryView() {
   const { id } = useParams();
   const navigate = useNavigate();
-  
+
   const [entry, setEntry] = useState(null);
   const [renderedContent, setRenderedContent] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
+
   // Backlinks state
   const [backlinks, setBacklinks] = useState([]);
   const [backlinkDetails, setBacklinkDetails] = useState([]);
   const [loadingBacklinks, setLoadingBacklinks] = useState(false);
   const [collapsedGroups, setCollapsedGroups] = useState({});
-  
-  // PHASE 5 Batch 3: Linked heraldry state
+
+  // Linked heraldry state
   const [linkedHeraldry, setLinkedHeraldry] = useState(null);
   const [loadingHeraldry, setLoadingHeraldry] = useState(false);
-  
-  // ✨ EPITHETS: Linked person data for personage entries
+
+  // Linked person data for personage entries
   const [linkedPerson, setLinkedPerson] = useState(null);
-  
-  useEffect(() => {
-    loadEntry();
-  }, [id]);
-  
-  async function loadEntry() {
+
+  // Load linked heraldry record
+  const loadLinkedHeraldry = useCallback(async (heraldryId) => {
+    try {
+      setLoadingHeraldry(true);
+      const heraldryData = await getHeraldry(heraldryId);
+      setLinkedHeraldry(heraldryData);
+    } catch (err) {
+      console.error('Error loading linked heraldry:', err);
+      setLinkedHeraldry(null);
+    } finally {
+      setLoadingHeraldry(false);
+    }
+  }, []);
+
+  // Load backlinks for the entry
+  const loadBacklinks = useCallback(async (entryData) => {
+    try {
+      setLoadingBacklinks(true);
+
+      const links = await getAllLinksForEntry(entryData.id);
+      const incomingLinks = links.incoming || [];
+
+      setBacklinks(incomingLinks);
+
+      if (incomingLinks.length > 0) {
+        const details = await Promise.all(
+          incomingLinks.map(async (link) => {
+            const sourceEntry = await getBacklinkEntry(link.sourceId);
+            const snippet = getContextSnippet(sourceEntry.content, entryData.title);
+
+            return {
+              ...link,
+              entry: sourceEntry,
+              snippet: snippet
+            };
+          })
+        );
+
+        setBacklinkDetails(details);
+      }
+
+      setLoadingBacklinks(false);
+    } catch (err) {
+      console.error('Error loading backlinks:', err);
+      setLoadingBacklinks(false);
+    }
+  }, []);
+
+  // Load the main entry
+  const loadEntry = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const entryData = await getEntry(parseInt(id));
-      
+
       if (!entryData) {
         setError('Entry not found');
         setLoading(false);
         return;
       }
-      
+
       setEntry(entryData);
-      
+
       // Parse markdown and process wiki-links
       const html = await parseWikiLinks(entryData.content, entryData.id);
       setRenderedContent(html);
-      
+
       // Load backlinks
       await loadBacklinks(entryData);
-      
-      // PHASE 5 Batch 3: Load linked heraldry if entry has heraldryId
+
+      // Load linked heraldry if entry has heraldryId
       if (entryData.heraldryId) {
         await loadLinkedHeraldry(entryData.heraldryId);
       } else {
         setLinkedHeraldry(null);
       }
-      
-      // ✨ EPITHETS: Load linked person data for personage entries
+
+      // Load linked person data for personage entries
       if (entryData.type === 'personage' && entryData.personId) {
         try {
           const personData = await db.people.get(entryData.personId);
@@ -85,136 +176,69 @@ function CodexEntryView() {
       } else {
         setLinkedPerson(null);
       }
-      
+
       setLoading(false);
     } catch (err) {
       console.error('Error loading entry:', err);
       setError('Failed to load entry');
       setLoading(false);
     }
-  }
-  
-  // PHASE 5 Batch 3: Load linked heraldry record
-  async function loadLinkedHeraldry(heraldryId) {
-    try {
-      setLoadingHeraldry(true);
-      const heraldryData = await getHeraldry(heraldryId);
-      setLinkedHeraldry(heraldryData);
-    } catch (err) {
-      console.error('Error loading linked heraldry:', err);
-      setLinkedHeraldry(null);
-    } finally {
-      setLoadingHeraldry(false);
-    }
-  }
-  
-  async function loadBacklinks(entryData) {
-    try {
-      setLoadingBacklinks(true);
-      
-      const links = await getAllLinksForEntry(entryData.id);
-      const incomingLinks = links.incoming || [];
-      
-      setBacklinks(incomingLinks);
-      
-      // Load full details for each backlink
-      if (incomingLinks.length > 0) {
-        const details = await Promise.all(
-          incomingLinks.map(async (link) => {
-            const sourceEntry = await getBacklinkEntry(link.sourceId);
-            
-            // Extract context snippet
-            const snippet = getContextSnippet(sourceEntry.content, entryData.title);
-            
-            return {
-              ...link,
-              entry: sourceEntry,
-              snippet: snippet
-            };
-          })
-        );
-        
-        setBacklinkDetails(details);
-      }
-      
-      setLoadingBacklinks(false);
-    } catch (err) {
-      console.error('Error loading backlinks:', err);
-      setLoadingBacklinks(false);
-    }
-  }
-  
-  function handleEdit() {
+  }, [id, loadBacklinks, loadLinkedHeraldry]);
+
+  useEffect(() => {
+    loadEntry();
+  }, [loadEntry]);
+
+  // Navigation handlers
+  const handleEdit = useCallback(() => {
     navigate(`/codex/edit/${id}`);
-  }
-  
-  function handleBackToCodex() {
+  }, [navigate, id]);
+
+  const handleBackToCodex = useCallback(() => {
     navigate('/codex');
-  }
-  
-  // ═══════════════════════════════════════════════════════════════════
-  // 🔗 TREE-CODEX INTEGRATION: Navigate to Family Tree
-  // ═══════════════════════════════════════════════════════════════════
-  // When viewing a personage entry that's linked to a Person in the
-  // genealogy database, this allows navigation to the Family Tree view.
-  // The personId is stored in the entry when auto-created during person creation.
-  // ═══════════════════════════════════════════════════════════════════
-  function handleViewInFamilyTree() {
-    // Navigate to the family tree page
-    // TODO: In Phase 2, we can add query params to highlight the specific person
-    // e.g., /tree?highlight=<personId>
+  }, [navigate]);
+
+  const handleViewInFamilyTree = useCallback(() => {
     navigate('/tree');
-  }
-  
-  // ═══════════════════════════════════════════════════════════════════
-  // 🛡️ PHASE 5 Batch 3: Navigate to The Armory
-  // ═══════════════════════════════════════════════════════════════════
-  function handleViewInArmory() {
+  }, [navigate]);
+
+  const handleViewInArmory = useCallback(() => {
     if (entry?.heraldryId) {
       navigate(`/heraldry/edit/${entry.heraldryId}`);
     }
-  }
-  
-  function handleViewBacklink(backlinkId) {
+  }, [navigate, entry?.heraldryId]);
+
+  const handleViewBacklink = useCallback((backlinkId) => {
     navigate(`/codex/entry/${backlinkId}`);
-  }
-  
-  function toggleGroup(groupType) {
+  }, [navigate]);
+
+  const toggleGroup = useCallback((groupType) => {
     setCollapsedGroups(prev => ({
       ...prev,
       [groupType]: !prev[groupType]
     }));
-  }
-  
+  }, []);
+
   // Format date for display
-  function formatDate(isoString) {
+  const formatDate = useCallback((isoString) => {
     if (!isoString) return '';
     const date = new Date(isoString);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
     });
-  }
-  
-  // Get icon for entry type
-  function getTypeIcon(type) {
-    const icons = {
-      personage: '👤',
-      house: '🏰',
-      location: '📍',
-      event: '⚔️',
-      mysteria: '✨',
-      heraldry: '🛡️',
-      custom: '📜'
-    };
-    return icons[type] || '📜';
-  }
-  
+  }, []);
+
+  // Get type configuration
+  const getTypeConfig = useCallback((type) => {
+    return TYPE_CONFIG[type] || TYPE_CONFIG.custom;
+  }, []);
+
   // Group backlinks by entry type
-  function getGroupedBacklinks() {
+  const groupedBacklinks = useMemo(() => {
     const grouped = {};
-    
+
     backlinkDetails.forEach(backlink => {
       const type = backlink.entry.type;
       if (!grouped[type]) {
@@ -222,12 +246,12 @@ function CodexEntryView() {
       }
       grouped[type].push(backlink);
     });
-    
+
     return grouped;
-  }
-  
+  }, [backlinkDetails]);
+
   // Get type label (pluralized)
-  function getTypeLabel(type, count) {
+  const getTypeLabel = useCallback((type, count) => {
     const labels = {
       personage: count === 1 ? 'Personage' : 'Personages',
       house: count === 1 ? 'House' : 'Houses',
@@ -238,307 +262,393 @@ function CodexEntryView() {
       custom: count === 1 ? 'Entry' : 'Entries'
     };
     return labels[type] || 'Entries';
-  }
-  
+  }, []);
+
+  const hasBacklinks = backlinkDetails.length > 0;
+
   // Loading state
   if (loading) {
     return (
       <>
         <Navigation />
-        <div className="entry-view-container loading">
-          <div className="loading-spinner">
-            <div className="text-4xl">⏳</div>
-            <p>Loading entry...</p>
+        <div className="entry-page">
+          <div className="entry-container">
+            <LoadingState message="Loading entry..." icon="scroll-text" />
           </div>
         </div>
       </>
     );
   }
-  
+
   // Error state
   if (error || !entry) {
     return (
       <>
         <Navigation />
-        <div className="entry-view-container error">
-          <div className="error-message">
-            <div className="text-4xl">❌</div>
-            <h2>Entry Not Found</h2>
-            <p>{error || 'The requested entry does not exist.'}</p>
-            <button onClick={handleBackToCodex} className="back-button">
-              ← Back to Codex
-            </button>
+        <div className="entry-page">
+          <div className="entry-container">
+            <EmptyState
+              icon="file-x"
+              title="Entry Not Found"
+              description={error || 'The requested entry does not exist.'}
+              action={{
+                label: 'Back to Codex',
+                onClick: handleBackToCodex,
+                icon: 'arrow-left'
+              }}
+            />
           </div>
         </div>
       </>
     );
   }
-  
-  const groupedBacklinks = getGroupedBacklinks();
-  const hasBacklinks = backlinkDetails.length > 0;
-  
-  // Main render
+
+  const typeConfig = getTypeConfig(entry.type);
+
   return (
     <>
       <Navigation />
-      
-      <div className="entry-view-container">
-        <div className="entry-view-content">
-          
+
+      <div className="entry-page">
+        <motion.div
+          className="entry-container"
+          variants={CONTAINER_VARIANTS}
+          initial="hidden"
+          animate="visible"
+        >
           {/* Breadcrumb Navigation */}
-          <div className="breadcrumb">
-            <button onClick={handleBackToCodex} className="breadcrumb-link">
-              The Codex
+          <motion.nav className="entry-breadcrumb" variants={ITEM_VARIANTS}>
+            <button onClick={handleBackToCodex} className="entry-breadcrumb__link">
+              <Icon name="book-open" size={14} />
+              <span>The Codex</span>
             </button>
-            <span className="breadcrumb-separator">›</span>
-            <span className="breadcrumb-current">{entry.title}</span>
-          </div>
-          
-          {/* Entry Header */}
-          <header className="entry-header">
-            <div className="entry-type-badge">
-              <span className="type-icon">{getTypeIcon(entry.type)}</span>
-              <span className="type-label">{entry.type}</span>
-            </div>
-            
-            <h1 className="entry-title">{entry.title}</h1>
-            
-            {/* ✨ EPITHETS: Show primary epithet for personage entries */}
-            {linkedPerson && linkedPerson.epithets && linkedPerson.epithets.length > 0 && (
-              <div className="entry-epithets">
-                <span className="epithets-label">Known as: </span>
-                {(() => {
-                  const primary = getPrimaryEpithet(linkedPerson.epithets);
-                  const others = linkedPerson.epithets.filter(e => !e.isPrimary);
-                  return (
-                    <>
-                      {primary && (
-                        <span className="epithet-primary" title="Primary epithet">
-                          {primary.text}
-                        </span>
-                      )}
-                      {others.length > 0 && (
-                        <span className="epithets-others">
-                          {others.map((e, i) => (
-                            <span key={e.id} className="epithet-secondary">
-                              {i > 0 || primary ? ', ' : ''}{e.text}
-                            </span>
-                          ))}
-                        </span>
-                      )}
-                    </>
-                  );
-                })()}
+            <Icon name="chevron-right" size={14} className="entry-breadcrumb__separator" />
+            <span className="entry-breadcrumb__current">{entry.title}</span>
+          </motion.nav>
+
+          {/* Main Content Card */}
+          <motion.article className="entry-card" variants={CARD_VARIANTS}>
+            {/* Entry Header */}
+            <header className="entry-header">
+              {/* Type Badge */}
+              <div className="entry-header__badge">
+                <Icon name={typeConfig.icon} size={16} />
+                <span>{typeConfig.label}</span>
               </div>
-            )}
-            
-            {entry.subtitle && (
-              <p className="entry-subtitle">{entry.subtitle}</p>
-            )}
-            
-            {/* Reference Count Badge */}
-            {hasBacklinks && (
-              <div className="reference-count-badge">
-                <span className="badge-icon">🔗</span>
-                <span className="badge-text">
-                  Referenced in {backlinkDetails.length} {backlinkDetails.length === 1 ? 'entry' : 'entries'}
-                </span>
-              </div>
-            )}
-            
-            {/* Metadata Row */}
-            <div className="entry-metadata">
-              {entry.era && (
-                <span className="metadata-item">
-                  <span className="metadata-label">Era:</span>
-                  <span className="metadata-value">{entry.era}</span>
-                </span>
+
+              {/* Title with Illuminated Initial */}
+              <h1 className="entry-header__title">
+                <span className="entry-header__initial">{entry.title.charAt(0)}</span>
+                {entry.title.slice(1)}
+              </h1>
+
+              {/* Epithets for personage entries */}
+              {linkedPerson && linkedPerson.epithets && linkedPerson.epithets.length > 0 && (
+                <div className="entry-header__epithets">
+                  <span className="entry-header__epithets-label">Known as: </span>
+                  {(() => {
+                    const primary = getPrimaryEpithet(linkedPerson.epithets);
+                    const others = linkedPerson.epithets.filter(e => !e.isPrimary);
+                    return (
+                      <>
+                        {primary && (
+                          <span className="entry-header__epithet--primary">
+                            {primary.text}
+                          </span>
+                        )}
+                        {others.length > 0 && (
+                          <span className="entry-header__epithets-others">
+                            {others.map((e, i) => (
+                              <span key={e.id} className="entry-header__epithet--secondary">
+                                {i > 0 || primary ? ', ' : ''}{e.text}
+                              </span>
+                            ))}
+                          </span>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
               )}
-              
-              {entry.category && (
-                <span className="metadata-item">
-                  <span className="metadata-label">Category:</span>
-                  <span className="metadata-value">{entry.category}</span>
-                </span>
+
+              {/* Subtitle */}
+              {entry.subtitle && (
+                <p className="entry-header__subtitle">{entry.subtitle}</p>
               )}
-              
-              {entry.wordCount > 0 && (
-                <span className="metadata-item">
-                  <span className="metadata-label">Words:</span>
-                  <span className="metadata-value">{entry.wordCount.toLocaleString()}</span>
-                </span>
-              )}
-            </div>
-            
-            {/* Tags */}
-            {entry.tags && entry.tags.length > 0 && (
-              <div className="entry-tags">
-                {entry.tags.map((tag, index) => (
-                  <span key={index} className="tag">
-                    {tag}
+
+              {/* Reference Count Badge */}
+              {hasBacklinks && (
+                <div className="entry-header__references">
+                  <Icon name="link" size={14} />
+                  <span>
+                    Referenced in {backlinkDetails.length} {backlinkDetails.length === 1 ? 'entry' : 'entries'}
                   </span>
-                ))}
-              </div>
-            )}
-            
-            {/* Action Buttons */}
-            <div className="entry-actions">
-              <button onClick={handleEdit} className="action-button primary">
-                <span className="button-icon">✏️</span>
-                Edit Entry
-              </button>
-              
-              {/* 🔗 TREE-CODEX INTEGRATION: Show "View in Family Tree" for linked personages */}
-              {entry.type === 'personage' && entry.personId && (
-                <button onClick={handleViewInFamilyTree} className="action-button secondary">
-                  <span className="button-icon">🌳</span>
-                  View in Family Tree
-                </button>
-              )}
-              
-              {/* 🛡️ PHASE 5 Batch 3: Show "View in Armory" for entries with linked heraldry */}
-              {entry.heraldryId && linkedHeraldry && (
-                <button onClick={handleViewInArmory} className="action-button secondary">
-                  <span className="button-icon">🛡️</span>
-                  View in Armory
-                </button>
-              )}
-            </div>
-            
-            {/* 🛡️ PHASE 5 Batch 3: Linked Heraldry Display */}
-            {linkedHeraldry && (
-              <div className="linked-heraldry-panel">
-                <div className="heraldry-panel-header">
-                  <span className="panel-icon">🛡️</span>
-                  <span className="panel-title">Linked Heraldry</span>
                 </div>
-                <div className="heraldry-panel-content">
-                  <div 
-                    className="heraldry-preview-clickable"
-                    onClick={handleViewInArmory}
-                    title="Click to view in The Armory"
-                  >
-                    <HeraldryThumbnail
-                      heraldryData={linkedHeraldry}
-                      size="large"
-                      showBlazon={false}
-                    />
-                  </div>
-                  <div className="heraldry-panel-info">
-                    <h4 className="heraldry-name">{linkedHeraldry.name}</h4>
-                    {linkedHeraldry.blazon && (
-                      <p className="heraldry-blazon">{linkedHeraldry.blazon}</p>
-                    )}
-                    <span className="heraldry-link" onClick={handleViewInArmory}>
-                      View in The Armory →
+              )}
+
+              {/* Metadata Row */}
+              <div className="entry-header__meta">
+                {entry.era && (
+                  <span className="entry-header__meta-item">
+                    <Icon name="clock" size={14} />
+                    <span className="entry-header__meta-label">Era:</span>
+                    <span className="entry-header__meta-value">{entry.era}</span>
+                  </span>
+                )}
+
+                {entry.category && (
+                  <span className="entry-header__meta-item">
+                    <Icon name="folder" size={14} />
+                    <span className="entry-header__meta-label">Category:</span>
+                    <span className="entry-header__meta-value">{entry.category}</span>
+                  </span>
+                )}
+
+                {entry.wordCount > 0 && (
+                  <span className="entry-header__meta-item">
+                    <Icon name="file-text" size={14} />
+                    <span className="entry-header__meta-label">Words:</span>
+                    <span className="entry-header__meta-value">{entry.wordCount.toLocaleString()}</span>
+                  </span>
+                )}
+              </div>
+
+              {/* Tags */}
+              {entry.tags && entry.tags.length > 0 && (
+                <div className="entry-header__tags">
+                  {entry.tags.map((tag, index) => (
+                    <span key={index} className="entry-header__tag">
+                      <Icon name="tag" size={12} />
+                      {tag}
                     </span>
-                  </div>
+                  ))}
                 </div>
-              </div>
-            )}
-          </header>
-          
-          {/* Divider */}
-          <div className="entry-divider"></div>
-          
-          {/* Entry Content (Rendered Markdown) */}
-          <article className="entry-content">
-            <div 
-              className="markdown-content"
-              dangerouslySetInnerHTML={{ __html: renderedContent }}
-            />
-          </article>
-          
-          {/* BACKLINKS PANEL */}
-          <div className="entry-divider"></div>
-          
-          <section className="backlinks-section">
-            <div className="backlinks-header">
-              <h2 className="section-heading">
-                <span className="heading-icon">🔗</span>
-                Referenced In
-              </h2>
-              {loadingBacklinks && (
-                <span className="loading-indicator">Loading...</span>
               )}
-            </div>
-            
-            {!loadingBacklinks && !hasBacklinks && (
-              <div className="backlinks-empty">
-                <p className="empty-message">
-                  No other entries reference this one yet.
-                </p>
-                <p className="empty-hint">
-                  When other entries include <code>[[{entry.title}]]</code> in their content, they'll appear here.
-                </p>
+
+              {/* Action Buttons */}
+              <div className="entry-header__actions">
+                <ActionButton
+                  icon="edit-3"
+                  onClick={handleEdit}
+                  variant="primary"
+                >
+                  Edit Entry
+                </ActionButton>
+
+                {entry.type === 'personage' && entry.personId && (
+                  <ActionButton
+                    icon="git-branch"
+                    onClick={handleViewInFamilyTree}
+                    variant="secondary"
+                  >
+                    View in Family Tree
+                  </ActionButton>
+                )}
+
+                {entry.heraldryId && linkedHeraldry && (
+                  <ActionButton
+                    icon="shield"
+                    onClick={handleViewInArmory}
+                    variant="secondary"
+                  >
+                    View in Armory
+                  </ActionButton>
+                )}
               </div>
-            )}
-            
-            {!loadingBacklinks && hasBacklinks && (
-              <div className="backlinks-content">
-                <p className="section-description">
-                  This entry is mentioned in {backlinkDetails.length} other {backlinkDetails.length === 1 ? 'entry' : 'entries'}:
-                </p>
-                
-                {Object.entries(groupedBacklinks).map(([type, links]) => (
-                  <div key={type} className="backlink-group">
-                    <button 
-                      className="backlink-group-header"
-                      onClick={() => toggleGroup(type)}
-                    >
-                      <span className="group-icon">{getTypeIcon(type)}</span>
-                      <span className="group-title">
-                        {getTypeLabel(type, links.length)} ({links.length})
-                      </span>
-                      <span className={`collapse-icon ${collapsedGroups[type] ? 'collapsed' : 'expanded'}`}>
-                        {collapsedGroups[type] ? '▶' : '▼'}
-                      </span>
-                    </button>
-                    
-                    {!collapsedGroups[type] && (
-                      <ul className="backlinks-list">
-                        {links.map(backlink => (
-                          <li key={backlink.id} className="backlink-item">
-                            <button 
-                              onClick={() => handleViewBacklink(backlink.entry.id)}
-                              className="backlink-button"
-                            >
-                              <div className="backlink-main">
-                                <span className="backlink-icon">{getTypeIcon(backlink.entry.type)}</span>
-                                <span className="backlink-title">{backlink.entry.title}</span>
-                              </div>
-                              {backlink.snippet && (
-                                <div className="backlink-context">
-                                  <span className="context-icon">💬</span>
-                                  <span className="context-text">{backlink.snippet}</span>
-                                </div>
-                              )}
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
+
+              {/* Linked Heraldry Display */}
+              {linkedHeraldry && (
+                <motion.div
+                  className="entry-heraldry"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  <div className="entry-heraldry__header">
+                    <Icon name="shield" size={16} />
+                    <span>Linked Heraldry</span>
                   </div>
-                ))}
-              </div>
-            )}
-          </section>
-          
-          {/* Footer Metadata */}
-          <footer className="entry-footer">
-            <div className="footer-metadata">
-              <span className="footer-item">
-                Created: {formatDate(entry.created)}
-              </span>
-              {entry.updated && entry.updated !== entry.created && (
-                <span className="footer-item">
-                  Last updated: {formatDate(entry.updated)}
-                </span>
+                  <div className="entry-heraldry__content">
+                    <div
+                      className="entry-heraldry__preview"
+                      onClick={handleViewInArmory}
+                      title="Click to view in The Armory"
+                    >
+                      <HeraldryThumbnail
+                        heraldryData={linkedHeraldry}
+                        size="large"
+                        showBlazon={false}
+                      />
+                    </div>
+                    <div className="entry-heraldry__info">
+                      <h4 className="entry-heraldry__name">{linkedHeraldry.name}</h4>
+                      {linkedHeraldry.blazon && (
+                        <p className="entry-heraldry__blazon">{linkedHeraldry.blazon}</p>
+                      )}
+                      <button className="entry-heraldry__link" onClick={handleViewInArmory}>
+                        <span>View in The Armory</span>
+                        <Icon name="arrow-right" size={14} />
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
               )}
+            </header>
+
+            {/* Decorative Divider */}
+            <div className="entry-divider">
+              <Icon name="sparkle" size={16} />
             </div>
-          </footer>
-          
-        </div>
+
+            {/* Entry Content (Rendered Markdown) */}
+            <section className="entry-content">
+              <div
+                className="entry-content__markdown"
+                dangerouslySetInnerHTML={{ __html: renderedContent }}
+              />
+            </section>
+
+            {/* Divider before backlinks */}
+            <div className="entry-divider">
+              <Icon name="sparkle" size={16} />
+            </div>
+
+            {/* Backlinks Section */}
+            <section className="entry-backlinks">
+              <div className="entry-backlinks__header">
+                <h2 className="entry-backlinks__title">
+                  <Icon name="link" size={20} />
+                  <span>Referenced In</span>
+                </h2>
+                {loadingBacklinks && (
+                  <span className="entry-backlinks__loading">
+                    <Icon name="loader-2" size={14} className="spin" />
+                    <span>Loading...</span>
+                  </span>
+                )}
+              </div>
+
+              <AnimatePresence mode="wait">
+                {!loadingBacklinks && !hasBacklinks && (
+                  <motion.div
+                    key="empty"
+                    className="entry-backlinks__empty"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    <Icon name="link-2-off" size={24} />
+                    <p className="entry-backlinks__empty-message">
+                      No other entries reference this one yet.
+                    </p>
+                    <p className="entry-backlinks__empty-hint">
+                      When other entries include <code>[[{entry.title}]]</code> in their content, they'll appear here.
+                    </p>
+                  </motion.div>
+                )}
+
+                {!loadingBacklinks && hasBacklinks && (
+                  <motion.div
+                    key="content"
+                    className="entry-backlinks__content"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    <p className="entry-backlinks__description">
+                      This entry is mentioned in {backlinkDetails.length} other {backlinkDetails.length === 1 ? 'entry' : 'entries'}:
+                    </p>
+
+                    {Object.entries(groupedBacklinks).map(([type, links]) => {
+                      const groupConfig = getTypeConfig(type);
+                      const isCollapsed = collapsedGroups[type];
+
+                      return (
+                        <motion.div
+                          key={type}
+                          className="entry-backlinks__group"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                        >
+                          <button
+                            className="entry-backlinks__group-header"
+                            onClick={() => toggleGroup(type)}
+                          >
+                            <Icon name={groupConfig.icon} size={18} />
+                            <span className="entry-backlinks__group-title">
+                              {getTypeLabel(type, links.length)} ({links.length})
+                            </span>
+                            <Icon
+                              name={isCollapsed ? 'chevron-right' : 'chevron-down'}
+                              size={16}
+                              className="entry-backlinks__group-chevron"
+                            />
+                          </button>
+
+                          <AnimatePresence>
+                            {!isCollapsed && (
+                              <motion.ul
+                                className="entry-backlinks__list"
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.2 }}
+                              >
+                                {links.map(backlink => {
+                                  const linkConfig = getTypeConfig(backlink.entry.type);
+                                  return (
+                                    <li key={backlink.id} className="entry-backlinks__item">
+                                      <button
+                                        onClick={() => handleViewBacklink(backlink.entry.id)}
+                                        className="entry-backlinks__link"
+                                      >
+                                        <div className="entry-backlinks__link-main">
+                                          <Icon name={linkConfig.icon} size={16} />
+                                          <span className="entry-backlinks__link-title">
+                                            {backlink.entry.title}
+                                          </span>
+                                          <Icon name="arrow-right" size={14} className="entry-backlinks__link-arrow" />
+                                        </div>
+                                        {backlink.snippet && (
+                                          <div className="entry-backlinks__link-context">
+                                            <Icon name="quote" size={14} />
+                                            <span className="entry-backlinks__link-snippet">
+                                              {backlink.snippet}
+                                            </span>
+                                          </div>
+                                        )}
+                                      </button>
+                                    </li>
+                                  );
+                                })}
+                              </motion.ul>
+                            )}
+                          </AnimatePresence>
+                        </motion.div>
+                      );
+                    })}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </section>
+
+            {/* Footer Metadata */}
+            <footer className="entry-footer">
+              <div className="entry-footer__meta">
+                <span className="entry-footer__item">
+                  <Icon name="calendar-plus" size={14} />
+                  <span>Created: {formatDate(entry.created)}</span>
+                </span>
+                {entry.updated && entry.updated !== entry.created && (
+                  <span className="entry-footer__item">
+                    <Icon name="calendar-check" size={14} />
+                    <span>Last updated: {formatDate(entry.updated)}</span>
+                  </span>
+                )}
+              </div>
+            </footer>
+          </motion.article>
+        </motion.div>
       </div>
     </>
   );

@@ -1,0 +1,120 @@
+/**
+ * Icon CSS Styles
+ * 
+ * Provides styling for the unified Icon component,
+ * including theme-aware color handling for game-icons.
+ */
+
+/* Base icon styles */
+.lw-icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+}
+
+/* Game icons need special handling for theming */
+.lw-icon--game img {
+  /* Default: invert for dark theme (white icons on dark bg) */
+  filter: var(--icon-filter, invert(1));
+  opacity: 0.9;
+  transition: filter 0.2s ease, opacity 0.2s ease;
+}
+
+/* Hover effect for interactive icons */
+.lw-icon--interactive:hover {
+  opacity: 1;
+}
+
+/* Size variants */
+.lw-icon--xs {
+  width: 12px;
+  height: 12px;
+}
+
+.lw-icon--sm {
+  width: 16px;
+  height: 16px;
+}
+
+.lw-icon--md {
+  width: 24px;
+  height: 24px;
+}
+
+.lw-icon--lg {
+  width: 32px;
+  height: 32px;
+}
+
+.lw-icon--xl {
+  width: 48px;
+  height: 48px;
+}
+
+/* Color variants using CSS custom properties */
+.lw-icon--primary {
+  color: var(--accent-primary);
+}
+
+.lw-icon--secondary {
+  color: var(--text-secondary);
+}
+
+.lw-icon--success {
+  color: var(--color-success);
+}
+
+.lw-icon--warning {
+  color: var(--color-warning);
+}
+
+.lw-icon--error {
+  color: var(--color-error);
+}
+
+.lw-icon--muted {
+  color: var(--text-tertiary);
+  opacity: 0.7;
+}
+
+/* Theme-specific icon filter */
+:root[data-theme="light"] .lw-icon--game img,
+[data-theme="light"] .lw-icon--game img {
+  /* For light theme: don't invert (black icons on light bg) */
+  filter: invert(0);
+}
+
+:root[data-theme="dark"] .lw-icon--game img,
+[data-theme="dark"] .lw-icon--game img {
+  /* For dark theme: invert (white icons on dark bg) */
+  filter: invert(1);
+}
+
+/* Animation utilities */
+.lw-icon--spin {
+  animation: icon-spin 1s linear infinite;
+}
+
+.lw-icon--pulse {
+  animation: icon-pulse 2s ease-in-out infinite;
+}
+
+@keyframes icon-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes icon-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}

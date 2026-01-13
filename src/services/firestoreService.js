@@ -952,7 +952,7 @@ export async function deleteAllCloudData(userId) {
   try {
     console.log('☁️ Deleting all cloud data...');
     
-    const collections = ['people', 'houses', 'relationships', 'codexEntries', 'codexLinks', 'acknowledgedDuplicates', 'heraldry', 'heraldryLinks', 'dignities', 'dignityTenures', 'dignityLinks'];
+    const collections = ['people', 'houses', 'relationships', 'codexEntries', 'codexLinks', 'acknowledgedDuplicates', 'heraldry', 'heraldryLinks', 'dignities', 'dignityTenures', 'dignityLinks', 'bugs'];
     
     for (const collName of collections) {
       const collRef = getUserCollection(userId, collName);

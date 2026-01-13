@@ -1,159 +1,231 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { wilfreyData } from '../data/wilfreyData';
-import { addPerson, addHouse, addRelationship } from '../services/database';
+/**
+ * Home.jsx - Reimagined Home Page
+ * 
+ * PURPOSE:
+ * The landing page for LineageWeaver, featuring an animated hero,
+ * statistics dashboard, quick actions, recent activity, and navigation
+ * to the four major systems.
+ * 
+ * ARCHITECTURE:
+ * - Uses modular components from /components/home/
+ * - Feature flags allow toggling sections on/off for testing
+ * - Adapts to empty vs populated data states
+ * - Respects theme system
+ * 
+ * FEATURES:
+ * - Animated hero with illuminated initial letter
+ * - Count-up statistics dashboard
+ * - Quick action buttons
+ * - Recent activity feed (or onboarding for empty state)
+ * - Four major system navigation cards
+ * - Dev panel for testing feature toggles
+ */
+
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import Navigation from '../components/Navigation';
+import { useGenealogy } from '../contexts/GenealogyContext';
+import { getAllEntries } from '../services/codexService';
+import { getAllHeraldry } from '../services/heraldryService';
+
+// Import home page components
+import {
+  DevFeaturePanel,
+  HeroSection,
+  StatsGlance,
+  QuickActions,
+  RecentActivity,
+  SystemCard,
+  loadFeatures
+} from '../components/home';
+
 import './Home.css';
 
 /**
  * Home Page Component
- * 
- * Landing page with navigation to main features and quick-load for Wilfrey data
  */
-function Home() {
-  const navigate = useNavigate();
-  const [importStatus, setImportStatus] = useState(null);
-  const [isImporting, setIsImporting] = useState(false);
-
-  async function handleQuickLoadWilfrey() {
-    try {
-      setIsImporting(true);
-      setImportStatus({ type: 'info', message: 'Loading House Wilfrey data...' });
-      
-      // Import houses first
-      for (const house of wilfreyData.houses) {
-        await addHouse(house);
+export default function Home() {
+  // ==================== STATE ====================
+  
+  // Feature flags for toggling sections
+  const [features, setFeatures] = useState(loadFeatures);
+  
+  // Additional data not in GenealogyContext
+  const [codexEntries, setCodexEntries] = useState([]);
+  const [heraldryCount, setHeraldryCount] = useState(0);
+  const [isLoadingExtra, setIsLoadingExtra] = useState(true);
+  
+  // Get core data from context
+  const { people, houses, relationships, loading: coreLoading } = useGenealogy();
+  
+  // ==================== DATA LOADING ====================
+  
+  // Load codex and heraldry data (not in GenealogyContext)
+  useEffect(() => {
+    let cancelled = false;
+    
+    async function loadExtraData() {
+      try {
+        setIsLoadingExtra(true);
+        
+        const [entries, heraldry] = await Promise.all([
+          getAllEntries(),
+          getAllHeraldry()
+        ]);
+        
+        // Only update state if component is still mounted
+        if (!cancelled) {
+          setCodexEntries(entries || []);
+          setHeraldryCount(heraldry?.length || 0);
+        }
+      } catch (error) {
+        if (!cancelled && import.meta.env.DEV) {
+          console.error('Error loading extra data for home page:', error);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingExtra(false);
+        }
       }
-      
-      // Then import people
-      for (const person of wilfreyData.people) {
-        await addPerson(person);
-      }
-      
-      // Finally import relationships
-      for (const relationship of wilfreyData.relationships) {
-        await addRelationship(relationship);
-      }
-      
-      setImportStatus({ 
-        type: 'success', 
-        message: '✅ House Wilfrey data loaded successfully!' 
-      });
-      
-      // Navigate to tree after 1 second
-      setTimeout(() => {
-        navigate('/tree');
-      }, 1000);
-    } catch (error) {
-      console.error('Error loading Wilfrey data:', error);
-      setImportStatus({ 
-        type: 'error', 
-        message: `❌ Error: ${error.message}` 
-      });
-    } finally {
-      setIsImporting(false);
     }
-  }
-
+    
+    loadExtraData();
+    
+    // Cleanup function to prevent state updates on unmounted component
+    return () => { cancelled = true; };
+  }, []);
+  
+  // ==================== COMPUTED VALUES ====================
+  
+  // Statistics for the dashboard
+  const stats = useMemo(() => ({
+    people: people.length,
+    houses: houses.length,
+    relationships: relationships.length,
+    codexEntries: codexEntries.length,
+    heraldry: heraldryCount
+  }), [people.length, houses.length, relationships.length, codexEntries.length, heraldryCount]);
+  
+  // Whether user has any data at all
+  const hasData = stats.people > 0 || stats.houses > 0;
+  
+  // Loading state
+  const isLoading = coreLoading || isLoadingExtra;
+  
+  // ==================== SYSTEM CARDS CONFIG ====================
+  
+  // Using Lucide icon names instead of emojis
+  const systemCards = [
+    {
+      iconName: 'tree-deciduous',
+      title: 'Family Tree',
+      subtitle: 'Visualize lineages with interactive genealogy trees',
+      path: '/tree',
+      accentColor: 'accent-tree',
+      delay: 0
+    },
+    {
+      iconName: 'book-open',
+      title: 'The Codex',
+      subtitle: 'Wiki-style encyclopedia for your world\'s lore',
+      path: '/codex',
+      accentColor: 'accent-codex',
+      delay: 0.1
+    },
+    {
+      iconName: 'shield',
+      title: 'The Armory',
+      subtitle: 'Design heraldic arms and coats of arms',
+      path: '/heraldry',
+      accentColor: 'accent-armory',
+      delay: 0.2
+    },
+    {
+      iconName: 'anvil',
+      title: 'Data Forge',
+      subtitle: 'Manage people, houses, and relationships',
+      path: '/manage',
+      accentColor: 'accent-forge',
+      delay: 0.3
+    }
+  ];
+  
+  // ==================== RENDER ====================
+  
   return (
     <>
       <Navigation />
+      
       <div className="home-page">
         <div className="home-container">
-        <div className="home-content">
-          {/* Header */}
-          <header className="home-header">
-            <h1 className="home-title">Lineageweaver</h1>
-            <p className="home-subtitle">
-              Medieval Fantasy Genealogy & Worldbuilding
-            </p>
-          </header>
-
-          {/* Quick Load Wilfrey Card */}
-          <div className="wilfrey-card">
-            <h2 className="wilfrey-title">🏰 House Wilfrey</h2>
-            <p className="wilfrey-description">
-              Load the complete House Wilfrey dataset with all four regional seats,
-              cadet branches, and the fostering system.
-            </p>
-            <button 
-              className="wilfrey-button"
-              onClick={handleQuickLoadWilfrey}
-              disabled={isImporting}
-            >
-              {isImporting ? 'Loading...' : 'Quick Load House Wilfrey'}
-            </button>
-            {importStatus && (
-              <div className={`import-status status-${importStatus.type}`}>
-                {importStatus.message}
-              </div>
+          <motion.div 
+            className="home-content"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
+          >
+            {/* Hero Section */}
+            <HeroSection features={features} />
+            
+            {/* Stats Dashboard */}
+            {!isLoading && (
+              <StatsGlance features={features} stats={stats} />
             )}
-          </div>
-
-          {/* Navigation Cards */}
-          <div className="nav-cards">
-            <div className="nav-card">
-              <h2 className="nav-card-title">🌳 Family Trees</h2>
-              <p className="nav-card-description">
-                Visualize complex family relationships with interactive genealogy trees.
-                Pan, zoom, and explore generations.
-              </p>
-              <a href="/tree" className="nav-card-button button-primary">
-                View Family Trees
-              </a>
-            </div>
-
-            <div className="nav-card">
-              <h2 className="nav-card-title">📜 The Codex</h2>
-              <p className="nav-card-description">
-                Wiki-style encyclopedia for your world. Document characters, locations,
-                events, and lore with linked entries.
-              </p>
-              <a href="/codex" className="nav-card-button button-secondary">
-                Open The Codex
-              </a>
-            </div>
-
-            <div className="nav-card">
-              <h2 className="nav-card-title">⚙️ Manage Data</h2>
-              <p className="nav-card-description">
-                Add people, houses, and relationships. Edit details and manage your
-                worldbuilding database.
-              </p>
-              <a href="/manage" className="nav-card-button button-primary">
-                Manage Data
-              </a>
-            </div>
-          </div>
-
-          {/* Info Card */}
-          <div className="info-card">
-            <h3 className="info-card-title">Getting Started</h3>
-            <div className="info-card-content">
-              <p>
-                <strong>New to Lineageweaver?</strong> Start by exploring the House Wilfrey
-                example using the Quick Load button above, or create your own houses and
-                characters in Manage Data.
-              </p>
-              <p>
-                <strong>The Codex</strong> is your worldbuilding companion - document everything
-                from character backstories to historical events with wiki-style linked entries.
-              </p>
-              <p>
-                All data is stored locally in your browser and can be exported as JSON backups.
-              </p>
-            </div>
-          </div>
-
-          {/* Footer */}
-          <footer className="home-footer">
-            <p>Built for worldbuilders, writers, and game masters</p>
-          </footer>
-        </div>
+            
+            {/* Quick Actions */}
+            <QuickActions features={features} />
+            
+            {/* Recent Activity / Onboarding */}
+            {!isLoading && (
+              <RecentActivity 
+                features={features}
+                people={people}
+                houses={houses}
+                codexEntries={codexEntries}
+                hasData={hasData}
+              />
+            )}
+            
+            {/* The Four Pillars - System Navigation */}
+            <section className="systems-section">
+              <motion.h2 
+                className="systems-title"
+                initial={features.staggeredEntrance ? { opacity: 0, y: -10 } : false}
+                animate={features.staggeredEntrance ? { opacity: 1, y: 0 } : false}
+                transition={{ duration: 0.4 }}
+              >
+                The Four Pillars
+              </motion.h2>
+              
+              <div className="systems-grid">
+                {systemCards.map((card) => (
+                  <SystemCard
+                    key={card.path}
+                    iconName={card.iconName}
+                    title={card.title}
+                    subtitle={card.subtitle}
+                    path={card.path}
+                    accentColor={card.accentColor}
+                    delay={card.delay}
+                    features={features}
+                  />
+                ))}
+              </div>
+            </section>
+            
+            {/* Footer */}
+            <footer className="home-footer">
+              <p>Built for worldbuilders, writers, and game masters</p>
+            </footer>
+          </motion.div>
         </div>
       </div>
+      
+      {/* Dev Feature Toggle Panel */}
+      <DevFeaturePanel 
+        features={features} 
+        setFeatures={setFeatures}
+      />
     </>
   );
 }
-
-export default Home;

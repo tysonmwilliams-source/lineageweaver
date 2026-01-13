@@ -1,0 +1,215 @@
+/**
+ * RecentActivity.css - Styles for Activity Feed / Onboarding
+ * 
+ * Uses CSS custom properties for theming.
+ * Activity list with clickable items.
+ */
+
+/* ============================================
+   SECTION CONTAINER
+   ============================================ */
+
+.recent-activity {
+  margin-bottom: var(--space-8);
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.activity-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: center;
+  margin: 0 0 var(--space-4) 0;
+}
+
+.activity-title .section-title-icon {
+  color: var(--accent-primary);
+  opacity: 0.8;
+}
+
+/* ============================================
+   ACTIVITY LIST
+   ============================================ */
+
+.activity-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.activity-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-primary);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-standard);
+}
+
+.activity-item:last-child {
+  border-bottom: none;
+}
+
+.activity-item:hover {
+  background: var(--bg-secondary);
+}
+
+.activity-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.activity-item:hover .activity-icon {
+  color: var(--accent-primary);
+}
+
+.activity-details {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+}
+
+.activity-action {
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.activity-name {
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.activity-time {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.activity-empty-text {
+  text-align: center;
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+/* ============================================
+   ONBOARDING CONTENT
+   ============================================ */
+
+.recent-activity-empty {
+  max-width: 500px;
+}
+
+.onboarding-content {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+}
+
+.onboarding-steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.onboarding-step {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.step-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: var(--accent-primary);
+  color: var(--bg-primary);
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.step-text {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: var(--leading-relaxed);
+  padding-top: 4px;
+}
+
+.step-text strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.onboarding-tip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  text-align: center;
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+  margin: 0;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-primary);
+}
+
+.onboarding-tip .tip-icon {
+  color: var(--accent-primary);
+  flex-shrink: 0;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 480px) {
+  .activity-details {
+    flex-direction: column;
+    gap: 0;
+  }
+  
+  .activity-action {
+    font-size: var(--text-xs);
+  }
+  
+  .onboarding-content {
+    padding: var(--space-4);
+  }
+  
+  .step-number {
+    width: 24px;
+    height: 24px;
+    font-size: var(--text-xs);
+  }
+}

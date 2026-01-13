@@ -18,6 +18,7 @@ const ChargesLibrary = lazy(() => import('./pages/ChargesLibrary'));
 const DignitiesLanding = lazy(() => import('./pages/DignitiesLanding'));
 const DignityForm = lazy(() => import('./pages/DignityForm'));
 const DignityView = lazy(() => import('./pages/DignityView'));
+const BugTracker = lazy(() => import('./pages/BugTracker'));
 
 // Loading fallback for lazy-loaded routes
 function PageLoader() {
@@ -57,8 +58,10 @@ function PageLoader() {
 }
 import { ThemeProvider } from './components/ThemeContext';
 import { GenealogyProvider } from './contexts/GenealogyContext';
+import { BugTrackerProvider } from './contexts/BugContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/auth';
+import BugReporterButton from './components/bugs/BugReporterButton';
 import ErrorBoundary from './components/ErrorBoundary';
 
 /**
@@ -231,33 +234,39 @@ function AppContent() {
 
   // Database ready - render the app with GenealogyProvider
   // GenealogyProvider is here (inside ProtectedRoute) so it has access to user
+  // BugTrackerProvider wraps everything so the floating bug reporter works on all pages
   return (
     <GenealogyProvider>
-      <Router>
-        <ErrorBoundary>
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/tree" element={<FamilyTree />} />
-            <Route path="/manage" element={<ManageData />} />
-            <Route path="/codex" element={<CodexLanding />} />
-            <Route path="/codex/create" element={<CodexEntryForm />} />
-            <Route path="/codex/edit/:id" element={<CodexEntryForm />} />
-            <Route path="/codex/entry/:id" element={<CodexEntryView />} />
-            <Route path="/codex/browse/:type" element={<CodexBrowse />} />
-            <Route path="/codex/import" element={<CodexImport />} />
-            <Route path="/heraldry" element={<HeraldryLanding />} />
-            <Route path="/heraldry/create" element={<HeraldryCreator />} />
-            <Route path="/heraldry/edit/:id" element={<HeraldryCreator />} />
-            <Route path="/heraldry/charges" element={<ChargesLibrary />} />
-            <Route path="/dignities" element={<DignitiesLanding />} />
-            <Route path="/dignities/create" element={<DignityForm />} />
-            <Route path="/dignities/edit/:id" element={<DignityForm />} />
-            <Route path="/dignities/view/:id" element={<DignityView />} />
-            </Routes>
-          </Suspense>
-        </ErrorBoundary>
-      </Router>
+      <BugTrackerProvider>
+        <Router>
+          <ErrorBoundary>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/tree" element={<FamilyTree />} />
+              <Route path="/manage" element={<ManageData />} />
+              <Route path="/codex" element={<CodexLanding />} />
+              <Route path="/codex/create" element={<CodexEntryForm />} />
+              <Route path="/codex/edit/:id" element={<CodexEntryForm />} />
+              <Route path="/codex/entry/:id" element={<CodexEntryView />} />
+              <Route path="/codex/browse/:type" element={<CodexBrowse />} />
+              <Route path="/codex/import" element={<CodexImport />} />
+              <Route path="/heraldry" element={<HeraldryLanding />} />
+              <Route path="/heraldry/create" element={<HeraldryCreator />} />
+              <Route path="/heraldry/edit/:id" element={<HeraldryCreator />} />
+              <Route path="/heraldry/charges" element={<ChargesLibrary />} />
+              <Route path="/dignities" element={<DignitiesLanding />} />
+              <Route path="/dignities/create" element={<DignityForm />} />
+              <Route path="/dignities/edit/:id" element={<DignityForm />} />
+              <Route path="/dignities/view/:id" element={<DignityView />} />
+              <Route path="/bugs" element={<BugTracker />} />
+              </Routes>
+            </Suspense>
+            {/* Floating bug reporter button - visible on all pages */}
+            <BugReporterButton />
+          </ErrorBoundary>
+        </Router>
+      </BugTrackerProvider>
     </GenealogyProvider>
   );
 }

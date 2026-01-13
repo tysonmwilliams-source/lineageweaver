@@ -1,0 +1,137 @@
+/**
+ * EmptyState.css - Empty State Styles
+ *
+ * Provides friendly, centered empty state displays.
+ * Uses CSS custom properties for theming.
+ */
+
+/* ============================================
+   CONTAINER
+   ============================================ */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--space-8);
+}
+
+/* ============================================
+   SIZE VARIANTS
+   ============================================ */
+
+.empty-state--sm {
+  padding: var(--space-4);
+}
+
+.empty-state--md {
+  padding: var(--space-8);
+}
+
+.empty-state--lg {
+  padding: var(--space-12);
+}
+
+/* ============================================
+   ICON
+   ============================================ */
+
+.empty-state__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  opacity: 0.6;
+  margin-bottom: var(--space-4);
+}
+
+.empty-state--lg .empty-state__icon {
+  margin-bottom: var(--space-6);
+}
+
+/* ============================================
+   TITLE
+   ============================================ */
+
+.empty-state__title {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 var(--space-2) 0;
+}
+
+.empty-state--sm .empty-state__title {
+  font-size: var(--text-lg);
+}
+
+.empty-state--lg .empty-state__title {
+  font-size: var(--text-2xl);
+}
+
+/* ============================================
+   DESCRIPTION
+   ============================================ */
+
+.empty-state__description {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  color: var(--text-secondary);
+  margin: 0 0 var(--space-6) 0;
+  max-width: 400px;
+  line-height: var(--leading-relaxed);
+}
+
+.empty-state--sm .empty-state__description {
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-4);
+  max-width: 300px;
+}
+
+.empty-state--lg .empty-state__description {
+  font-size: var(--text-lg);
+  max-width: 500px;
+}
+
+/* ============================================
+   ACTIONS
+   ============================================ */
+
+.empty-state__actions {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 768px) {
+  .empty-state--lg {
+    padding: var(--space-8);
+  }
+
+  .empty-state--lg .empty-state__title {
+    font-size: var(--text-xl);
+  }
+
+  .empty-state--lg .empty-state__description {
+    font-size: var(--text-base);
+  }
+}
+
+@media (max-width: 480px) {
+  .empty-state__actions {
+    flex-direction: column;
+    width: 100%;
+    max-width: 250px;
+  }
+
+  .empty-state__actions > * {
+    width: 100%;
+  }
+}

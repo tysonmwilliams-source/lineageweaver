@@ -1,21 +1,46 @@
 /**
  * UserMenu.jsx - User Account Menu Component
- * 
+ *
+ * PURPOSE:
  * Displays the current user's info and provides sign-out functionality.
  * Designed to sit in the navigation bar/header.
- * 
- * Shows:
- * - User's profile photo (or initials fallback)
- * - User's display name
- * - Sign out button (in dropdown)
+ *
+ * Uses Framer Motion for animations, Lucide icons, and BEM CSS.
  */
 
 import { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
+import Icon from '../icons';
+import './UserMenu.css';
+
+// ==================== ANIMATION VARIANTS ====================
+const DROPDOWN_VARIANTS = {
+  hidden: {
+    opacity: 0,
+    y: -10,
+    scale: 0.95
+  },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      type: 'spring',
+      damping: 25,
+      stiffness: 400
+    }
+  },
+  exit: {
+    opacity: 0,
+    y: -10,
+    scale: 0.95,
+    transition: { duration: 0.15 }
+  }
+};
 
 /**
  * Get initials from a display name
- * "John Doe" → "JD"
  */
 function getInitials(name) {
   if (!name) return '?';
@@ -55,7 +80,6 @@ export default function UserMenu() {
     try {
       setIsSigningOut(true);
       await signOut();
-      // AuthContext will update, App will show login
     } catch (error) {
       console.error('Sign out failed:', error);
     } finally {
@@ -69,168 +93,56 @@ export default function UserMenu() {
   return (
     <div className="user-menu" ref={menuRef}>
       {/* Trigger Button */}
-      <button 
-        className="user-menu-trigger"
+      <button
+        className="user-menu__trigger"
         onClick={() => setIsOpen(!isOpen)}
         aria-expanded={isOpen}
         aria-haspopup="true"
       >
         {user.photoURL ? (
-          <img 
-            src={user.photoURL} 
-            alt={user.displayName || 'User'} 
-            className="user-avatar"
+          <img
+            src={user.photoURL}
+            alt={user.displayName || 'User'}
+            className="user-menu__avatar"
           />
         ) : (
-          <span className="user-avatar user-avatar-initials">
+          <span className="user-menu__avatar user-menu__avatar--initials">
             {getInitials(user.displayName)}
           </span>
         )}
-        <span className="user-name">{user.displayName || user.email}</span>
-        <span className="dropdown-arrow">{isOpen ? '▲' : '▼'}</span>
+        <span className="user-menu__name">{user.displayName || user.email}</span>
+        <Icon
+          name="chevron-down"
+          size={14}
+          className={`user-menu__arrow ${isOpen ? 'user-menu__arrow--open' : ''}`}
+        />
       </button>
 
       {/* Dropdown Menu */}
-      {isOpen && (
-        <div className="user-menu-dropdown">
-          <div className="user-menu-header">
-            <p className="user-email">{user.email}</p>
-          </div>
-          <div className="user-menu-divider" />
-          <button 
-            className="user-menu-item signout-button"
-            onClick={handleSignOut}
-            disabled={isSigningOut}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            className="user-menu__dropdown"
+            variants={DROPDOWN_VARIANTS}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
           >
-            {isSigningOut ? 'Signing out...' : 'Sign out'}
-          </button>
-        </div>
-      )}
-
-      <style>{`
-        .user-menu {
-          position: relative;
-        }
-
-        .user-menu-trigger {
-          display: flex;
-          align-items: center;
-          gap: var(--space-2);
-          padding: var(--space-1) var(--space-2);
-          background: transparent;
-          border: 1px solid transparent;
-          border-radius: var(--radius-md);
-          color: var(--text-primary);
-          font-family: var(--font-body);
-          font-size: var(--text-sm);
-          cursor: pointer;
-          transition: 
-            background-color var(--duration-fast) var(--ease-standard),
-            border-color var(--duration-fast) var(--ease-standard);
-        }
-
-        .user-menu-trigger:hover {
-          background: var(--bg-elevated);
-          border-color: var(--border-primary);
-        }
-
-        .user-avatar {
-          width: 28px;
-          height: 28px;
-          border-radius: 50%;
-          object-fit: cover;
-          border: 1px solid var(--border-primary);
-        }
-
-        .user-avatar-initials {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: var(--interactive-default);
-          color: var(--text-inverse);
-          font-size: var(--text-xs);
-          font-weight: 600;
-        }
-
-        .user-name {
-          max-width: 120px;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        .dropdown-arrow {
-          font-size: 8px;
-          color: var(--text-tertiary);
-        }
-
-        .user-menu-dropdown {
-          position: absolute;
-          top: calc(100% + var(--space-1));
-          right: 0;
-          min-width: 200px;
-          background: var(--bg-elevated);
-          border: 1px solid var(--border-secondary);
-          border-radius: var(--radius-md);
-          box-shadow: var(--shadow-lg);
-          z-index: var(--z-dropdown);
-          overflow: hidden;
-        }
-
-        .user-menu-header {
-          padding: var(--space-3);
-        }
-
-        .user-email {
-          font-size: var(--text-sm);
-          color: var(--text-secondary);
-          margin: 0;
-          word-break: break-all;
-        }
-
-        .user-menu-divider {
-          height: 1px;
-          background: var(--border-primary);
-        }
-
-        .user-menu-item {
-          display: block;
-          width: 100%;
-          padding: var(--space-3);
-          background: transparent;
-          border: none;
-          text-align: left;
-          font-family: var(--font-body);
-          font-size: var(--text-sm);
-          color: var(--text-primary);
-          cursor: pointer;
-          transition: background-color var(--duration-fast) var(--ease-standard);
-        }
-
-        .user-menu-item:hover:not(:disabled) {
-          background: var(--bg-tertiary);
-        }
-
-        .user-menu-item:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-
-        .signout-button {
-          color: var(--color-error-light);
-        }
-
-        .signout-button:hover:not(:disabled) {
-          background: var(--color-error-bg);
-        }
-
-        /* Hide on small screens - just show avatar */
-        @media (max-width: 640px) {
-          .user-name {
-            display: none;
-          }
-        }
-      `}</style>
+            <div className="user-menu__header">
+              <p className="user-menu__email">{user.email}</p>
+            </div>
+            <div className="user-menu__divider" />
+            <button
+              className="user-menu__item user-menu__item--signout"
+              onClick={handleSignOut}
+              disabled={isSigningOut}
+            >
+              <Icon name="log-out" size={16} />
+              <span>{isSigningOut ? 'Signing out...' : 'Sign out'}</span>
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

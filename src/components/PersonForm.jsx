@@ -1,26 +1,38 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { isFeatureEnabled } from '../config/featureFlags';
 import EpithetsSection from './EpithetsSection';
+import Icon from './icons/Icon';
+import ActionButton from './shared/ActionButton';
+import './PersonForm.css';
 
 /**
  * PersonForm Component
- * 
- * A form for adding or editing a person.
- * 
+ *
+ * A form for adding or editing a person in the family tree.
+ * Features medieval manuscript styling with validation feedback.
+ *
  * Props:
  * - person: Existing person data (for editing) or null (for new person)
  * - houses: Array of all houses (for the dropdown)
  * - onSave: Function to call when form is submitted
  * - onCancel: Function to call when user cancels
  */
+
+const SECTION_VARIANTS = {
+  hidden: { opacity: 0, y: 10 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.3 }
+  }
+};
+
 function PersonForm({ person = null, houses = [], onSave, onCancel }) {
-  // ═══════════════════════════════════════════════════════════════════════════════
-  // 🔗 TREE-CODEX INTEGRATION: Navigation to Codex entry
-  // ═══════════════════════════════════════════════════════════════════════════════
   const navigate = useNavigate();
-  
-  // Form state - initialize with existing person data or empty values
+
+  // Form state
   const [formData, setFormData] = useState({
     firstName: person?.firstName || '',
     lastName: person?.lastName || '',
@@ -41,38 +53,28 @@ function PersonForm({ person = null, houses = [], onSave, onCancel }) {
   // Track validation errors
   const [errors, setErrors] = useState({});
 
-  /**
-   * Handle input changes
-   */
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value === '' ? null : value
     }));
-    // Clear error for this field when user starts typing
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
   };
 
-  /**
-   * Validate the form
-   */
   const validate = () => {
     const newErrors = {};
 
-    // First name is required
-    if (!formData.firstName.trim()) {
+    if (!formData.firstName?.trim()) {
       newErrors.firstName = 'First name is required';
     }
 
-    // Last name is required
-    if (!formData.lastName.trim()) {
+    if (!formData.lastName?.trim()) {
       newErrors.lastName = 'Last name is required';
     }
 
-    // Validate date format if provided (YYYY-MM-DD or partial)
     const dateRegex = /^\d{4}(-\d{2}(-\d{2})?)?$/;
     if (formData.dateOfBirth && !dateRegex.test(formData.dateOfBirth)) {
       newErrors.dateOfBirth = 'Date must be YYYY, YYYY-MM, or YYYY-MM-DD';
@@ -81,7 +83,6 @@ function PersonForm({ person = null, houses = [], onSave, onCancel }) {
       newErrors.dateOfDeath = 'Date must be YYYY, YYYY-MM, or YYYY-MM-DD';
     }
 
-    // Check if death date is after birth date
     if (formData.dateOfBirth && formData.dateOfDeath) {
       if (formData.dateOfDeath < formData.dateOfBirth) {
         newErrors.dateOfDeath = 'Death date cannot be before birth date';
@@ -92,19 +93,14 @@ function PersonForm({ person = null, houses = [], onSave, onCancel }) {
     return Object.keys(newErrors).length === 0;
   };
 
-  /**
-   * Handle form submission
-   */
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     if (validate()) {
-      // Convert titles string back to array
       const titlesArray = formData.titles
         ? formData.titles.split(',').map(t => t.trim()).filter(t => t)
         : [];
 
-      // Prepare person data
       const personData = {
         ...formData,
         titles: titlesArray,
@@ -118,206 +114,255 @@ function PersonForm({ person = null, houses = [], onSave, onCancel }) {
         epithets: formData.epithets || []
       };
 
-      // If editing, include the ID
       if (person?.id) {
         personData.id = person.id;
       }
-      
+
       onSave(personData);
     }
   };
 
+  const showFantasyFields = isFeatureEnabled('MODULE_1E.SPECIES_FIELD') ||
+    isFeatureEnabled('MODULE_1E.MAGICAL_BLOODLINES') ||
+    isFeatureEnabled('MODULE_1E.TITLES_SYSTEM');
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Basic Information Section */}
-      <div className="grid grid-cols-2 gap-4">
-        {/* First Name - Required */}
-        <div>
-          <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
-            First Name *
+    <form onSubmit={handleSubmit} className="person-form">
+      {/* Basic Information */}
+      <motion.div
+        className="person-form__section"
+        variants={SECTION_VARIANTS}
+        initial="hidden"
+        animate="visible"
+      >
+        <h3 className="person-form__section-title">
+          <Icon name="user" size={16} />
+          <span>Basic Information</span>
+        </h3>
+
+        <div className="person-form__row">
+          {/* First Name */}
+          <div className="person-form__group">
+            <label htmlFor="firstName" className="person-form__label person-form__label--required">
+              First Name
+            </label>
+            <input
+              type="text"
+              id="firstName"
+              name="firstName"
+              value={formData.firstName}
+              onChange={handleChange}
+              className={`person-form__input ${errors.firstName ? 'person-form__input--error' : ''}`}
+              placeholder="e.g., Jon"
+            />
+            {errors.firstName && (
+              <span className="person-form__error">
+                <Icon name="alert-circle" size={12} />
+                {errors.firstName}
+              </span>
+            )}
+          </div>
+
+          {/* Last Name */}
+          <div className="person-form__group">
+            <label htmlFor="lastName" className="person-form__label person-form__label--required">
+              Last Name
+            </label>
+            <input
+              type="text"
+              id="lastName"
+              name="lastName"
+              value={formData.lastName}
+              onChange={handleChange}
+              className={`person-form__input ${errors.lastName ? 'person-form__input--error' : ''}`}
+              placeholder="e.g., Snow"
+            />
+            {errors.lastName && (
+              <span className="person-form__error">
+                <Icon name="alert-circle" size={12} />
+                {errors.lastName}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Maiden Name */}
+        <div className="person-form__group">
+          <label htmlFor="maidenName" className="person-form__label">
+            Maiden Name
           </label>
           <input
             type="text"
-            id="firstName"
-            name="firstName"
-            value={formData.firstName}
+            id="maidenName"
+            name="maidenName"
+            value={formData.maidenName || ''}
             onChange={handleChange}
-            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-              errors.firstName ? 'border-red-500' : 'border-gray-300'
-            }`}
-            placeholder="e.g., Jon"
+            className="person-form__input"
+            placeholder="Birth surname if changed through marriage"
           />
-          {errors.firstName && (
-            <p className="mt-1 text-sm text-red-600">{errors.firstName}</p>
-          )}
+          <span className="person-form__hint">Optional - for those who changed their name</span>
         </div>
 
-        {/* Last Name - Required */}
-        <div>
-          <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">
-            Last Name *
-          </label>
-          <input
-            type="text"
-            id="lastName"
-            name="lastName"
-            value={formData.lastName}
-            onChange={handleChange}
-            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-              errors.lastName ? 'border-red-500' : 'border-gray-300'
-            }`}
-            placeholder="e.g., Snow"
-          />
-          {errors.lastName && (
-            <p className="mt-1 text-sm text-red-600">{errors.lastName}</p>
-          )}
+        <div className="person-form__row">
+          {/* Gender */}
+          <div className="person-form__group">
+            <label htmlFor="gender" className="person-form__label">
+              Gender
+            </label>
+            <select
+              id="gender"
+              name="gender"
+              value={formData.gender}
+              onChange={handleChange}
+              className="person-form__select"
+            >
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+
+          {/* House */}
+          <div className="person-form__group">
+            <label htmlFor="houseId" className="person-form__label">
+              House
+            </label>
+            <select
+              id="houseId"
+              name="houseId"
+              value={formData.houseId || ''}
+              onChange={handleChange}
+              className="person-form__select"
+            >
+              <option value="">No House (Commoner)</option>
+              {houses.map(house => (
+                <option key={house.id} value={house.id}>
+                  {house.houseName}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
-      </div>
+      </motion.div>
 
-      {/* Maiden Name */}
-      <div>
-        <label htmlFor="maidenName" className="block text-sm font-medium text-gray-700 mb-1">
-          Maiden Name (if applicable)
-        </label>
-        <input
-          type="text"
-          id="maidenName"
-          name="maidenName"
-          value={formData.maidenName || ''}
-          onChange={handleChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          placeholder="Birth surname if changed through marriage"
-        />
-      </div>
+      {/* Dates Section */}
+      <motion.div
+        className="person-form__section"
+        variants={SECTION_VARIANTS}
+        initial="hidden"
+        animate="visible"
+        transition={{ delay: 0.1 }}
+      >
+        <h3 className="person-form__section-title">
+          <Icon name="calendar" size={16} />
+          <span>Dates</span>
+        </h3>
 
-      {/* Gender and House */}
-      <div className="grid grid-cols-2 gap-4">
-        {/* Gender */}
-        <div>
-          <label htmlFor="gender" className="block text-sm font-medium text-gray-700 mb-1">
-            Gender
+        <div className="person-form__row">
+          {/* Date of Birth */}
+          <div className="person-form__group">
+            <label htmlFor="dateOfBirth" className="person-form__label">
+              Date of Birth
+            </label>
+            <input
+              type="text"
+              id="dateOfBirth"
+              name="dateOfBirth"
+              value={formData.dateOfBirth || ''}
+              onChange={handleChange}
+              className={`person-form__input ${errors.dateOfBirth ? 'person-form__input--error' : ''}`}
+              placeholder="YYYY-MM-DD or YYYY"
+            />
+            {errors.dateOfBirth ? (
+              <span className="person-form__error">
+                <Icon name="alert-circle" size={12} />
+                {errors.dateOfBirth}
+              </span>
+            ) : (
+              <span className="person-form__hint">Format: YYYY-MM-DD, YYYY-MM, or YYYY</span>
+            )}
+          </div>
+
+          {/* Date of Death */}
+          <div className="person-form__group">
+            <label htmlFor="dateOfDeath" className="person-form__label">
+              Date of Death
+            </label>
+            <input
+              type="text"
+              id="dateOfDeath"
+              name="dateOfDeath"
+              value={formData.dateOfDeath || ''}
+              onChange={handleChange}
+              className={`person-form__input ${errors.dateOfDeath ? 'person-form__input--error' : ''}`}
+              placeholder="YYYY-MM-DD or YYYY"
+            />
+            {errors.dateOfDeath ? (
+              <span className="person-form__error">
+                <Icon name="alert-circle" size={12} />
+                {errors.dateOfDeath}
+              </span>
+            ) : (
+              <span className="person-form__hint">Leave blank if still living</span>
+            )}
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Status Section */}
+      <motion.div
+        className="person-form__section"
+        variants={SECTION_VARIANTS}
+        initial="hidden"
+        animate="visible"
+        transition={{ delay: 0.2 }}
+      >
+        <h3 className="person-form__section-title">
+          <Icon name="shield" size={16} />
+          <span>Status</span>
+        </h3>
+
+        <div className="person-form__group">
+          <label htmlFor="legitimacyStatus" className="person-form__label">
+            Legitimacy Status
           </label>
           <select
-            id="gender"
-            name="gender"
-            value={formData.gender}
+            id="legitimacyStatus"
+            name="legitimacyStatus"
+            value={formData.legitimacyStatus}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="person-form__select"
           >
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-            <option value="other">Other</option>
+            <option value="legitimate">Legitimate</option>
+            <option value="bastard">Bastard</option>
+            <option value="adopted">Adopted</option>
+            <option value="unknown">Unknown</option>
           </select>
+          <span className="person-form__hint">
+            This affects the border color in the family tree visualization
+          </span>
         </div>
+      </motion.div>
 
-        {/* House */}
-        <div>
-          <label htmlFor="houseId" className="block text-sm font-medium text-gray-700 mb-1">
-            House
-          </label>
-          <select
-            id="houseId"
-            name="houseId"
-            value={formData.houseId || ''}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="">No House (Commoner)</option>
-            {houses.map(house => (
-              <option key={house.id} value={house.id}>
-                {house.houseName}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* Dates */}
-      <div className="grid grid-cols-2 gap-4">
-        {/* Date of Birth */}
-        <div>
-          <label htmlFor="dateOfBirth" className="block text-sm font-medium text-gray-700 mb-1">
-            Date of Birth
-          </label>
-          <input
-            type="text"
-            id="dateOfBirth"
-            name="dateOfBirth"
-            value={formData.dateOfBirth || ''}
-            onChange={handleChange}
-            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-              errors.dateOfBirth ? 'border-red-500' : 'border-gray-300'
-            }`}
-            placeholder="YYYY-MM-DD or YYYY"
-          />
-          {errors.dateOfBirth && (
-            <p className="mt-1 text-sm text-red-600">{errors.dateOfBirth}</p>
-          )}
-          <p className="mt-1 text-xs text-gray-500">Format: YYYY-MM-DD, YYYY-MM, or YYYY</p>
-        </div>
-
-        {/* Date of Death */}
-        <div>
-          <label htmlFor="dateOfDeath" className="block text-sm font-medium text-gray-700 mb-1">
-            Date of Death
-          </label>
-          <input
-            type="text"
-            id="dateOfDeath"
-            name="dateOfDeath"
-            value={formData.dateOfDeath || ''}
-            onChange={handleChange}
-            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-              errors.dateOfDeath ? 'border-red-500' : 'border-gray-300'
-            }`}
-            placeholder="YYYY-MM-DD or YYYY"
-          />
-          {errors.dateOfDeath && (
-            <p className="mt-1 text-sm text-red-600">{errors.dateOfDeath}</p>
-          )}
-          <p className="mt-1 text-xs text-gray-500">Leave blank if still living</p>
-        </div>
-      </div>
-
-      {/* Legitimacy Status */}
-      <div>
-        <label htmlFor="legitimacyStatus" className="block text-sm font-medium text-gray-700 mb-1">
-          Legitimacy Status
-        </label>
-        <select
-          id="legitimacyStatus"
-          name="legitimacyStatus"
-          value={formData.legitimacyStatus}
-          onChange={handleChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+      {/* Fantasy Elements Section */}
+      {showFantasyFields && (
+        <motion.div
+          className="person-form__section person-form__section--fantasy"
+          variants={SECTION_VARIANTS}
+          initial="hidden"
+          animate="visible"
+          transition={{ delay: 0.3 }}
         >
-          <option value="legitimate">Legitimate</option>
-          <option value="bastard">Bastard</option>
-          <option value="adopted">Adopted</option>
-          <option value="unknown">Unknown</option>
-        </select>
-        <p className="mt-1 text-xs text-gray-500">
-          This affects the border color in the family tree visualization
-        </p>
-      </div>
+          <h3 className="person-form__section-title">
+            <Icon name="sparkles" size={16} />
+            <span>Fantasy Elements</span>
+            <span className="person-form__section-badge">Optional</span>
+          </h3>
 
-      {/* ═══════════════════════════════════════════════════════════════════════
-          🪝 HOOK: FANTASY_FIELDS_INPUT
-          ═══════════════════════════════════════════════════════════════════════
-          Fantasy-specific fields controlled by feature flags.
-          Only renders if at least one fantasy feature is enabled.
-          ═══════════════════════════════════════════════════════════════════════ */}
-      {(isFeatureEnabled('MODULE_1E.SPECIES_FIELD') || 
-        isFeatureEnabled('MODULE_1E.MAGICAL_BLOODLINES') || 
-        isFeatureEnabled('MODULE_1E.TITLES_SYSTEM')) && (
-        <div className="border-t pt-4">
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">Fantasy Elements (Optional)</h3>
-          
-          <div className="grid grid-cols-2 gap-4">
-            {/* Species - Shows when MODULE_1E.SPECIES_FIELD is enabled */}
+          <div className="person-form__row">
             {isFeatureEnabled('MODULE_1E.SPECIES_FIELD') && (
-              <div>
-                <label htmlFor="species" className="block text-sm font-medium text-gray-700 mb-1">
+              <div className="person-form__group">
+                <label htmlFor="species" className="person-form__label">
                   Species/Race
                 </label>
                 <input
@@ -326,16 +371,15 @@ function PersonForm({ person = null, houses = [], onSave, onCancel }) {
                   name="species"
                   value={formData.species || ''}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="person-form__input"
                   placeholder="e.g., Human, Elf, Dwarf"
                 />
               </div>
             )}
 
-            {/* Magical Bloodline - Shows when MODULE_1E.MAGICAL_BLOODLINES is enabled */}
             {isFeatureEnabled('MODULE_1E.MAGICAL_BLOODLINES') && (
-              <div>
-                <label htmlFor="magicalBloodline" className="block text-sm font-medium text-gray-700 mb-1">
+              <div className="person-form__group">
+                <label htmlFor="magicalBloodline" className="person-form__label">
                   Magical Bloodline
                 </label>
                 <input
@@ -344,44 +388,43 @@ function PersonForm({ person = null, houses = [], onSave, onCancel }) {
                   name="magicalBloodline"
                   value={formData.magicalBloodline || ''}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="person-form__input"
                   placeholder="e.g., Dragon Rider, Seer"
                 />
               </div>
             )}
           </div>
-        </div>
+
+          {isFeatureEnabled('MODULE_1E.TITLES_SYSTEM') && (
+            <div className="person-form__group">
+              <label htmlFor="titles" className="person-form__label">
+                Titles
+              </label>
+              <input
+                type="text"
+                id="titles"
+                name="titles"
+                value={formData.titles || ''}
+                onChange={handleChange}
+                className="person-form__input"
+                placeholder="Separate multiple titles with commas"
+              />
+              <span className="person-form__hint">
+                Example: Lord of Winterfell, Warden of the North
+              </span>
+            </div>
+          )}
+        </motion.div>
       )}
 
-      {/* ═══════════════════════════════════════════════════════════════════════
-          🪝 HOOK: FANTASY_FIELDS_INPUT - Titles
-          ═══════════════════════════════════════════════════════════════════════ */}
-      {/* Titles - Shows when MODULE_1E.TITLES_SYSTEM is enabled */}
-      {isFeatureEnabled('MODULE_1E.TITLES_SYSTEM') && (
-        <div>
-          <label htmlFor="titles" className="block text-sm font-medium text-gray-700 mb-1">
-            Titles
-          </label>
-          <input
-            type="text"
-            id="titles"
-            name="titles"
-            value={formData.titles || ''}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Separate multiple titles with commas"
-          />
-          <p className="mt-1 text-xs text-gray-500">Example: Lord of Winterfell, Warden of the North</p>
-        </div>
-      )}
-
-      {/* ═══════════════════════════════════════════════════════════════════════
-          ✨ EPITHETS SECTION
-          ═══════════════════════════════════════════════════════════════════════
-          Descriptive bynames like "the Bold", "the Wise", "Dragonslayer".
-          Full editing interface with all metadata fields.
-          ═══════════════════════════════════════════════════════════════════════ */}
-      <div className="border-t pt-4">
+      {/* Epithets Section */}
+      <motion.div
+        className="person-form__section"
+        variants={SECTION_VARIANTS}
+        initial="hidden"
+        animate="visible"
+        transition={{ delay: 0.4 }}
+      >
         <EpithetsSection
           epithets={formData.epithets}
           onChange={(newEpithets) => setFormData(prev => ({ ...prev, epithets: newEpithets }))}
@@ -389,68 +432,78 @@ function PersonForm({ person = null, houses = [], onSave, onCancel }) {
           compact={false}
           readOnly={false}
         />
-      </div>
+      </motion.div>
 
-      {/* Notes */}
-      <div>
-        <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">
-          Notes
-        </label>
-        <textarea
-          id="notes"
-          name="notes"
-          value={formData.notes || ''}
-          onChange={handleChange}
-          rows="3"
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          placeholder="Additional information about this person..."
-        />
-      </div>
+      {/* Notes Section */}
+      <motion.div
+        className="person-form__section"
+        variants={SECTION_VARIANTS}
+        initial="hidden"
+        animate="visible"
+        transition={{ delay: 0.5 }}
+      >
+        <h3 className="person-form__section-title">
+          <Icon name="file-text" size={16} />
+          <span>Notes</span>
+        </h3>
 
-      {/* ═══════════════════════════════════════════════════════════════════
-          🔗 TREE-CODEX INTEGRATION: View Biography Button
-          ═══════════════════════════════════════════════════════════════════
-          Shows when editing an existing person with a Codex entry.
-          Allows navigation to The Codex for rich biography editing.
-          ═══════════════════════════════════════════════════════════════════ */}
+        <div className="person-form__group">
+          <textarea
+            id="notes"
+            name="notes"
+            value={formData.notes || ''}
+            onChange={handleChange}
+            rows="3"
+            className="person-form__textarea"
+            placeholder="Additional information about this person..."
+          />
+        </div>
+      </motion.div>
+
+      {/* Codex Integration */}
       {person?.codexEntryId && (
-        <div className="py-4 border-t border-b bg-amber-50 rounded-lg px-4 my-4">
-          <div className="flex items-center justify-between">
+        <motion.div
+          className="person-form__codex-link"
+          variants={SECTION_VARIANTS}
+          initial="hidden"
+          animate="visible"
+          transition={{ delay: 0.6 }}
+        >
+          <div className="person-form__codex-info">
+            <Icon name="book-open" size={20} className="person-form__codex-icon" />
             <div>
-              <h4 className="text-sm font-semibold text-amber-900">
-                📖 Biography Available
-              </h4>
-              <p className="text-xs text-amber-700 mt-1">
+              <h4 className="person-form__codex-title">Biography Available</h4>
+              <p className="person-form__codex-text">
                 This person has a Codex entry for detailed biographical information.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => navigate(`/codex/entry/${person.codexEntryId}`)}
-              className="px-4 py-2 text-amber-900 bg-amber-200 rounded-lg hover:bg-amber-300 transition flex items-center gap-2 font-medium"
-            >
-              <span>📖</span>
-              View Biography
-            </button>
           </div>
-        </div>
+          <ActionButton
+            icon="book-open"
+            onClick={() => navigate(`/codex/entry/${person.codexEntryId}`)}
+            variant="secondary"
+          >
+            View Biography
+          </ActionButton>
+        </motion.div>
       )}
 
       {/* Form Actions */}
-      <div className="flex justify-end space-x-3 pt-4 border-t">
-        <button
+      <div className="person-form__actions">
+        <ActionButton
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
+          variant="ghost"
         >
           Cancel
-        </button>
-        <button
+        </ActionButton>
+        <ActionButton
           type="submit"
-          className="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition"
+          icon={person ? 'save' : 'plus'}
+          variant="primary"
         >
           {person ? 'Update Person' : 'Create Person'}
-        </button>
+        </ActionButton>
       </div>
     </form>
   );

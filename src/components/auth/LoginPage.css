@@ -1,0 +1,236 @@
+/**
+ * LoginPage.css - Authentication Landing Page Styles
+ *
+ * PURPOSE:
+ * Styles for the login/authentication page.
+ * Medieval manuscript aesthetic with BEM naming.
+ * Uses CSS custom properties for theming.
+ */
+
+/* ============================================
+   PAGE CONTAINER
+   ============================================ */
+
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+  background: var(--bg-primary);
+  background-image:
+    radial-gradient(ellipse at top, var(--bg-secondary) 0%, transparent 50%),
+    radial-gradient(ellipse at bottom, var(--bg-tertiary) 0%, transparent 50%);
+}
+
+/* ============================================
+   LOGIN CARD
+   ============================================ */
+
+.login-page__card {
+  width: 100%;
+  max-width: 420px;
+  padding: var(--space-8);
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-secondary);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+  text-align: center;
+}
+
+/* ============================================
+   HEADER
+   ============================================ */
+
+.login-page__header {
+  margin-bottom: var(--space-4);
+}
+
+.login-page__title {
+  font-family: var(--font-display);
+  font-size: var(--text-4xl);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 var(--space-2) 0;
+  letter-spacing: 0.025em;
+}
+
+.login-page__subtitle {
+  font-family: var(--font-body);
+  font-size: var(--text-lg);
+  font-style: italic;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* ============================================
+   DIVIDER
+   ============================================ */
+
+.login-page__divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: var(--space-6) 0;
+}
+
+.login-page__divider-ornament {
+  color: var(--border-primary);
+  font-size: var(--text-xl);
+}
+
+/* ============================================
+   DESCRIPTION
+   ============================================ */
+
+.login-page__description {
+  margin-bottom: var(--space-6);
+}
+
+.login-page__description p {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ============================================
+   ACTIONS
+   ============================================ */
+
+.login-page__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+/* ============================================
+   GOOGLE BUTTON
+   ============================================ */
+
+.login-page__google-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  width: 100%;
+  max-width: 280px;
+  padding: var(--space-3) var(--space-6);
+  background: #ffffff;
+  border: 1px solid #dadce0;
+  border-radius: var(--radius-md);
+  font-family: 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #3c4043;
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    box-shadow var(--duration-fast) var(--ease-standard);
+}
+
+.login-page__google-btn:hover:not(:disabled) {
+  background: #f8f9fa;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.login-page__google-btn:active:not(:disabled) {
+  background: #f1f3f4;
+}
+
+.login-page__google-btn:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+.login-page__google-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* ============================================
+   SPINNER
+   ============================================ */
+
+.login-page__spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #dadce0;
+  border-top-color: #4285f4;
+  border-radius: 50%;
+  animation: login-spin 0.8s linear infinite;
+}
+
+@keyframes login-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================
+   ERROR MESSAGE
+   ============================================ */
+
+.login-page__error {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid var(--color-error);
+  border-radius: var(--radius-md);
+  color: var(--color-error);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+}
+
+.login-page__error-icon {
+  flex-shrink: 0;
+}
+
+/* ============================================
+   FOOTER
+   ============================================ */
+
+.login-page__footer {
+  margin-top: var(--space-2);
+}
+
+.login-page__footer p {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+  margin: 0;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 480px) {
+  .login-page__card {
+    padding: var(--space-6);
+  }
+
+  .login-page__title {
+    font-size: var(--text-3xl);
+  }
+
+  .login-page__google-btn {
+    max-width: 100%;
+  }
+}
+
+/* ============================================
+   REDUCED MOTION
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .login-page__spinner {
+    animation: none;
+  }
+
+  .login-page__google-btn {
+    transition: none;
+  }
+}

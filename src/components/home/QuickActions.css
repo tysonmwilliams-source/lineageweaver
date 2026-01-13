@@ -1,0 +1,126 @@
+/**
+ * QuickActions.css - Styles for Quick Action Buttons
+ * 
+ * Uses CSS custom properties for theming.
+ * Horizontal button bar with icon + label.
+ */
+
+/* ============================================
+   SECTION CONTAINER
+   ============================================ */
+
+.quick-actions {
+  margin-bottom: var(--space-8);
+}
+
+.quick-actions-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: center;
+  margin: 0 0 var(--space-4) 0;
+}
+
+.quick-actions-title .section-title-icon {
+  color: var(--accent-primary);
+  opacity: 0.8;
+}
+
+/* ============================================
+   ACTIONS GRID
+   ============================================ */
+
+.quick-actions-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-3);
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+/* ============================================
+   INDIVIDUAL ACTION BUTTON
+   ============================================ */
+
+.quick-action-button {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background: var(--bg-tertiary);
+  border: 2px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--duration-normal) var(--ease-standard);
+  box-shadow: var(--shadow-sm);
+}
+
+.quick-action-button:hover {
+  background: var(--bg-secondary);
+  border-color: var(--accent-primary);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-md);
+}
+
+.quick-action-button:active {
+  transform: translateY(1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.action-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-primary);
+  line-height: 1;
+}
+
+.quick-action-button:hover .action-icon {
+  color: var(--text-primary);
+}
+
+.action-label {
+  white-space: nowrap;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 768px) {
+  .quick-actions-grid {
+    gap: var(--space-2);
+  }
+  
+  .quick-action-button {
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-xs);
+  }
+  
+  .action-icon svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .quick-actions-grid {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .quick-action-button {
+    justify-content: center;
+    padding: var(--space-3);
+  }
+}

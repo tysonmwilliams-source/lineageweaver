@@ -1,32 +1,68 @@
+/**
+ * CodexEntryForm.jsx - Codex Entry Creation/Editing Form
+ *
+ * Handles creation and editing of codex entries.
+ * Supports all 6 entry types with custom templates.
+ * Features medieval manuscript aesthetic with animations.
+ */
+
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   createEntry,
   updateEntry,
   getEntry
 } from '../services/codexService';
-import { updateHeraldry } from '../services/heraldryService'; // PHASE 5 Batch 3
+import { updateHeraldry } from '../services/heraldryService';
 import Navigation from '../components/Navigation';
+import Icon from '../components/icons/Icon';
+import ActionButton from '../components/shared/ActionButton';
+import LoadingState from '../components/shared/LoadingState';
 import './CodexEntryForm.css';
 
-/**
- * Codex Entry Form
- * 
- * Handles creation and editing of codex entries.
- * Supports all 6 entry types with custom templates.
- */
+const CONTAINER_VARIANTS = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.1
+    }
+  }
+};
+
+const ITEM_VARIANTS = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.4 }
+  }
+};
+
+const TYPE_ICONS = {
+  personage: 'users',
+  house: 'castle',
+  location: 'map',
+  event: 'book-open',
+  mysteria: 'sparkles',
+  heraldry: 'shield',
+  custom: 'file-text'
+};
+
 function CodexEntryForm() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { id } = useParams();
-  
+
   const isEditing = Boolean(id);
   const initialType = searchParams.get('type') || 'personage';
-  
-  // PHASE 5 Batch 3: Get heraldryId and title from URL params (for Armory integration)
+
+  // Get heraldryId and title from URL params (for Armory integration)
   const heraldryIdParam = searchParams.get('heraldryId');
   const titleParam = searchParams.get('title');
-  
+
   // Form state
   const [formData, setFormData] = useState({
     type: initialType,
@@ -36,24 +72,23 @@ function CodexEntryForm() {
     tags: [],
     era: '',
     category: '',
-    heraldryId: heraldryIdParam ? parseInt(heraldryIdParam) : null // PHASE 5 Batch 3
+    heraldryId: heraldryIdParam ? parseInt(heraldryIdParam) : null
   });
-  
+
   const [tagInput, setTagInput] = useState('');
   const [loading, setLoading] = useState(isEditing);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
-  
+
   // Load existing entry if editing
   useEffect(() => {
     if (isEditing) {
       loadEntry();
     } else {
-      // Apply template for new entries
       applyTemplate(initialType);
     }
   }, [id, isEditing]);
-  
+
   async function loadEntry() {
     try {
       setLoading(true);
@@ -67,7 +102,7 @@ function CodexEntryForm() {
           tags: entry.tags || [],
           era: entry.era || '',
           category: entry.category || '',
-          heraldryId: entry.heraldryId || null // PHASE 5 Batch 3
+          heraldryId: entry.heraldryId || null
         });
       } else {
         setError('Entry not found');
@@ -79,7 +114,7 @@ function CodexEntryForm() {
       setLoading(false);
     }
   }
-  
+
   function applyTemplate(type) {
     const template = ENTRY_TEMPLATES[type];
     if (template) {
@@ -91,7 +126,7 @@ function CodexEntryForm() {
       }));
     }
   }
-  
+
   function handleTypeChange(newType) {
     setFormData(prev => ({
       ...prev,
@@ -101,14 +136,14 @@ function CodexEntryForm() {
       applyTemplate(newType);
     }
   }
-  
+
   function handleInputChange(field, value) {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
   }
-  
+
   function handleAddTag(e) {
     e.preventDefault();
     const tag = tagInput.trim().toLowerCase();
@@ -120,30 +155,29 @@ function CodexEntryForm() {
       setTagInput('');
     }
   }
-  
+
   function handleRemoveTag(tagToRemove) {
     setFormData(prev => ({
       ...prev,
       tags: prev.tags.filter(tag => tag !== tagToRemove)
     }));
   }
-  
+
   async function handleSave() {
-    // Validation
     if (!formData.title.trim()) {
       setError('Title is required');
       return;
     }
-    
+
     if (!formData.content.trim()) {
       setError('Content is required');
       return;
     }
-    
+
     try {
       setSaving(true);
       setError(null);
-      
+
       const entryData = {
         type: formData.type,
         title: formData.title.trim(),
@@ -152,30 +186,27 @@ function CodexEntryForm() {
         tags: formData.tags,
         era: formData.era.trim() || null,
         category: formData.category.trim() || null,
-        heraldryId: formData.heraldryId || null // PHASE 5 Batch 3
+        heraldryId: formData.heraldryId || null
       };
-      
+
       let codexEntryId;
-      
+
       if (isEditing) {
         await updateEntry(parseInt(id), entryData);
         codexEntryId = parseInt(id);
       } else {
         codexEntryId = await createEntry(entryData);
       }
-      
-      // PHASE 5 Batch 3: Bidirectional linking - update heraldry record with codexEntryId
+
+      // Bidirectional linking - update heraldry record with codexEntryId
       if (entryData.heraldryId && codexEntryId) {
         try {
           await updateHeraldry(entryData.heraldryId, { codexEntryId });
-          console.log('🔗 Bidirectional link created: Heraldry', entryData.heraldryId, '<-> Codex', codexEntryId);
         } catch (linkError) {
-          // Don't fail the save if linking fails, just log it
           console.error('Warning: Failed to create bidirectional link:', linkError);
         }
       }
-      
-      // Navigate back to codex landing
+
       navigate('/codex');
     } catch (err) {
       console.error('Error saving entry:', err);
@@ -183,203 +214,250 @@ function CodexEntryForm() {
       setSaving(false);
     }
   }
-  
+
   function handleCancel() {
     if (window.confirm('Discard changes and return to Codex?')) {
       navigate('/codex');
     }
   }
-  
+
   if (loading) {
     return (
       <>
         <Navigation />
-        <div className="codex-entry-form loading">
-          <div className="loading-spinner">
-            <div className="text-4xl mb-4">📜</div>
-            <p>Loading entry...</p>
-          </div>
+        <div className="codex-entry-form codex-entry-form--loading">
+          <LoadingState message="Loading entry..." icon="scroll" />
         </div>
       </>
     );
   }
-  
+
   return (
     <>
       <Navigation />
-      <div className="codex-entry-form">
-        <header className="form-header">
-          <h1 className="form-title">
-            {isEditing ? 'Edit Entry' : 'Create New Entry'}
+      <motion.div
+        className="codex-entry-form"
+        variants={CONTAINER_VARIANTS}
+        initial="hidden"
+        animate="visible"
+      >
+        {/* Header */}
+        <motion.header className="codex-entry-form__header" variants={ITEM_VARIANTS}>
+          <h1 className="codex-entry-form__title">
+            <Icon name={isEditing ? 'pencil' : 'plus'} size={32} />
+            <span>{isEditing ? 'Edit Entry' : 'Create New Entry'}</span>
           </h1>
-          <p className="form-subtitle">
+          <p className="codex-entry-form__subtitle">
             Document the lore and history of your world
           </p>
-        </header>
-        
-        {error && (
-          <div className="form-error">
-            <span className="error-icon">⚠️</span>
-            {error}
-          </div>
-        )}
-        
-        <div className="form-content">
+        </motion.header>
+
+        {/* Error Alert */}
+        <AnimatePresence>
+          {error && (
+            <motion.div
+              className="codex-entry-form__error"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+            >
+              <Icon name="alert-circle" size={20} />
+              <span>{error}</span>
+              <button
+                onClick={() => setError(null)}
+                className="codex-entry-form__error-close"
+              >
+                <Icon name="x" size={16} />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <div className="codex-entry-form__content">
           {/* Entry Type Selector */}
-          <section className="form-section">
-            <label className="form-label">Entry Type</label>
-            <div className="type-selector-grid">
+          <motion.section className="codex-entry-form__section" variants={ITEM_VARIANTS}>
+            <label className="codex-entry-form__label">
+              <Icon name="layout-grid" size={16} />
+              <span>Entry Type</span>
+            </label>
+            <div className="codex-entry-form__type-grid">
               {ENTRY_TYPES.map(type => (
-                <button
+                <motion.button
                   key={type.value}
                   type="button"
-                  className={`type-option ${formData.type === type.value ? 'selected' : ''}`}
+                  className={`codex-entry-form__type-option ${formData.type === type.value ? 'codex-entry-form__type-option--selected' : ''}`}
                   onClick={() => handleTypeChange(type.value)}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                 >
-                  <span className="type-icon">{type.icon}</span>
-                  <span className="type-label">{type.label}</span>
-                </button>
+                  <Icon name={TYPE_ICONS[type.value] || 'file'} size={24} />
+                  <span className="codex-entry-form__type-label">{type.label}</span>
+                </motion.button>
               ))}
             </div>
-          </section>
-          
+          </motion.section>
+
           {/* Title */}
-          <section className="form-section">
-            <label className="form-label" htmlFor="title">
-              Title *
+          <motion.section className="codex-entry-form__section" variants={ITEM_VARIANTS}>
+            <label className="codex-entry-form__label" htmlFor="title">
+              <Icon name="type" size={16} />
+              <span>Title</span>
+              <span className="codex-entry-form__required">*</span>
             </label>
             <input
               id="title"
               type="text"
-              className="form-input"
+              className="codex-entry-form__input"
               placeholder="Enter the entry title..."
               value={formData.title}
               onChange={(e) => handleInputChange('title', e.target.value)}
             />
-          </section>
-          
+          </motion.section>
+
           {/* Subtitle */}
-          <section className="form-section">
-            <label className="form-label" htmlFor="subtitle">
-              Subtitle
+          <motion.section className="codex-entry-form__section" variants={ITEM_VARIANTS}>
+            <label className="codex-entry-form__label" htmlFor="subtitle">
+              <Icon name="minus" size={16} />
+              <span>Subtitle</span>
             </label>
             <input
               id="subtitle"
               type="text"
-              className="form-input"
+              className="codex-entry-form__input"
               placeholder="Optional subtitle or tagline..."
               value={formData.subtitle}
               onChange={(e) => handleInputChange('subtitle', e.target.value)}
             />
-          </section>
-          
+          </motion.section>
+
           {/* Era and Category */}
-          <div className="form-row">
-            <section className="form-section">
-              <label className="form-label" htmlFor="era">
-                Era / Time Period
+          <motion.div className="codex-entry-form__row" variants={ITEM_VARIANTS}>
+            <section className="codex-entry-form__section">
+              <label className="codex-entry-form__label" htmlFor="era">
+                <Icon name="calendar" size={16} />
+                <span>Era / Time Period</span>
               </label>
               <input
                 id="era"
                 type="text"
-                className="form-input"
+                className="codex-entry-form__input"
                 placeholder="e.g., Second Age, Pre-War..."
                 value={formData.era}
                 onChange={(e) => handleInputChange('era', e.target.value)}
               />
             </section>
-            
-            <section className="form-section">
-              <label className="form-label" htmlFor="category">
-                Category
+
+            <section className="codex-entry-form__section">
+              <label className="codex-entry-form__label" htmlFor="category">
+                <Icon name="folder" size={16} />
+                <span>Category</span>
               </label>
               <input
                 id="category"
                 type="text"
-                className="form-input"
+                className="codex-entry-form__input"
                 placeholder="e.g., Nobility, Religion..."
                 value={formData.category}
                 onChange={(e) => handleInputChange('category', e.target.value)}
               />
             </section>
-          </div>
-          
+          </motion.div>
+
           {/* Tags */}
-          <section className="form-section">
-            <label className="form-label">Tags</label>
-            <div className="tags-input-container">
-              <div className="tags-display">
-                {formData.tags.map(tag => (
-                  <span key={tag} className="tag-pill">
-                    {tag}
-                    <button
-                      type="button"
-                      className="tag-remove"
-                      onClick={() => handleRemoveTag(tag)}
+          <motion.section className="codex-entry-form__section" variants={ITEM_VARIANTS}>
+            <label className="codex-entry-form__label">
+              <Icon name="tags" size={16} />
+              <span>Tags</span>
+            </label>
+            <div className="codex-entry-form__tags">
+              <div className="codex-entry-form__tags-display">
+                <AnimatePresence>
+                  {formData.tags.map(tag => (
+                    <motion.span
+                      key={tag}
+                      className="codex-entry-form__tag"
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
                     >
-                      ×
-                    </button>
-                  </span>
-                ))}
+                      {tag}
+                      <button
+                        type="button"
+                        className="codex-entry-form__tag-remove"
+                        onClick={() => handleRemoveTag(tag)}
+                      >
+                        <Icon name="x" size={12} />
+                      </button>
+                    </motion.span>
+                  ))}
+                </AnimatePresence>
+                {formData.tags.length === 0 && (
+                  <span className="codex-entry-form__tags-empty">No tags added</span>
+                )}
               </div>
-              <form onSubmit={handleAddTag} className="tag-input-form">
+              <form onSubmit={handleAddTag} className="codex-entry-form__tag-form">
                 <input
                   type="text"
-                  className="form-input"
+                  className="codex-entry-form__input"
                   placeholder="Add a tag..."
                   value={tagInput}
                   onChange={(e) => setTagInput(e.target.value)}
                 />
-                <button
+                <ActionButton
                   type="submit"
-                  className="tag-add-button"
+                  icon="plus"
                   disabled={!tagInput.trim()}
+                  variant="secondary"
+                  size="sm"
                 >
                   Add
-                </button>
+                </ActionButton>
               </form>
             </div>
-          </section>
-          
+          </motion.section>
+
           {/* Content */}
-          <section className="form-section">
-            <label className="form-label" htmlFor="content">
-              Content *
+          <motion.section className="codex-entry-form__section" variants={ITEM_VARIANTS}>
+            <label className="codex-entry-form__label" htmlFor="content">
+              <Icon name="file-text" size={16} />
+              <span>Content</span>
+              <span className="codex-entry-form__required">*</span>
             </label>
-            <div className="content-help">
+            <p className="codex-entry-form__hint">
               Use <code>[[Entry Name]]</code> to link to other entries
-            </div>
+            </p>
             <textarea
               id="content"
-              className="form-textarea"
+              className="codex-entry-form__textarea"
               placeholder="Write your entry content here..."
               value={formData.content}
               onChange={(e) => handleInputChange('content', e.target.value)}
               rows={20}
             />
-          </section>
+          </motion.section>
         </div>
-        
-        {/* Action Buttons */}
-        <footer className="form-footer">
-          <button
+
+        {/* Footer Actions */}
+        <motion.footer className="codex-entry-form__footer" variants={ITEM_VARIANTS}>
+          <ActionButton
             type="button"
-            className="form-button secondary"
             onClick={handleCancel}
             disabled={saving}
+            variant="ghost"
           >
             Cancel
-          </button>
-          <button
+          </ActionButton>
+          <ActionButton
             type="button"
-            className="form-button primary"
+            icon={isEditing ? 'save' : 'plus'}
             onClick={handleSave}
             disabled={saving}
+            variant="primary"
           >
             {saving ? 'Saving...' : (isEditing ? 'Update Entry' : 'Create Entry')}
-          </button>
-        </footer>
-      </div>
+          </ActionButton>
+        </motion.footer>
+      </motion.div>
     </>
   );
 }
@@ -389,13 +467,13 @@ function CodexEntryForm() {
 // ============================================
 
 const ENTRY_TYPES = [
-  { value: 'personage', label: 'Personage', icon: '👥' },
-  { value: 'house', label: 'House', icon: '🏰' },
-  { value: 'location', label: 'Location', icon: '🗺️' },
-  { value: 'event', label: 'Event', icon: '📖' },
-  { value: 'mysteria', label: 'Mysteria', icon: '🔮' },
-  { value: 'heraldry', label: 'Heraldry', icon: '🛡️' },
-  { value: 'custom', label: 'Custom', icon: '⚖️' }
+  { value: 'personage', label: 'Personage' },
+  { value: 'house', label: 'House' },
+  { value: 'location', label: 'Location' },
+  { value: 'event', label: 'Event' },
+  { value: 'mysteria', label: 'Mysteria' },
+  { value: 'heraldry', label: 'Heraldry' },
+  { value: 'custom', label: 'Custom' }
 ];
 
 // ============================================
@@ -430,7 +508,7 @@ const ENTRY_TEMPLATES = {
 [How this person is remembered or their impact on the world]`,
     defaultCategory: 'Historical Figures'
   },
-  
+
   house: {
     content: `## Overview
 
@@ -462,7 +540,7 @@ const ENTRY_TEMPLATES = {
 [Present-day situation of the house]`,
     defaultCategory: 'Noble Houses'
   },
-  
+
   location: {
     content: `## Overview
 
@@ -493,7 +571,7 @@ const ENTRY_TEMPLATES = {
 [Why this place matters to your world]`,
     defaultCategory: 'Geography'
   },
-  
+
   event: {
     content: `## Overview
 
@@ -528,7 +606,7 @@ const ENTRY_TEMPLATES = {
 [How this event is remembered or changed the world]`,
     defaultCategory: 'Historical Events'
   },
-  
+
   mysteria: {
     content: `## Overview
 
@@ -561,7 +639,7 @@ const ENTRY_TEMPLATES = {
 [Impact on your world and story]`,
     defaultCategory: 'Magic & Mystery'
   },
-  
+
   heraldry: {
     content: `## Overview
 
@@ -604,7 +682,7 @@ const ENTRY_TEMPLATES = {
 - [[Related Heraldry 2]] - [Relationship]`,
     defaultCategory: 'Heraldry'
   },
-  
+
   custom: {
     content: `## Overview
 

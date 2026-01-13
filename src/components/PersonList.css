@@ -1,0 +1,262 @@
+/**
+ * PersonList.css - Person List Styles
+ *
+ * PURPOSE:
+ * Styles for the person list component.
+ * Medieval manuscript aesthetic with BEM naming.
+ * Uses CSS custom properties for theming.
+ */
+
+/* ============================================
+   LIST CONTAINER
+   ============================================ */
+
+.person-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* ============================================
+   LIST ITEM
+   ============================================ */
+
+.person-list__item {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-left: 4px solid var(--legitimacy-color, var(--color-success));
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: box-shadow var(--duration-fast) var(--ease-standard);
+}
+
+.person-list__item:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* ============================================
+   CONTENT LAYOUT
+   ============================================ */
+
+.person-list__content {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4);
+}
+
+.person-list__info {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ============================================
+   HEADER (Name & House Dot)
+   ============================================ */
+
+.person-list__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+.person-list__house-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.person-list__name {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.person-list__maiden-name {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 400;
+  font-style: italic;
+  color: var(--text-secondary);
+  margin-left: var(--space-2);
+}
+
+/* ============================================
+   HOUSE AFFILIATION
+   ============================================ */
+
+.person-list__house {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin: 0 0 var(--space-1) 0;
+}
+
+.person-list__house svg {
+  color: var(--accent-primary);
+}
+
+/* ============================================
+   DATES
+   ============================================ */
+
+.person-list__dates {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin: 0 0 var(--space-1) 0;
+}
+
+.person-list__dates svg {
+  color: var(--accent-primary);
+}
+
+/* ============================================
+   TITLES
+   ============================================ */
+
+.person-list__titles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+}
+
+.person-list__title-badge {
+  display: inline-block;
+  padding: var(--space-1) var(--space-2);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+}
+
+/* ============================================
+   BADGES
+   ============================================ */
+
+.person-list__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.person-list__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  border-radius: var(--radius-sm);
+}
+
+.person-list__badge--biography {
+  background: rgba(212, 175, 55, 0.15);
+  color: var(--accent-primary);
+}
+
+.person-list__badge--biography svg {
+  color: var(--accent-primary);
+}
+
+.person-list__badge--bastard {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--color-warning);
+}
+
+.person-list__badge--adopted {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--color-info);
+}
+
+.person-list__badge--unknown {
+  background: var(--bg-tertiary);
+  color: var(--text-tertiary);
+}
+
+/* ============================================
+   FANTASY ELEMENTS
+   ============================================ */
+
+.person-list__fantasy {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.person-list__fantasy-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.person-list__fantasy-item svg {
+  color: var(--accent-primary);
+}
+
+/* ============================================
+   ACTIONS
+   ============================================ */
+
+.person-list__actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 640px) {
+  .person-list__content {
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .person-list__actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .person-list__name {
+    font-size: var(--text-base);
+  }
+
+  .person-list__header {
+    gap: var(--space-2);
+  }
+
+  .person-list__house-dot {
+    width: 10px;
+    height: 10px;
+  }
+}
+
+/* ============================================
+   REDUCED MOTION
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .person-list__item {
+    transition: none;
+  }
+}

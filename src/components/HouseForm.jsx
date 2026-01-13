@@ -1,45 +1,48 @@
 /**
- * HouseForm.jsx - ENHANCED WITH HERALDRY INTEGRATION
- * 
- * PHASE 5: Deep Integration - Batch 1
- * 
- * A form for adding or editing a house/family, now with integrated
+ * HouseForm.jsx - House Creation/Editing Form
+ *
+ * A form for adding or editing a house/family with integrated
  * heraldry management section.
- * 
+ *
  * HERALDRY FEATURES:
  * - Display current linked heraldry with thumbnail
  * - "Create New" → opens HeraldryCreator with house pre-selected
  * - "Link Existing" → opens HeraldryPickerModal
  * - "View/Edit" → navigates to HeraldryCreator in edit mode
  * - "Remove" → unlinks heraldry (doesn't delete)
- * 
- * Uses CSS custom properties for theming consistency.
- * 
- * Props:
- * - house: Existing house data (for editing) or null (for new house)
- * - onSave: Function to call when form is submitted
- * - onCancel: Function to call when user cancels
  */
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import HeraldryPickerModal from './heraldry/HeraldryPickerModal';
-import { 
-  getHeraldry, 
-  linkHeraldryToEntity, 
+import Icon from './icons/Icon';
+import ActionButton from './shared/ActionButton';
+import {
+  getHeraldry,
+  linkHeraldryToEntity,
   unlinkHeraldry,
-  getHeraldryLinks 
+  getHeraldryLinks
 } from '../services/heraldryService';
 import './HouseForm.css';
 
-function HouseForm({ 
-  house = null, 
-  onSave, 
+const SECTION_VARIANTS = {
+  hidden: { opacity: 0, y: 10 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.3 }
+  }
+};
+
+function HouseForm({
+  house = null,
+  onSave,
   onCancel
 }) {
   const navigate = useNavigate();
-  
-  // ==================== FORM STATE ====================
+
+  // Form State
   const [formData, setFormData] = useState({
     houseName: house?.houseName || '',
     sigil: house?.sigil || '',
@@ -48,20 +51,19 @@ function HouseForm({
     foundedDate: house?.foundedDate || '',
     colorCode: house?.colorCode || '#3b82f6',
     notes: house?.notes || '',
-    // Heraldry reference
     heraldryId: house?.heraldryId || null
   });
-  
-  // ==================== HERALDRY STATE ====================
+
+  // Heraldry State
   const [linkedHeraldry, setLinkedHeraldry] = useState(null);
   const [loadingHeraldry, setLoadingHeraldry] = useState(false);
   const [showHeraldryPicker, setShowHeraldryPicker] = useState(false);
   const [heraldryLinkId, setHeraldryLinkId] = useState(null);
-  
-  // ==================== VALIDATION STATE ====================
+
+  // Validation State
   const [errors, setErrors] = useState({});
 
-  // ==================== LOAD HERALDRY ====================
+  // Load Heraldry
   useEffect(() => {
     if (house?.heraldryId) {
       loadLinkedHeraldry(house.heraldryId);
@@ -73,12 +75,11 @@ function HouseForm({
       setLoadingHeraldry(true);
       const heraldry = await getHeraldry(heraldryId);
       setLinkedHeraldry(heraldry);
-      
-      // Also get the link ID for potential unlinking
+
       if (house?.id) {
         const links = await getHeraldryLinks(heraldryId);
-        const houseLink = links.find(l => 
-          l.entityType === 'house' && 
+        const houseLink = links.find(l =>
+          l.entityType === 'house' &&
           l.entityId === house.id
         );
         setHeraldryLinkId(houseLink?.id || null);
@@ -90,8 +91,6 @@ function HouseForm({
     }
   };
 
-  // ==================== HANDLERS ====================
-  
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -120,24 +119,21 @@ function HouseForm({
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     if (validate()) {
-      const houseData = house?.id 
+      const houseData = house?.id
         ? { ...formData, id: house.id }
         : formData;
-      
+
       onSave(houseData);
     }
   };
 
-  // ==================== HERALDRY HANDLERS ====================
-
+  // Heraldry Handlers
   const handleCreateHeraldry = () => {
-    // Navigate to heraldry creator with house pre-selected
     if (house?.id) {
       navigate(`/heraldry/create?houseId=${house.id}&houseName=${encodeURIComponent(house.houseName)}`);
     } else {
-      // For new houses, we need to save first
       alert('Please save the house first, then you can create heraldry for it.');
     }
   };
@@ -147,8 +143,7 @@ function HouseForm({
       alert('Please save the house first, then you can link heraldry to it.');
       return;
     }
-    
-    // Link the selected heraldry to this house
+
     linkHeraldryToEntity({
       heraldryId: selectedHeraldry.id,
       entityType: 'house',
@@ -172,19 +167,18 @@ function HouseForm({
 
   const handleRemoveHeraldry = async () => {
     if (!linkedHeraldry) return;
-    
+
     const confirm = window.confirm(
       `Remove heraldry link for "${linkedHeraldry.name}"?\n\nThis will unlink the heraldry from this house but will not delete the heraldry itself.`
     );
-    
+
     if (!confirm) return;
-    
+
     try {
-      // If we have a link ID, use it
       if (heraldryLinkId) {
         await unlinkHeraldry(heraldryLinkId);
       }
-      
+
       setLinkedHeraldry(null);
       setHeraldryLinkId(null);
       setFormData(prev => ({ ...prev, heraldryId: null }));
@@ -194,234 +188,288 @@ function HouseForm({
     }
   };
 
-  // ==================== RENDER ====================
-
   return (
     <>
       <form className="house-form" onSubmit={handleSubmit}>
-        
-        {/* House Name - Required */}
-        <div className="form-group">
-          <label className="form-label">
-            House Name <span className="form-label-required">*</span>
-          </label>
-          <input
-            type="text"
-            name="houseName"
-            value={formData.houseName}
-            onChange={handleChange}
-            placeholder="e.g., House Stark"
-            className={`form-input ${errors.houseName ? 'has-error' : ''}`}
-          />
-          {errors.houseName && (
-            <p className="form-error">{errors.houseName}</p>
-          )}
-        </div>
+        {/* Basic Information */}
+        <motion.div
+          className="house-form__section"
+          variants={SECTION_VARIANTS}
+          initial="hidden"
+          animate="visible"
+        >
+          <h3 className="house-form__section-title">
+            <Icon name="castle" size={16} />
+            <span>House Information</span>
+          </h3>
 
-        {/* ═══════════════════════════════════════════════════════════════
-            🛡️ HERALDRY SECTION - Phase 5 Integration
-            ═══════════════════════════════════════════════════════════════ */}
-        <div className="heraldry-section">
-          <label className="heraldry-section-label">
-            <span className="icon">🛡️</span>
-            House Heraldry
-          </label>
+          {/* House Name */}
+          <div className="house-form__group">
+            <label htmlFor="houseName" className="house-form__label house-form__label--required">
+              House Name
+            </label>
+            <input
+              type="text"
+              id="houseName"
+              name="houseName"
+              value={formData.houseName}
+              onChange={handleChange}
+              placeholder="e.g., House Stark"
+              className={`house-form__input ${errors.houseName ? 'house-form__input--error' : ''}`}
+            />
+            {errors.houseName && (
+              <span className="house-form__error">
+                <Icon name="alert-circle" size={12} />
+                {errors.houseName}
+              </span>
+            )}
+          </div>
+
+          {/* Motto */}
+          <div className="house-form__group">
+            <label htmlFor="motto" className="house-form__label">
+              House Motto
+            </label>
+            <input
+              type="text"
+              id="motto"
+              name="motto"
+              value={formData.motto}
+              onChange={handleChange}
+              placeholder="e.g., Winter is Coming"
+              className="house-form__input"
+            />
+          </div>
+
+          <div className="house-form__row">
+            {/* Founded Date */}
+            <div className="house-form__group">
+              <label htmlFor="foundedDate" className="house-form__label">
+                Founded Year
+              </label>
+              <input
+                type="text"
+                id="foundedDate"
+                name="foundedDate"
+                value={formData.foundedDate}
+                onChange={handleChange}
+                placeholder="e.g., 1120"
+                maxLength="4"
+                className={`house-form__input ${errors.foundedDate ? 'house-form__input--error' : ''}`}
+              />
+              {errors.foundedDate && (
+                <span className="house-form__error">
+                  <Icon name="alert-circle" size={12} />
+                  {errors.foundedDate}
+                </span>
+              )}
+            </div>
+
+            {/* Color Code */}
+            <div className="house-form__group">
+              <label htmlFor="colorCode" className="house-form__label">
+                House Color
+              </label>
+              <div className="house-form__color-row">
+                <input
+                  type="color"
+                  id="colorCode"
+                  name="colorCode"
+                  value={formData.colorCode}
+                  onChange={handleChange}
+                  className="house-form__color-input"
+                />
+                <span className="house-form__hint">
+                  Used to color-code this house in the family tree
+                </span>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Heraldry Section */}
+        <motion.div
+          className="house-form__section house-form__section--heraldry"
+          variants={SECTION_VARIANTS}
+          initial="hidden"
+          animate="visible"
+          transition={{ delay: 0.1 }}
+        >
+          <h3 className="house-form__section-title">
+            <Icon name="shield" size={16} />
+            <span>House Heraldry</span>
+          </h3>
 
           {loadingHeraldry ? (
-            <div className="heraldry-loading">Loading heraldry...</div>
+            <div className="house-form__heraldry-loading">
+              <Icon name="loader-2" size={20} className="spin" />
+              <span>Loading heraldry...</span>
+            </div>
           ) : linkedHeraldry ? (
-            /* Linked Heraldry Display */
-            <div className="heraldry-display">
+            <div className="house-form__heraldry-display">
               {/* Thumbnail */}
-              <div 
-                className="heraldry-thumbnail"
-                style={{ border: `2px solid ${formData.colorCode || 'var(--border-primary)'}` }}
+              <div
+                className="house-form__heraldry-thumbnail"
+                style={{ borderColor: formData.colorCode || 'var(--border-primary)' }}
               >
                 {linkedHeraldry.heraldryDisplay || linkedHeraldry.heraldryThumbnail ? (
-                  <img 
+                  <img
                     src={linkedHeraldry.heraldryDisplay || linkedHeraldry.heraldryThumbnail}
                     alt={linkedHeraldry.name}
                   />
                 ) : linkedHeraldry.heraldrySVG ? (
-                  <div 
-                    className="svg-container"
+                  <div
+                    className="house-form__heraldry-svg"
                     dangerouslySetInnerHTML={{ __html: linkedHeraldry.heraldrySVG }}
                   />
                 ) : (
-                  <span className="heraldry-thumbnail-placeholder">🛡️</span>
+                  <Icon name="shield" size={40} className="house-form__heraldry-placeholder" />
                 )}
               </div>
 
               {/* Info & Actions */}
-              <div className="heraldry-info">
-                <div className="heraldry-name">
+              <div className="house-form__heraldry-info">
+                <div className="house-form__heraldry-name">
                   {linkedHeraldry.name || 'Untitled Arms'}
                 </div>
-                
+
                 {linkedHeraldry.blazon && (
-                  <div className="heraldry-blazon">
+                  <div className="house-form__heraldry-blazon">
                     "{linkedHeraldry.blazon}"
                   </div>
                 )}
-                
-                {/* Action Buttons */}
-                <div className="heraldry-actions">
+
+                <div className="house-form__heraldry-actions">
                   <button
                     type="button"
                     onClick={handleViewHeraldry}
-                    className="heraldry-btn heraldry-btn-view"
+                    className="house-form__heraldry-btn house-form__heraldry-btn--view"
                   >
-                    ✏️ View/Edit
+                    <Icon name="pencil" size={14} />
+                    <span>View/Edit</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowHeraldryPicker(true)}
-                    className="heraldry-btn heraldry-btn-change"
+                    className="house-form__heraldry-btn house-form__heraldry-btn--change"
                   >
-                    🔄 Change
+                    <Icon name="refresh-cw" size={14} />
+                    <span>Change</span>
                   </button>
                   <button
                     type="button"
                     onClick={handleRemoveHeraldry}
-                    className="heraldry-btn heraldry-btn-remove"
+                    className="house-form__heraldry-btn house-form__heraldry-btn--remove"
                   >
-                    ✕ Remove
+                    <Icon name="x" size={14} />
+                    <span>Remove</span>
                   </button>
                 </div>
               </div>
             </div>
           ) : (
-            /* No Heraldry - Show Options */
-            <div className="heraldry-empty">
-              <p className="heraldry-empty-text">
+            <div className="house-form__heraldry-empty">
+              <p className="house-form__heraldry-empty-text">
                 No heraldry linked to this house yet. Create new arms or link existing heraldry.
               </p>
-              
-              <div className="heraldry-empty-actions">
-                <button
-                  type="button"
+
+              <div className="house-form__heraldry-empty-actions">
+                <ActionButton
+                  icon="sparkles"
                   onClick={handleCreateHeraldry}
                   disabled={!house?.id}
-                  className="heraldry-btn-create"
+                  variant="primary"
                   title={!house?.id ? 'Save house first to create heraldry' : 'Create new heraldry'}
                 >
-                  ✨ Create New Heraldry
-                </button>
-                
-                <button
-                  type="button"
+                  Create New Heraldry
+                </ActionButton>
+
+                <ActionButton
+                  icon="link"
                   onClick={() => setShowHeraldryPicker(true)}
                   disabled={!house?.id}
-                  className="heraldry-btn-link"
+                  variant="secondary"
                   title={!house?.id ? 'Save house first to link heraldry' : 'Link existing heraldry'}
                 >
-                  🔗 Link Existing
-                </button>
+                  Link Existing
+                </ActionButton>
               </div>
-              
+
               {!house?.id && (
-                <p className="heraldry-save-hint">
-                  💡 Save the house first to enable heraldry options
+                <p className="house-form__heraldry-hint">
+                  <Icon name="lightbulb" size={14} />
+                  <span>Save the house first to enable heraldry options</span>
                 </p>
               )}
             </div>
           )}
-        </div>
-        {/* ═══════════════════════════════════════════════════════════════ */}
+        </motion.div>
 
-        {/* Sigil Description (text fallback) */}
-        <div className="form-group">
-          <label className="form-label">
-            Sigil Description
-            <span className="form-label-hint">
-              (text description, separate from heraldry)
-            </span>
-          </label>
-          <input
-            type="text"
-            name="sigil"
-            value={formData.sigil}
-            onChange={handleChange}
-            placeholder="e.g., A grey direwolf on white field"
-            className="form-input"
-          />
-        </div>
+        {/* Additional Details */}
+        <motion.div
+          className="house-form__section"
+          variants={SECTION_VARIANTS}
+          initial="hidden"
+          animate="visible"
+          transition={{ delay: 0.2 }}
+        >
+          <h3 className="house-form__section-title">
+            <Icon name="file-text" size={16} />
+            <span>Additional Details</span>
+          </h3>
 
-        {/* Motto */}
-        <div className="form-group">
-          <label className="form-label">House Motto</label>
-          <input
-            type="text"
-            name="motto"
-            value={formData.motto}
-            onChange={handleChange}
-            placeholder="e.g., Winter is Coming"
-            className="form-input"
-          />
-        </div>
-
-        {/* Founded Date */}
-        <div className="form-group">
-          <label className="form-label">Founded Year</label>
-          <input
-            type="text"
-            name="foundedDate"
-            value={formData.foundedDate}
-            onChange={handleChange}
-            placeholder="e.g., 1120"
-            maxLength="4"
-            className={`form-input ${errors.foundedDate ? 'has-error' : ''}`}
-          />
-          {errors.foundedDate && (
-            <p className="form-error">{errors.foundedDate}</p>
-          )}
-        </div>
-
-        {/* Color Code */}
-        <div className="form-group">
-          <label className="form-label">House Color</label>
-          <div className="form-color-row">
+          {/* Sigil Description */}
+          <div className="house-form__group">
+            <label htmlFor="sigil" className="house-form__label">
+              Sigil Description
+              <span className="house-form__label-hint">
+                (text description, separate from heraldry)
+              </span>
+            </label>
             <input
-              type="color"
-              name="colorCode"
-              value={formData.colorCode}
+              type="text"
+              id="sigil"
+              name="sigil"
+              value={formData.sigil}
               onChange={handleChange}
-              className="form-color-input"
+              placeholder="e.g., A grey direwolf on white field"
+              className="house-form__input"
             />
-            <span className="form-color-hint">
-              Used to color-code this house in the family tree
-            </span>
           </div>
-        </div>
 
-        {/* Notes */}
-        <div className="form-group">
-          <label className="form-label">Notes</label>
-          <textarea
-            name="notes"
-            value={formData.notes}
-            onChange={handleChange}
-            rows="3"
-            placeholder="Additional information about this house..."
-            className="form-textarea"
-          />
-        </div>
+          {/* Notes */}
+          <div className="house-form__group">
+            <label htmlFor="notes" className="house-form__label">
+              Notes
+            </label>
+            <textarea
+              id="notes"
+              name="notes"
+              value={formData.notes}
+              onChange={handleChange}
+              rows="3"
+              placeholder="Additional information about this house..."
+              className="house-form__textarea"
+            />
+          </div>
+        </motion.div>
 
         {/* Form Actions */}
-        <div className="form-footer">
-          <button
+        <div className="house-form__actions">
+          <ActionButton
             type="button"
             onClick={onCancel}
-            className="form-btn form-btn-cancel"
+            variant="ghost"
           >
             Cancel
-          </button>
-          <button
+          </ActionButton>
+          <ActionButton
             type="submit"
-            className="form-btn form-btn-submit"
+            icon={house ? 'save' : 'plus'}
+            variant="primary"
           >
-            {house ? '💾 Update House' : '✨ Create House'}
-          </button>
+            {house ? 'Update House' : 'Create House'}
+          </ActionButton>
         </div>
       </form>
 

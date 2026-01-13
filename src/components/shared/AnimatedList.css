@@ -1,0 +1,69 @@
+/**
+ * AnimatedList.css - Animated List Styles
+ *
+ * Provides layout options for animated lists.
+ * Uses CSS custom properties for theming.
+ */
+
+/* ============================================
+   BASE CONTAINER
+   ============================================ */
+
+.animated-list {
+  display: flex;
+  width: 100%;
+}
+
+/* ============================================
+   LAYOUT VARIANTS
+   ============================================ */
+
+.animated-list--vertical {
+  flex-direction: column;
+}
+
+.animated-list--horizontal {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+.animated-list--grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+}
+
+/* ============================================
+   GAP VARIANTS
+   ============================================ */
+
+.animated-list--gap-none {
+  gap: 0;
+}
+
+.animated-list--gap-sm {
+  gap: var(--space-2);
+}
+
+.animated-list--gap-md {
+  gap: var(--space-4);
+}
+
+.animated-list--gap-lg {
+  gap: var(--space-6);
+}
+
+/* ============================================
+   ITEM WRAPPER
+   ============================================ */
+
+.animated-list__item {
+  /* Inherit width in vertical layout */
+}
+
+.animated-list--horizontal .animated-list__item {
+  flex-shrink: 0;
+}
+
+.animated-list--grid .animated-list__item {
+  width: 100%;
+}

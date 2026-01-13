@@ -1,18 +1,67 @@
-import { useState } from 'react';
-
 /**
- * Enhanced SearchBar Component - FIXED POSITIONING
- * 
- * Dropdown now truly floats above content without affecting layout.
+ * SearchBar.jsx - Enhanced Search Bar Component
+ *
+ * PURPOSE:
+ * Search input with dropdown results for finding people in the tree.
+ * Uses Framer Motion for animations, Lucide icons, and BEM CSS.
+ *
+ * Props:
+ * - people: Array of people to search through
+ * - onSearchResults: Callback with filtered results
+ * - onPersonSelect: Callback when a person is selected
  */
-function SearchBar({ people, onSearchResults, onPersonSelect, isDarkTheme = true }) {
+
+import { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import Icon from './icons';
+import './SearchBar.css';
+
+// ==================== ANIMATION VARIANTS ====================
+const DROPDOWN_VARIANTS = {
+  hidden: {
+    opacity: 0,
+    y: -10,
+    scale: 0.98
+  },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      type: 'spring',
+      damping: 25,
+      stiffness: 300
+    }
+  },
+  exit: {
+    opacity: 0,
+    y: -10,
+    scale: 0.98,
+    transition: { duration: 0.15 }
+  }
+};
+
+const ITEM_VARIANTS = {
+  hidden: { opacity: 0, x: -10 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.15 }
+  }
+};
+
+function SearchBar({ people, onSearchResults, onPersonSelect }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
   const [results, setResults] = useState([]);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const inputRef = useRef(null);
+  const dropdownRef = useRef(null);
 
   const handleSearch = (query) => {
     setSearchQuery(query);
-    
+    setHighlightedIndex(-1);
+
     if (!query.trim()) {
       setResults([]);
       setShowDropdown(false);
@@ -25,9 +74,9 @@ function SearchBar({ people, onSearchResults, onPersonSelect, isDarkTheme = true
       const firstName = (person.firstName || '').toLowerCase();
       const lastName = (person.lastName || '').toLowerCase();
       const maidenName = (person.maidenName || '').toLowerCase();
-      
-      return firstName.includes(lowerQuery) || 
-             lastName.includes(lowerQuery) || 
+
+      return firstName.includes(lowerQuery) ||
+             lastName.includes(lowerQuery) ||
              maidenName.includes(lowerQuery);
     });
 
@@ -49,123 +98,164 @@ function SearchBar({ people, onSearchResults, onPersonSelect, isDarkTheme = true
     setSearchQuery('');
     setResults([]);
     setShowDropdown(false);
+    setHighlightedIndex(-1);
     onSearchResults([]);
+    inputRef.current?.focus();
   };
 
-  const theme = isDarkTheme ? {
-    bg: '#2d2418',
-    text: '#e9dcc9',
-    border: '#4a3d2a',
-    placeholder: '#8f8370',
-    dropdown: '#3a2f20',
-    hover: '#4a3d2a'
-  } : {
-    bg: '#ffffff',
-    text: '#2d2418',
-    border: '#d4c4a4',
-    placeholder: '#6a5d4a',
-    dropdown: '#f5f0e8',
-    hover: '#ede7dc'
+  // Keyboard navigation
+  const handleKeyDown = (e) => {
+    if (!showDropdown || results.length === 0) return;
+
+    const maxIndex = Math.min(results.length - 1, 9);
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setHighlightedIndex(prev =>
+          prev < maxIndex ? prev + 1 : 0
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setHighlightedIndex(prev =>
+          prev > 0 ? prev - 1 : maxIndex
+        );
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (highlightedIndex >= 0) {
+          handleSelectPerson(results[highlightedIndex]);
+        }
+        break;
+      case 'Escape':
+        setShowDropdown(false);
+        setHighlightedIndex(-1);
+        break;
+      default:
+        break;
+    }
   };
+
+  // Click outside to close
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target) &&
+        inputRef.current &&
+        !inputRef.current.contains(e.target)
+      ) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const displayResults = results.slice(0, 10);
 
   return (
-    <div className="relative" style={{ width: '256px', height: '42px' }}>
-      {/* Input wrapper - fixed height to prevent expansion */}
-      <div className="relative" style={{ height: '42px' }}>
+    <div className="search-bar">
+      {/* Input wrapper */}
+      <div className="search-bar__input-wrapper">
+        <Icon name="search" size={18} className="search-bar__icon" />
+
         <input
+          ref={inputRef}
           type="text"
           value={searchQuery}
           onChange={(e) => handleSearch(e.target.value)}
           onFocus={() => results.length > 0 && setShowDropdown(true)}
-          onBlur={() => {
-            // Delay hiding to allow click events on dropdown items
-            setTimeout(() => setShowDropdown(false), 200);
-          }}
+          onKeyDown={handleKeyDown}
           placeholder="Search people..."
-          className="w-full pl-10 pr-10 py-2 rounded-lg transition"
-          style={{
-            backgroundColor: theme.bg,
-            color: theme.text,
-            borderWidth: '1px',
-            borderColor: theme.border,
-            height: '42px'
-          }}
+          className="search-bar__input"
+          autoComplete="off"
+          role="combobox"
+          aria-expanded={showDropdown}
+          aria-haspopup="listbox"
+          aria-controls="search-results"
         />
-        
-        {/* Search Icon */}
-        <div 
-          className="absolute left-3 top-1/2 transform -translate-y-1/2"
-          style={{ color: theme.placeholder, pointerEvents: 'none' }}
-        >
-          🔍
-        </div>
 
         {/* Clear Button */}
-        {searchQuery && (
-          <button
-            onClick={handleClear}
-            className="absolute right-3 top-1/2 transform -translate-y-1/2 hover:opacity-70 transition"
-            style={{ color: theme.text }}
-            title="Clear search"
-          >
-            ✕
-          </button>
-        )}
+        <AnimatePresence>
+          {searchQuery && (
+            <motion.button
+              className="search-bar__clear"
+              onClick={handleClear}
+              title="Clear search"
+              aria-label="Clear search"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              transition={{ duration: 0.15 }}
+            >
+              <Icon name="x" size={16} />
+            </motion.button>
+          )}
+        </AnimatePresence>
       </div>
 
-      {/* Dropdown Results - FIXED: Absolutely positioned, floats above everything */}
-      {showDropdown && results.length > 0 && (
-        <div 
-          className="rounded-lg shadow-xl overflow-hidden"
-          style={{
-            position: 'absolute',
-            top: '50px', // Just below the input
-            left: '0',
-            backgroundColor: theme.dropdown,
-            borderWidth: '1px',
-            borderColor: theme.border,
-            maxHeight: '300px',
-            overflowY: 'auto',
-            width: '256px',
-            zIndex: 9999 // Very high z-index to float above everything
-          }}
-        >
-          <div className="py-1">
-            {results.slice(0, 10).map(person => (
-              <button
-                key={person.id}
-                onMouseDown={(e) => {
-                  // Use onMouseDown instead of onClick to fire before onBlur
-                  e.preventDefault();
-                  handleSelectPerson(person);
-                }}
-                className="w-full px-4 py-2 text-left transition-colors"
-                style={{
-                  color: theme.text,
-                  backgroundColor: 'transparent'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.hover}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-              >
-                <div className="font-semibold truncate">{person.firstName} {person.lastName}</div>
-                {person.maidenName && (
-                  <div className="text-xs truncate" style={{ color: theme.placeholder }}>
-                    née {person.maidenName}
+      {/* Dropdown Results */}
+      <AnimatePresence>
+        {showDropdown && results.length > 0 && (
+          <motion.div
+            ref={dropdownRef}
+            className="search-bar__dropdown"
+            id="search-results"
+            role="listbox"
+            variants={DROPDOWN_VARIANTS}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+          >
+            <div className="search-bar__results">
+              {displayResults.map((person, index) => (
+                <motion.button
+                  key={person.id}
+                  className={`search-bar__result ${
+                    highlightedIndex === index ? 'search-bar__result--highlighted' : ''
+                  }`}
+                  role="option"
+                  aria-selected={highlightedIndex === index}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    handleSelectPerson(person);
+                  }}
+                  onMouseEnter={() => setHighlightedIndex(index)}
+                  variants={ITEM_VARIANTS}
+                >
+                  <div className="search-bar__result-icon">
+                    <Icon name="user" size={16} />
                   </div>
-                )}
-                <div className="text-xs truncate" style={{ color: theme.placeholder }}>
-                  {person.dateOfBirth}{person.dateOfDeath ? ` - ${person.dateOfDeath}` : ''}
-                </div>
-              </button>
-            ))}
+                  <div className="search-bar__result-info">
+                    <div className="search-bar__result-name">
+                      {person.firstName} {person.lastName}
+                    </div>
+                    {person.maidenName && (
+                      <div className="search-bar__result-detail">
+                        née {person.maidenName}
+                      </div>
+                    )}
+                    <div className="search-bar__result-dates">
+                      {person.dateOfBirth}
+                      {person.dateOfDeath ? ` - ${person.dateOfDeath}` : ''}
+                    </div>
+                  </div>
+                </motion.button>
+              ))}
+            </div>
+
             {results.length > 10 && (
-              <div className="px-4 py-2 text-xs text-center" style={{ color: theme.placeholder }}>
-                +{results.length - 10} more results
+              <div className="search-bar__more">
+                <Icon name="more" size={14} />
+                <span>+{results.length - 10} more results</span>
               </div>
             )}
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

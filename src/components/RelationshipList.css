@@ -1,0 +1,256 @@
+/**
+ * RelationshipList.css - Relationship List Styles
+ *
+ * PURPOSE:
+ * Styles for the relationship list component.
+ * Medieval manuscript aesthetic with BEM naming.
+ * Uses CSS custom properties for theming.
+ */
+
+/* ============================================
+   LIST CONTAINER
+   ============================================ */
+
+.relationship-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* ============================================
+   LIST ITEM
+   ============================================ */
+
+.relationship-list__item {
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  transition: box-shadow var(--duration-fast) var(--ease-standard);
+}
+
+.relationship-list__item:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* ============================================
+   COLOR VARIANTS
+   ============================================ */
+
+.relationship-list__item--blue {
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.08) 0%,
+    var(--bg-secondary) 100%
+  );
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.relationship-list__item--blue .relationship-list__icon-wrapper {
+  background: rgba(59, 130, 246, 0.15);
+  color: rgb(59, 130, 246);
+}
+
+.relationship-list__item--rose {
+  background: linear-gradient(
+    135deg,
+    rgba(244, 63, 94, 0.08) 0%,
+    var(--bg-secondary) 100%
+  );
+  border-color: rgba(244, 63, 94, 0.3);
+}
+
+.relationship-list__item--rose .relationship-list__icon-wrapper {
+  background: rgba(244, 63, 94, 0.15);
+  color: rgb(244, 63, 94);
+}
+
+.relationship-list__item--purple {
+  background: linear-gradient(
+    135deg,
+    rgba(168, 85, 247, 0.08) 0%,
+    var(--bg-secondary) 100%
+  );
+  border-color: rgba(168, 85, 247, 0.3);
+}
+
+.relationship-list__item--purple .relationship-list__icon-wrapper {
+  background: rgba(168, 85, 247, 0.15);
+  color: rgb(168, 85, 247);
+}
+
+.relationship-list__item--green {
+  background: linear-gradient(
+    135deg,
+    rgba(34, 197, 94, 0.08) 0%,
+    var(--bg-secondary) 100%
+  );
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.relationship-list__item--green .relationship-list__icon-wrapper {
+  background: rgba(34, 197, 94, 0.15);
+  color: rgb(34, 197, 94);
+}
+
+.relationship-list__item--amber {
+  background: linear-gradient(
+    135deg,
+    rgba(245, 158, 11, 0.08) 0%,
+    var(--bg-secondary) 100%
+  );
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.relationship-list__item--amber .relationship-list__icon-wrapper {
+  background: rgba(245, 158, 11, 0.15);
+  color: rgb(245, 158, 11);
+}
+
+.relationship-list__item--indigo {
+  background: linear-gradient(
+    135deg,
+    rgba(99, 102, 241, 0.08) 0%,
+    var(--bg-secondary) 100%
+  );
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+.relationship-list__item--indigo .relationship-list__icon-wrapper {
+  background: rgba(99, 102, 241, 0.15);
+  color: rgb(99, 102, 241);
+}
+
+.relationship-list__item--gray {
+  background: var(--bg-secondary);
+  border-color: var(--border-primary);
+}
+
+.relationship-list__item--gray .relationship-list__icon-wrapper {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+/* ============================================
+   CONTENT LAYOUT
+   ============================================ */
+
+.relationship-list__content {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.relationship-list__info {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  flex: 1;
+  min-width: 0;
+}
+
+/* ============================================
+   ICON
+   ============================================ */
+
+.relationship-list__icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  flex-shrink: 0;
+}
+
+/* ============================================
+   DETAILS
+   ============================================ */
+
+.relationship-list__details {
+  flex: 1;
+  min-width: 0;
+}
+
+.relationship-list__description {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.relationship-list__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.relationship-list__meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.relationship-list__meta-item svg {
+  color: var(--accent-primary);
+}
+
+.relationship-list__meta-item--muted {
+  color: var(--text-tertiary);
+}
+
+.relationship-list__meta-item--muted svg {
+  color: var(--text-tertiary);
+}
+
+/* ============================================
+   ACTIONS
+   ============================================ */
+
+.relationship-list__actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 640px) {
+  .relationship-list__content {
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .relationship-list__actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .relationship-list__icon-wrapper {
+    width: 36px;
+    height: 36px;
+  }
+
+  .relationship-list__description {
+    font-size: var(--text-sm);
+  }
+}
+
+/* ============================================
+   REDUCED MOTION
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .relationship-list__item {
+    transition: none;
+  }
+}

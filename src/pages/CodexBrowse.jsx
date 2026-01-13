@@ -1,74 +1,115 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { getEntriesByType, getAllEntries } from '../services/codexService';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { getEntriesByType } from '../services/codexService';
 import Navigation from '../components/Navigation';
+import Icon from '../components/icons/Icon';
+import LoadingState from '../components/shared/LoadingState';
+import EmptyState from '../components/shared/EmptyState';
+import ActionButton from '../components/shared/ActionButton';
 import './CodexBrowse.css';
 
 /**
- * Codex Browse Page
- * 
- * Displays filterable, sortable, paginated list of entries by type
- * 
+ * CodexBrowse - Browse Codex Entries by Type
+ *
  * Features:
- * - Hybrid list layout (elegant, information-rich)
+ * - Filterable, sortable, paginated list of entries
  * - Advanced filtering (search, tags, era)
- * - Sorting (title, date, word count, references)
- * - Pagination (20 entries per page)
+ * - Sorting (title, date, word count)
  * - Statistics panel
+ * - Animated list items
  */
+
+// Animation variants
+const CONTAINER_VARIANTS = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { staggerChildren: 0.05, delayChildren: 0.1 }
+  }
+};
+
+const ITEM_VARIANTS = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }
+  }
+};
+
+const LIST_ITEM_VARIANTS = {
+  hidden: { opacity: 0, x: -20 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: { duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }
+  }
+};
+
+// Type configuration
+const TYPE_CONFIG = {
+  personage: { icon: 'user', label: 'Personages', singular: 'Personage' },
+  house: { icon: 'castle', label: 'Houses', singular: 'House' },
+  location: { icon: 'map-pin', label: 'Locations', singular: 'Location' },
+  event: { icon: 'swords', label: 'Events', singular: 'Event' },
+  mysteria: { icon: 'sparkles', label: 'Mysteria', singular: 'Mysteria' },
+  heraldry: { icon: 'shield', label: 'Heraldry', singular: 'Heraldry' },
+  custom: { icon: 'scroll-text', label: 'Entries', singular: 'Entry' }
+};
+
 function CodexBrowse() {
   const { type } = useParams();
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
-  
+
   const [allEntries, setAllEntries] = useState([]);
   const [filteredEntries, setFilteredEntries] = useState([]);
   const [displayedEntries, setDisplayedEntries] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState('updated'); // title, updated, wordCount, references
+  const [sortBy, setSortBy] = useState('updated');
   const [selectedTags, setSelectedTags] = useState([]);
   const [selectedEra, setSelectedEra] = useState('');
   const [availableTags, setAvailableTags] = useState([]);
   const [availableEras, setAvailableEras] = useState([]);
-  
+
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const entriesPerPage = 20;
-  
+
   // Statistics
   const [statistics, setStatistics] = useState({
     total: 0,
-    totalWords: 0,
-    mostReferenced: null,
-    recentlyUpdated: []
+    totalWords: 0
   });
-  
-  useEffect(() => {
-    loadEntries();
+
+  // Get type configuration
+  const typeConfig = useMemo(() => {
+    return TYPE_CONFIG[type] || TYPE_CONFIG.custom;
   }, [type]);
-  
-  useEffect(() => {
-    applyFiltersAndSort();
-  }, [allEntries, searchTerm, sortBy, selectedTags, selectedEra]);
-  
-  useEffect(() => {
-    paginateEntries();
-  }, [filteredEntries, currentPage]);
-  
-  async function loadEntries() {
+
+  // Calculate statistics
+  const calculateStatistics = useCallback((entries) => {
+    setStatistics({
+      total: entries.length,
+      totalWords: entries.reduce((sum, e) => sum + (e.wordCount || 0), 0)
+    });
+  }, []);
+
+  // Load entries
+  const loadEntries = useCallback(async () => {
     try {
       setLoading(true);
-      
+
       const entries = await getEntriesByType(type);
       setAllEntries(entries);
-      
+
       // Extract unique tags and eras
       const tags = new Set();
       const eras = new Set();
-      
+
       entries.forEach(entry => {
         if (entry.tags) {
           entry.tags.forEach(tag => tags.add(tag));
@@ -77,58 +118,47 @@ function CodexBrowse() {
           eras.add(entry.era);
         }
       });
-      
+
       setAvailableTags(Array.from(tags).sort());
       setAvailableEras(Array.from(eras).sort());
-      
-      // Calculate statistics
       calculateStatistics(entries);
-      
       setLoading(false);
     } catch (error) {
       console.error('Error loading entries:', error);
       setLoading(false);
     }
-  }
-  
-  function calculateStatistics(entries) {
-    const stats = {
-      total: entries.length,
-      totalWords: entries.reduce((sum, e) => sum + (e.wordCount || 0), 0),
-      mostReferenced: null,
-      recentlyUpdated: entries
-        .sort((a, b) => new Date(b.updated) - new Date(a.updated))
-        .slice(0, 3)
-    };
-    
-    setStatistics(stats);
-  }
-  
-  function applyFiltersAndSort() {
+  }, [type, calculateStatistics]);
+
+  useEffect(() => {
+    loadEntries();
+  }, [loadEntries]);
+
+  // Apply filters and sorting
+  const applyFiltersAndSort = useCallback(() => {
     let filtered = [...allEntries];
-    
+
     // Apply search filter
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
-      filtered = filtered.filter(entry => 
+      filtered = filtered.filter(entry =>
         entry.title.toLowerCase().includes(searchLower) ||
         entry.subtitle?.toLowerCase().includes(searchLower) ||
         entry.content?.toLowerCase().includes(searchLower)
       );
     }
-    
+
     // Apply tag filter
     if (selectedTags.length > 0) {
-      filtered = filtered.filter(entry => 
+      filtered = filtered.filter(entry =>
         entry.tags && selectedTags.some(tag => entry.tags.includes(tag))
       );
     }
-    
+
     // Apply era filter
     if (selectedEra) {
       filtered = filtered.filter(entry => entry.era === selectedEra);
     }
-    
+
     // Apply sorting
     filtered.sort((a, b) => {
       switch (sortBy) {
@@ -138,52 +168,60 @@ function CodexBrowse() {
           return new Date(b.updated) - new Date(a.updated);
         case 'wordCount':
           return (b.wordCount || 0) - (a.wordCount || 0);
-        case 'references':
-          // TODO: Implement when we have reference counts
-          return 0;
         default:
           return 0;
       }
     });
-    
+
     setFilteredEntries(filtered);
-    setCurrentPage(1); // Reset to first page when filters change
-  }
-  
-  function paginateEntries() {
+    setCurrentPage(1);
+  }, [allEntries, searchTerm, sortBy, selectedTags, selectedEra]);
+
+  useEffect(() => {
+    applyFiltersAndSort();
+  }, [applyFiltersAndSort]);
+
+  // Paginate entries
+  useEffect(() => {
     const startIndex = (currentPage - 1) * entriesPerPage;
     const endIndex = startIndex + entriesPerPage;
     setDisplayedEntries(filteredEntries.slice(startIndex, endIndex));
-  }
-  
-  function handleViewEntry(entryId) {
+  }, [filteredEntries, currentPage]);
+
+  // Handlers
+  const handleViewEntry = useCallback((entryId) => {
     navigate(`/codex/entry/${entryId}`);
-  }
-  
-  function handleCreateEntry() {
+  }, [navigate]);
+
+  const handleCreateEntry = useCallback(() => {
     navigate(`/codex/create?type=${type}`);
-  }
-  
-  function toggleTag(tag) {
-    setSelectedTags(prev => 
+  }, [navigate, type]);
+
+  const handleBackToCodex = useCallback(() => {
+    navigate('/codex');
+  }, [navigate]);
+
+  const toggleTag = useCallback((tag) => {
+    setSelectedTags(prev =>
       prev.includes(tag)
         ? prev.filter(t => t !== tag)
         : [...prev, tag]
     );
-  }
-  
-  function clearFilters() {
+  }, []);
+
+  const clearFilters = useCallback(() => {
     setSearchTerm('');
     setSelectedTags([]);
     setSelectedEra('');
     setSortBy('updated');
-  }
-  
-  function formatDate(isoString) {
+  }, []);
+
+  // Format date for display
+  const formatDate = useCallback((isoString) => {
     const date = new Date(isoString);
     const now = new Date();
     const diffInHours = (now - date) / (1000 * 60 * 60);
-    
+
     if (diffInHours < 1) {
       return 'Just now';
     } else if (diffInHours < 24) {
@@ -195,101 +233,122 @@ function CodexBrowse() {
       const days = Math.floor(diffInHours / 24);
       return `${days}d ago`;
     } else {
-      return date.toLocaleDateString('en-US', { 
-        month: 'short', 
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
         day: 'numeric'
       });
     }
-  }
-  
-  function getTypeIcon(entryType) {
-    const icons = {
-      personage: '👤',
-      house: '🏰',
-      location: '📍',
-      event: '⚔️',
-      mysteria: '✨',
-      heraldry: '🛡️',
-      custom: '📜'
-    };
-    return icons[entryType] || '📜';
-  }
-  
-  function getTypeLabel(entryType) {
-    const labels = {
-      personage: 'Personages',
-      house: 'Houses',
-      location: 'Locations',
-      event: 'Events',
-      mysteria: 'Mysteria',
-      heraldry: 'Heraldry',
-      custom: 'Custom Entries'
-    };
-    return labels[entryType] || 'Entries';
-  }
-  
+  }, []);
+
   const totalPages = Math.ceil(filteredEntries.length / entriesPerPage);
   const hasFilters = searchTerm || selectedTags.length > 0 || selectedEra;
-  
+
   // Loading state
   if (loading) {
     return (
       <>
         <Navigation />
-        <div className="browse-container loading">
-          <div className="loading-spinner">
-            <div className="text-4xl">📜</div>
-            <p>Loading {getTypeLabel(type)}...</p>
+        <div className="browse-page">
+          <div className="browse-container">
+            <LoadingState message={`Loading ${typeConfig.label}...`} icon={typeConfig.icon} />
           </div>
         </div>
       </>
     );
   }
-  
+
   return (
     <>
       <Navigation />
-      
-      <div className="browse-container">
-        <div className="browse-content">
-          
+
+      <div className="browse-page">
+        <motion.div
+          className="browse-container"
+          variants={CONTAINER_VARIANTS}
+          initial="hidden"
+          animate="visible"
+        >
+          {/* Breadcrumb */}
+          <motion.nav className="browse-breadcrumb" variants={ITEM_VARIANTS}>
+            <button onClick={handleBackToCodex} className="browse-breadcrumb__link">
+              <Icon name="book-open" size={14} />
+              <span>The Codex</span>
+            </button>
+            <Icon name="chevron-right" size={14} className="browse-breadcrumb__separator" />
+            <span className="browse-breadcrumb__current">{typeConfig.label}</span>
+          </motion.nav>
+
           {/* Header */}
-          <header className="browse-header">
-            <div className="header-main">
-              <div className="header-icon">{getTypeIcon(type)}</div>
-              <div className="header-text">
-                <h1 className="browse-title">{getTypeLabel(type)}</h1>
-                <p className="browse-subtitle">
+          <motion.header className="browse-header" variants={ITEM_VARIANTS}>
+            <div className="browse-header__main">
+              <div className="browse-header__icon">
+                <Icon name={typeConfig.icon} size={32} />
+              </div>
+              <div className="browse-header__text">
+                <h1 className="browse-header__title">
+                  <span className="browse-header__initial">{typeConfig.label.charAt(0)}</span>
+                  {typeConfig.label.slice(1)}
+                </h1>
+                <p className="browse-header__subtitle">
                   {filteredEntries.length} {filteredEntries.length === 1 ? 'entry' : 'entries'}
                   {hasFilters && ` (filtered from ${allEntries.length})`}
                 </p>
               </div>
             </div>
-            
-            <button className="create-button" onClick={handleCreateEntry}>
-              <span className="button-icon">+</span>
+
+            <ActionButton
+              icon="plus"
+              onClick={handleCreateEntry}
+              variant="primary"
+            >
               Create New
-            </button>
-          </header>
-          
-          {/* Filters & Search */}
-          <section className="browse-filters">
+            </ActionButton>
+          </motion.header>
+
+          {/* Statistics */}
+          <motion.section className="browse-stats" variants={ITEM_VARIANTS}>
+            <div className="browse-stats__card">
+              <Icon name="scroll-text" size={20} />
+              <div className="browse-stats__value">{statistics.total}</div>
+              <div className="browse-stats__label">Total Entries</div>
+            </div>
+            <div className="browse-stats__card">
+              <Icon name="file-text" size={20} />
+              <div className="browse-stats__value">{statistics.totalWords.toLocaleString()}</div>
+              <div className="browse-stats__label">Total Words</div>
+            </div>
+          </motion.section>
+
+          {/* Filters */}
+          <motion.section className="browse-filters" variants={ITEM_VARIANTS}>
             {/* Search */}
-            <div className="filter-group search-group">
+            <div className="browse-filters__search">
+              <Icon name="search" size={18} className="browse-filters__search-icon" />
               <input
                 type="text"
-                className="search-input"
-                placeholder="🔍 Search entries..."
+                className="browse-filters__search-input"
+                placeholder="Search entries..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
+              {searchTerm && (
+                <button
+                  className="browse-filters__search-clear"
+                  onClick={() => setSearchTerm('')}
+                >
+                  <Icon name="x" size={16} />
+                </button>
+              )}
             </div>
-            
+
             {/* Sort */}
-            <div className="filter-group sort-group">
-              <label className="filter-label">Sort by:</label>
-              <select 
-                className="filter-select"
+            <div className="browse-filters__group">
+              <label className="browse-filters__label">
+                <Icon name="arrow-up-down" size={14} />
+                <span>Sort:</span>
+              </label>
+              <select
+                className="browse-filters__select"
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
               >
@@ -298,13 +357,16 @@ function CodexBrowse() {
                 <option value="wordCount">Word Count</option>
               </select>
             </div>
-            
+
             {/* Era Filter */}
             {availableEras.length > 0 && (
-              <div className="filter-group era-group">
-                <label className="filter-label">Era:</label>
-                <select 
-                  className="filter-select"
+              <div className="browse-filters__group">
+                <label className="browse-filters__label">
+                  <Icon name="clock" size={14} />
+                  <span>Era:</span>
+                </label>
+                <select
+                  className="browse-filters__select"
                   value={selectedEra}
                   onChange={(e) => setSelectedEra(e.target.value)}
                 >
@@ -315,142 +377,167 @@ function CodexBrowse() {
                 </select>
               </div>
             )}
-            
+
             {/* Clear Filters */}
             {hasFilters && (
-              <button className="clear-filters-button" onClick={clearFilters}>
-                Clear Filters
+              <button className="browse-filters__clear" onClick={clearFilters}>
+                <Icon name="x-circle" size={14} />
+                <span>Clear Filters</span>
               </button>
             )}
-          </section>
-          
+          </motion.section>
+
           {/* Tag Filters */}
           {availableTags.length > 0 && (
-            <section className="tag-filters">
-              <label className="filter-label">Filter by tags:</label>
-              <div className="tag-filter-list">
+            <motion.section className="browse-tags" variants={ITEM_VARIANTS}>
+              <label className="browse-tags__label">
+                <Icon name="tags" size={14} />
+                <span>Filter by tags:</span>
+              </label>
+              <div className="browse-tags__list">
                 {availableTags.map(tag => (
                   <button
                     key={tag}
-                    className={`tag-filter ${selectedTags.includes(tag) ? 'active' : ''}`}
+                    className={`browse-tags__item ${selectedTags.includes(tag) ? 'browse-tags__item--active' : ''}`}
                     onClick={() => toggleTag(tag)}
                   >
-                    {tag}
+                    <Icon name="tag" size={12} />
+                    <span>{tag}</span>
                   </button>
                 ))}
               </div>
-            </section>
+            </motion.section>
           )}
-          
-          {/* Statistics Panel */}
-          <section className="browse-stats">
-            <div className="stat-card">
-              <div className="stat-value">{statistics.total}</div>
-              <div className="stat-label">Total Entries</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-value">{statistics.totalWords.toLocaleString()}</div>
-              <div className="stat-label">Total Words</div>
-            </div>
-          </section>
-          
+
           {/* Entries List */}
-          {displayedEntries.length === 0 ? (
-            <div className="browse-empty">
-              <div className="empty-icon">{getTypeIcon(type)}</div>
-              <h3 className="empty-title">
-                {hasFilters ? 'No Matching Entries' : `No ${getTypeLabel(type)} Yet`}
-              </h3>
-              <p className="empty-text">
-                {hasFilters 
-                  ? 'Try adjusting your filters or search terms.'
-                  : `Create your first ${type} entry to get started.`
-                }
-              </p>
-              {!hasFilters && (
-                <button className="empty-create-button" onClick={handleCreateEntry}>
-                  Create First Entry
-                </button>
-              )}
-            </div>
-          ) : (
-            <>
-              <section className="entries-list">
-                {displayedEntries.map(entry => (
-                  <article 
-                    key={entry.id} 
-                    className="entry-item"
+          <AnimatePresence mode="wait">
+            {displayedEntries.length === 0 ? (
+              <motion.div
+                key="empty"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                <EmptyState
+                  icon={typeConfig.icon}
+                  title={hasFilters ? 'No Matching Entries' : `No ${typeConfig.label} Yet`}
+                  description={
+                    hasFilters
+                      ? 'Try adjusting your filters or search terms.'
+                      : `Create your first ${typeConfig.singular.toLowerCase()} entry to get started.`
+                  }
+                  action={!hasFilters ? {
+                    label: 'Create First Entry',
+                    onClick: handleCreateEntry,
+                    icon: 'plus'
+                  } : undefined}
+                />
+              </motion.div>
+            ) : (
+              <motion.section
+                key="list"
+                className="browse-list"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                {displayedEntries.map((entry, index) => (
+                  <motion.article
+                    key={entry.id}
+                    className="browse-list__item"
+                    variants={LIST_ITEM_VARIANTS}
+                    initial="hidden"
+                    animate="visible"
+                    transition={{ delay: index * 0.03 }}
                     onClick={() => handleViewEntry(entry.id)}
+                    whileHover={{ x: 4 }}
                   >
-                    <div className="entry-main">
-                      <div className="entry-icon">{getTypeIcon(type)}</div>
-                      <div className="entry-content">
-                        <h3 className="entry-title">{entry.title}</h3>
+                    <div className="browse-list__item-main">
+                      <div className="browse-list__item-icon">
+                        <Icon name={typeConfig.icon} size={20} />
+                      </div>
+                      <div className="browse-list__item-content">
+                        <h3 className="browse-list__item-title">{entry.title}</h3>
                         {entry.subtitle && (
-                          <p className="entry-subtitle">{entry.subtitle}</p>
+                          <p className="browse-list__item-subtitle">{entry.subtitle}</p>
                         )}
                         {entry.tags && entry.tags.length > 0 && (
-                          <div className="entry-tags">
+                          <div className="browse-list__item-tags">
                             {entry.tags.slice(0, 3).map((tag, idx) => (
-                              <span key={idx} className="entry-tag">{tag}</span>
+                              <span key={idx} className="browse-list__item-tag">
+                                {tag}
+                              </span>
                             ))}
                             {entry.tags.length > 3 && (
-                              <span className="entry-tag-more">+{entry.tags.length - 3}</span>
+                              <span className="browse-list__item-tag-more">
+                                +{entry.tags.length - 3}
+                              </span>
                             )}
                           </div>
                         )}
                       </div>
                     </div>
-                    
-                    <div className="entry-meta">
-                      <span className="meta-item">
-                        {entry.wordCount || 0} words
+
+                    <div className="browse-list__item-meta">
+                      <span className="browse-list__item-meta-item">
+                        <Icon name="file-text" size={12} />
+                        <span>{entry.wordCount || 0} words</span>
                       </span>
-                      <span className="meta-separator">•</span>
-                      <span className="meta-item">
-                        {formatDate(entry.updated)}
+                      <span className="browse-list__item-meta-separator">
+                        <Icon name="circle" size={4} />
+                      </span>
+                      <span className="browse-list__item-meta-item">
+                        <Icon name="clock" size={12} />
+                        <span>{formatDate(entry.updated)}</span>
                       </span>
                       {entry.era && (
                         <>
-                          <span className="meta-separator">•</span>
-                          <span className="meta-item meta-era">{entry.era}</span>
+                          <span className="browse-list__item-meta-separator">
+                            <Icon name="circle" size={4} />
+                          </span>
+                          <span className="browse-list__item-meta-item browse-list__item-meta-era">
+                            {entry.era}
+                          </span>
                         </>
                       )}
                     </div>
-                    
-                    <div className="entry-arrow">→</div>
-                  </article>
+
+                    <div className="browse-list__item-arrow">
+                      <Icon name="arrow-right" size={18} />
+                    </div>
+                  </motion.article>
                 ))}
-              </section>
-              
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <section className="pagination">
-                  <button 
-                    className="pagination-button"
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                  >
-                    ← Previous
-                  </button>
-                  
-                  <div className="pagination-info">
-                    Page {currentPage} of {totalPages}
-                  </div>
-                  
-                  <button 
-                    className="pagination-button"
-                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages}
-                  >
-                    Next →
-                  </button>
-                </section>
-              )}
-            </>
+              </motion.section>
+            )}
+          </AnimatePresence>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <motion.section className="browse-pagination" variants={ITEM_VARIANTS}>
+              <button
+                className="browse-pagination__button"
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                <Icon name="chevron-left" size={16} />
+                <span>Previous</span>
+              </button>
+
+              <div className="browse-pagination__info">
+                <span>Page {currentPage} of {totalPages}</span>
+              </div>
+
+              <button
+                className="browse-pagination__button"
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+              >
+                <span>Next</span>
+                <Icon name="chevron-right" size={16} />
+              </button>
+            </motion.section>
           )}
-          
-        </div>
+        </motion.div>
       </div>
     </>
   );

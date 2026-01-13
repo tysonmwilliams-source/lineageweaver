@@ -1,5 +1,16 @@
+/**
+ * DignityForm.jsx - Create/Edit Dignity Form
+ *
+ * A comprehensive form for recording dignities based on
+ * "The Codified Charter of Driht, Ward, and Service"
+ *
+ * Handles both create and edit modes based on URL.
+ * Features smart filtering for holder/house selection.
+ */
+
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import {
   createDignity,
@@ -14,58 +25,67 @@ import {
 } from '../services/dignityService';
 import { getAllHouses, getAllPeople } from '../services/database';
 import Navigation from '../components/Navigation';
+import Icon from '../components/icons/Icon';
+import ActionButton from '../components/shared/ActionButton';
+import LoadingState from '../components/shared/LoadingState';
 import './DignityForm.css';
 
-/**
- * DignityForm - Create/Edit Dignity
- * 
- * A comprehensive form for recording dignities based on
- * "The Codified Charter of Driht, Ward, and Service"
- * 
- * Handles both create and edit modes based on URL.
- */
+const CONTAINER_VARIANTS = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+      delayChildren: 0.1
+    }
+  }
+};
+
+const SECTION_VARIANTS = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.4 }
+  }
+};
+
+const SECTION_ICONS = {
+  classification: 'layout-grid',
+  identity: 'tag',
+  hierarchy: 'git-branch',
+  holder: 'user',
+  display: 'palette',
+  notes: 'file-text'
+};
+
 function DignityForm() {
   const navigate = useNavigate();
   const { id } = useParams();
   const [searchParams] = useSearchParams();
-  const { user } = useAuth(); // Get current user for cloud sync
+  const { user } = useAuth();
   const isEditMode = Boolean(id);
-  
+
   // Form state
   const [formData, setFormData] = useState({
-    // Identity
     name: '',
     shortName: '',
-    
-    // Classification
     dignityClass: 'driht',
     dignityRank: 'drith',
-    
-    // Tenure (Article IV)
     tenureType: 'of',
-    
-    // Geographic
     placeName: '',
     seatName: '',
-    
-    // Feudal Hierarchy (Article V)
     swornToId: '',
     fealtyType: 'sworn-to',
-    
-    // Current State
     currentHolderId: '',
     currentHouseId: '',
     isVacant: false,
     isHereditary: true,
-    
-    // Display
     displayIcon: '',
     displayPriority: 0,
-    
-    // Notes
     notes: ''
   });
-  
+
   // Reference data
   const [houses, setHouses] = useState([]);
   const [people, setPeople] = useState([]);
@@ -73,28 +93,27 @@ function DignityForm() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
-  
+
   // Load reference data and existing dignity if editing
   useEffect(() => {
     loadData();
   }, [id]);
-  
+
   async function loadData() {
     try {
       setLoading(true);
       setError(null);
-      
+
       const [housesData, peopleData, dignitiesData] = await Promise.all([
         getAllHouses(),
         getAllPeople(),
         getAllDignities()
       ]);
-      
+
       setHouses(housesData);
       setPeople(peopleData);
       setDignities(dignitiesData);
-      
-      // If editing, load existing dignity
+
       if (isEditMode) {
         const dignity = await getDignity(parseInt(id));
         if (dignity) {
@@ -120,10 +139,9 @@ function DignityForm() {
           setError('Dignity not found');
         }
       } else {
-        // Check for pre-fill from URL params
         const preHouseId = searchParams.get('houseId');
         const prePersonId = searchParams.get('personId');
-        
+
         if (preHouseId) {
           setFormData(prev => ({ ...prev, currentHouseId: parseInt(preHouseId) }));
         }
@@ -131,7 +149,7 @@ function DignityForm() {
           setFormData(prev => ({ ...prev, currentHolderId: parseInt(prePersonId) }));
         }
       }
-      
+
       setLoading(false);
     } catch (err) {
       console.error('Error loading data:', err);
@@ -139,156 +157,101 @@ function DignityForm() {
       setLoading(false);
     }
   }
-  
-  // Get available ranks for selected class
+
   function getAvailableRanks() {
     const classRanks = DIGNITY_RANKS[formData.dignityClass];
     if (!classRanks) return [];
     return Object.values(classRanks);
   }
-  
-  // Get dignities that can be sworn to (exclude self and subordinates)
+
   function getSwornToOptions() {
     let options = [...dignities];
-    
+
     if (isEditMode) {
       const currentId = parseInt(id);
-      
-      // Exclude this dignity
       options = options.filter(d => d.id !== currentId);
-      
-      // Exclude any dignities that are sworn to this one (prevent circular refs)
-      // We need to recursively find all subordinates
+
       function getSubordinateIds(dignityId, visited = new Set()) {
         if (visited.has(dignityId)) return visited;
         visited.add(dignityId);
-        
         const subs = dignities.filter(d => d.swornToId === dignityId);
         subs.forEach(sub => getSubordinateIds(sub.id, visited));
         return visited;
       }
-      
+
       const subordinateIds = getSubordinateIds(currentId);
-      subordinateIds.delete(currentId); // Don't exclude self twice
+      subordinateIds.delete(currentId);
       options = options.filter(d => !subordinateIds.has(d.id));
     }
-    
+
     return options;
   }
-  
-  // ==================== SMART FILTERING ====================
-  
-  /**
-   * Get filtered list of people who can hold this dignity
-   * 
-   * Filtering rules:
-   * 1. If a house is selected, only show people from that house
-   * 2. If the dignity is NOT hereditary (personal/appointed), show all people
-   * 3. 🪝 Future: Could filter by alive status, age, etc.
-   */
+
   function getFilteredPeople() {
     let filtered = [...people];
-    
-    // If a house is selected, only show people from that house
+
     if (formData.currentHouseId) {
       const selectedHouseId = parseInt(formData.currentHouseId);
       filtered = filtered.filter(p => p.houseId === selectedHouseId);
     }
-    
-    // Sort by house, then by name for easier browsing
+
     filtered.sort((a, b) => {
-      // First sort by house
       const houseA = getHouseName(a.houseId) || 'zzz';
       const houseB = getHouseName(b.houseId) || 'zzz';
       const houseCompare = houseA.localeCompare(houseB);
       if (houseCompare !== 0) return houseCompare;
-      
-      // Then by name
       const nameA = `${a.firstName} ${a.lastName}`;
       const nameB = `${b.firstName} ${b.lastName}`;
       return nameA.localeCompare(nameB);
     });
-    
+
     return filtered;
   }
-  
-  /**
-   * Get filtered list of houses that can hold this dignity
-   * 
-   * Filtering rules:
-   * 1. If a holder is selected, only show that person's house
-   * 2. Otherwise show all houses
-   * 3. 🪝 Future: Could filter based on rank (e.g., only main houses for Drihten)
-   */
+
   function getFilteredHouses() {
     let filtered = [...houses];
-    
-    // If a holder is selected, prioritize their house
+
     if (formData.currentHolderId) {
       const selectedPersonId = parseInt(formData.currentHolderId);
       const person = people.find(p => p.id === selectedPersonId);
-      
       if (person?.houseId) {
-        // Only show this person's house when a holder is selected
         filtered = filtered.filter(h => h.id === person.houseId);
       }
     }
-    
-    // Sort alphabetically
+
     filtered.sort((a, b) => (a.houseName || '').localeCompare(b.houseName || ''));
-    
     return filtered;
   }
-  
-  /**
-   * Check if the current holder selection is still valid after house changes
-   * If not, clear it
-   */
+
   function validateHolderSelection(newHouseId) {
     if (!formData.currentHolderId) return;
-    
     const selectedPersonId = parseInt(formData.currentHolderId);
     const person = people.find(p => p.id === selectedPersonId);
-    
-    // If the person doesn't belong to the newly selected house, clear the selection
     if (person && newHouseId && person.houseId !== parseInt(newHouseId)) {
       setFormData(prev => ({ ...prev, currentHolderId: '' }));
     }
   }
-  
-  /**
-   * Check if the current house selection is still valid after holder changes
-   * If not, update it to match the holder's house
-   */
+
   function validateHouseSelection(newHolderId) {
     if (!newHolderId) return;
-    
     const person = people.find(p => p.id === parseInt(newHolderId));
-    
-    // If the person has a house, auto-set it
     if (person?.houseId) {
       setFormData(prev => ({ ...prev, currentHouseId: person.houseId }));
     }
   }
-  
-  // Auto-generate name based on tenure type, rank, and place
+
   function generateName() {
     if (!formData.placeName) return;
-    
-    // Get the rank name from the current selection
+
     const classRanks = DIGNITY_RANKS[formData.dignityClass];
     const rankInfo = classRanks?.[formData.dignityRank];
     const rankName = rankInfo?.name || 'Lord';
-    
-    // For Sir, the styling is different
+
     if (formData.dignityClass === 'sir') {
-      // Sir doesn't typically use "of Place" - just "Sir [Name]"
-      // But we can offer a variant like "Sir, Drithman of [Place]"
       setFormData(prev => ({ ...prev, name: `Sir, Drithman of ${formData.placeName}` }));
       return;
     }
-    
-    // For Crown dignities, use appropriate styling
+
     if (formData.dignityClass === 'crown') {
       switch (formData.dignityRank) {
         case 'sovereign':
@@ -302,9 +265,9 @@ function DignityForm() {
           return;
       }
     }
-    
+
     let generatedName = '';
-    
+
     switch (formData.tenureType) {
       case 'of':
         generatedName = `${rankName} of ${formData.placeName}`;
@@ -330,20 +293,18 @@ function DignityForm() {
       default:
         generatedName = `${rankName} of ${formData.placeName}`;
     }
-    
+
     setFormData(prev => ({ ...prev, name: generatedName }));
   }
-  
-  // Handle form field changes
+
   function handleChange(e) {
     const { name, value, type, checked } = e.target;
-    
+
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
-    
-    // When class changes, reset rank to first available
+
     if (name === 'dignityClass') {
       const classRanks = DIGNITY_RANKS[value];
       if (classRanks) {
@@ -351,36 +312,28 @@ function DignityForm() {
         setFormData(prev => ({ ...prev, dignityRank: firstRank }));
       }
     }
-    
-    // When holder is selected, auto-set house if person belongs to one
-    if (name === 'currentHolderId') {
-      if (value) {
-        validateHouseSelection(value);
-      }
+
+    if (name === 'currentHolderId' && value) {
+      validateHouseSelection(value);
     }
-    
-    // When house is selected, validate current holder selection
-    if (name === 'currentHouseId') {
-      if (value) {
-        validateHolderSelection(value);
-      }
+
+    if (name === 'currentHouseId' && value) {
+      validateHolderSelection(value);
     }
   }
-  
-  // Handle form submission
+
   async function handleSubmit(e) {
     e.preventDefault();
-    
-    // Validation
+
     if (!formData.name.trim()) {
       setError('Name is required');
       return;
     }
-    
+
     try {
       setSaving(true);
       setError(null);
-      
+
       const dignityData = {
         ...formData,
         name: formData.name.trim(),
@@ -393,7 +346,7 @@ function DignityForm() {
         displayPriority: parseInt(formData.displayPriority) || 0,
         notes: formData.notes.trim() || null
       };
-      
+
       if (isEditMode) {
         await updateDignity(parseInt(id), dignityData, user?.uid);
         navigate(`/dignities/view/${id}`);
@@ -407,195 +360,199 @@ function DignityForm() {
       setSaving(false);
     }
   }
-  
-  // Get display name for house
+
   function getHouseName(houseId) {
     const house = houses.find(h => h.id === houseId);
     return house?.houseName || 'Unknown House';
   }
-  
-  // Get display name for person
-  function getPersonName(personId) {
-    const person = people.find(p => p.id === personId);
-    if (!person) return 'Unknown Person';
-    return `${person.firstName} ${person.lastName}`;
-  }
-  
-  // Loading state
+
   if (loading) {
     return (
       <>
         <Navigation />
-        <div className="dignity-form-page loading">
-          <div className="loading-spinner">
-            <div className="loading-icon">📜</div>
-            <p>Loading...</p>
-          </div>
+        <div className="dignity-form-page dignity-form-page--loading">
+          <LoadingState message="Loading dignity data..." icon="scroll" />
         </div>
       </>
     );
   }
-  
+
   const classInfo = DIGNITY_CLASSES[formData.dignityClass];
   const availableRanks = getAvailableRanks();
   const swornToOptions = getSwornToOptions();
-  
+
   return (
     <>
       <Navigation />
-      <div className="dignity-form-page">
-        
+      <motion.div
+        className="dignity-form-page"
+        variants={CONTAINER_VARIANTS}
+        initial="hidden"
+        animate="visible"
+      >
         {/* Header */}
-        <header className="form-header">
-          <button 
-            className="back-button"
+        <motion.header className="dignity-form__header" variants={SECTION_VARIANTS}>
+          <ActionButton
+            icon="arrow-left"
             onClick={() => navigate('/dignities')}
+            variant="ghost"
+            size="sm"
           >
-            ← Back to Rolls
-          </button>
-          <h1 className="form-title">
-            {isEditMode ? 'Edit Dignity' : 'Record New Dignity'}
+            Back to Rolls
+          </ActionButton>
+          <h1 className="dignity-form__title">
+            <Icon name={isEditMode ? 'pencil' : 'plus'} size={28} />
+            <span>{isEditMode ? 'Edit Dignity' : 'Record New Dignity'}</span>
           </h1>
-          <p className="form-subtitle">
-            Per Article VII — All grants shall be recorded in the rolls of the realm
+          <p className="dignity-form__subtitle">
+            Per Article VII - All grants shall be recorded in the rolls of the realm
           </p>
-        </header>
-        
-        {/* Error Display */}
-        {error && (
-          <div className="error-banner">
-            <span className="error-icon">⚠️</span>
-            <span className="error-text">{error}</span>
-            <button 
-              className="error-dismiss"
-              onClick={() => setError(null)}
+        </motion.header>
+
+        {/* Error Alert */}
+        <AnimatePresence>
+          {error && (
+            <motion.div
+              className="dignity-form__error"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
             >
-              ×
-            </button>
-          </div>
-        )}
-        
+              <Icon name="alert-circle" size={20} />
+              <span>{error}</span>
+              <button
+                onClick={() => setError(null)}
+                className="dignity-form__error-close"
+              >
+                <Icon name="x" size={16} />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Form */}
         <form className="dignity-form" onSubmit={handleSubmit}>
-          
-          {/* Section: Classification */}
-          <section className="form-section">
-            <h2 className="section-heading">
-              <span className="section-icon">📋</span>
-              Classification
+          {/* Classification Section */}
+          <motion.section className="dignity-form__section" variants={SECTION_VARIANTS}>
+            <h2 className="dignity-form__section-title">
+              <Icon name={SECTION_ICONS.classification} size={20} />
+              <span>Classification</span>
             </h2>
-            <p className="section-description">
+            <p className="dignity-form__section-desc">
               Define the type and rank of this dignity per the Charter
             </p>
-            
-            <div className="form-row">
-              {/* Dignity Class */}
-              <div className="form-group">
-                <label htmlFor="dignityClass">Dignity Class *</label>
+
+            <div className="dignity-form__row">
+              <div className="dignity-form__group">
+                <label htmlFor="dignityClass" className="dignity-form__label">
+                  Dignity Class *
+                </label>
                 <select
                   id="dignityClass"
                   name="dignityClass"
                   value={formData.dignityClass}
                   onChange={handleChange}
+                  className="dignity-form__select"
                   required
                 >
                   {Object.entries(DIGNITY_CLASSES).map(([key, info]) => (
                     <option key={key} value={key}>
-                      {info.icon} {info.name} — {info.description}
+                      {info.icon} {info.name} - {info.description}
                     </option>
                   ))}
                 </select>
-                <span className="field-hint">
-                  {classInfo?.description}
-                </span>
+                <span className="dignity-form__hint">{classInfo?.description}</span>
               </div>
-              
-              {/* Dignity Rank */}
-              <div className="form-group">
-                <label htmlFor="dignityRank">Rank *</label>
+
+              <div className="dignity-form__group">
+                <label htmlFor="dignityRank" className="dignity-form__label">
+                  Rank *
+                </label>
                 <select
                   id="dignityRank"
                   name="dignityRank"
                   value={formData.dignityRank}
                   onChange={handleChange}
+                  className="dignity-form__select"
                   required
                 >
                   {availableRanks.map(rank => (
                     <option key={rank.id} value={rank.id}>
-                      {rank.name} — {rank.description}
+                      {rank.name} - {rank.description}
                     </option>
                   ))}
                 </select>
               </div>
             </div>
-            
-            <div className="form-row">
-              {/* Hereditary Toggle */}
-              <div className="form-group checkbox-group">
-                <label className="checkbox-label">
+
+            <div className="dignity-form__row">
+              <div className="dignity-form__group dignity-form__group--checkbox">
+                <label className="dignity-form__checkbox">
                   <input
                     type="checkbox"
                     name="isHereditary"
                     checked={formData.isHereditary}
                     onChange={handleChange}
                   />
-                  <span className="checkbox-text">Hereditary Title</span>
+                  <span>Hereditary Title</span>
                 </label>
-                <span className="field-hint">
+                <span className="dignity-form__hint">
                   Passes by right of blood within the house
                 </span>
               </div>
-              
-              {/* Vacant Toggle */}
-              <div className="form-group checkbox-group">
-                <label className="checkbox-label">
+
+              <div className="dignity-form__group dignity-form__group--checkbox">
+                <label className="dignity-form__checkbox">
                   <input
                     type="checkbox"
                     name="isVacant"
                     checked={formData.isVacant}
                     onChange={handleChange}
                   />
-                  <span className="checkbox-text">Currently Vacant</span>
+                  <span>Currently Vacant</span>
                 </label>
-                <span className="field-hint">
+                <span className="dignity-form__hint">
                   No current holder of this dignity
                 </span>
               </div>
             </div>
-          </section>
-          
-          {/* Section: Identity */}
-          <section className="form-section">
-            <h2 className="section-heading">
-              <span className="section-icon">🏷️</span>
-              Identity
+          </motion.section>
+
+          {/* Identity Section */}
+          <motion.section className="dignity-form__section" variants={SECTION_VARIANTS}>
+            <h2 className="dignity-form__section-title">
+              <Icon name={SECTION_ICONS.identity} size={20} />
+              <span>Identity</span>
             </h2>
-            <p className="section-description">
+            <p className="dignity-form__section-desc">
               The formal name and styling of this dignity
             </p>
-            
-            <div className="form-row">
-              {/* Tenure Type */}
-              <div className="form-group">
-                <label htmlFor="tenureType">Tenure Style (Article IV)</label>
+
+            <div className="dignity-form__row">
+              <div className="dignity-form__group">
+                <label htmlFor="tenureType" className="dignity-form__label">
+                  Tenure Style (Article IV)
+                </label>
                 <select
                   id="tenureType"
                   name="tenureType"
                   value={formData.tenureType}
                   onChange={handleChange}
+                  className="dignity-form__select"
                 >
                   {Object.entries(TENURE_TYPES).map(([key, info]) => (
                     <option key={key} value={key}>
-                      {info.name} — {info.description}
+                      {info.name} - {info.description}
                     </option>
                   ))}
                 </select>
               </div>
-              
-              {/* Place Name */}
-              <div className="form-group">
-                <label htmlFor="placeName">Place/House Name</label>
-                <div className="input-with-action">
+
+              <div className="dignity-form__group">
+                <label htmlFor="placeName" className="dignity-form__label">
+                  Place/House Name
+                </label>
+                <div className="dignity-form__input-action">
                   <input
                     type="text"
                     id="placeName"
@@ -603,24 +560,28 @@ function DignityForm() {
                     value={formData.placeName}
                     onChange={handleChange}
                     placeholder="e.g., Breakmount, Wilfrey"
+                    className="dignity-form__input"
                   />
-                  <button
+                  <ActionButton
                     type="button"
-                    className="generate-btn"
+                    icon="sparkles"
                     onClick={generateName}
                     disabled={!formData.placeName}
+                    variant="secondary"
+                    size="sm"
                     title="Generate name from place"
                   >
-                    ✨ Generate
-                  </button>
+                    Generate
+                  </ActionButton>
                 </div>
               </div>
             </div>
-            
-            <div className="form-row">
-              {/* Full Name */}
-              <div className="form-group full-width">
-                <label htmlFor="name">Full Title Name *</label>
+
+            <div className="dignity-form__row">
+              <div className="dignity-form__group dignity-form__group--full">
+                <label htmlFor="name" className="dignity-form__label">
+                  Full Title Name *
+                </label>
                 <input
                   type="text"
                   id="name"
@@ -628,18 +589,20 @@ function DignityForm() {
                   value={formData.name}
                   onChange={handleChange}
                   placeholder="e.g., Lord of Breakmount"
+                  className="dignity-form__input"
                   required
                 />
-                <span className="field-hint">
+                <span className="dignity-form__hint">
                   The complete formal title as it would appear in records
                 </span>
               </div>
             </div>
-            
-            <div className="form-row">
-              {/* Short Name */}
-              <div className="form-group">
-                <label htmlFor="shortName">Short Name</label>
+
+            <div className="dignity-form__row">
+              <div className="dignity-form__group">
+                <label htmlFor="shortName" className="dignity-form__label">
+                  Short Name
+                </label>
                 <input
                   type="text"
                   id="shortName"
@@ -647,15 +610,17 @@ function DignityForm() {
                   value={formData.shortName}
                   onChange={handleChange}
                   placeholder="e.g., Breakmount"
+                  className="dignity-form__input"
                 />
-                <span className="field-hint">
+                <span className="dignity-form__hint">
                   Compact display name for lists and cards
                 </span>
               </div>
-              
-              {/* Seat Name */}
-              <div className="form-group">
-                <label htmlFor="seatName">Seat/Residence</label>
+
+              <div className="dignity-form__group">
+                <label htmlFor="seatName" className="dignity-form__label">
+                  Seat/Residence
+                </label>
                 <input
                   type="text"
                   id="seatName"
@@ -663,107 +628,111 @@ function DignityForm() {
                   value={formData.seatName}
                   onChange={handleChange}
                   placeholder="e.g., Breakmount Castle"
+                  className="dignity-form__input"
                 />
-                <span className="field-hint">
+                <span className="dignity-form__hint">
                   Primary residence or seat of power
                 </span>
               </div>
             </div>
-          </section>
-          
-          {/* Section: Feudal Hierarchy */}
-          <section className="form-section">
-            <h2 className="section-heading">
-              <span className="section-icon">⚔️</span>
-              Feudal Hierarchy
+          </motion.section>
+
+          {/* Feudal Hierarchy Section */}
+          <motion.section className="dignity-form__section" variants={SECTION_VARIANTS}>
+            <h2 className="dignity-form__section-title">
+              <Icon name={SECTION_ICONS.hierarchy} size={20} />
+              <span>Feudal Hierarchy</span>
             </h2>
-            <p className="section-description">
-              Article V — Fealty and sworn bonds
+            <p className="dignity-form__section-desc">
+              Article V - Fealty and sworn bonds
             </p>
-            
-            <div className="form-row">
-              {/* Sworn To */}
-              <div className="form-group">
-                <label htmlFor="swornToId">Sworn To</label>
+
+            <div className="dignity-form__row">
+              <div className="dignity-form__group">
+                <label htmlFor="swornToId" className="dignity-form__label">
+                  Sworn To
+                </label>
                 <select
                   id="swornToId"
                   name="swornToId"
                   value={formData.swornToId}
                   onChange={handleChange}
+                  className="dignity-form__select"
                 >
-                  <option value="">— None (Apex/Crown) —</option>
+                  <option value="">- None (Apex/Crown) -</option>
                   {swornToOptions.map(d => (
-                    <option key={d.id} value={d.id}>
-                      {d.name}
-                    </option>
+                    <option key={d.id} value={d.id}>{d.name}</option>
                   ))}
                 </select>
-                <span className="field-hint">
+                <span className="dignity-form__hint">
                   The superior dignity to which this one owes fealty
                 </span>
               </div>
-              
-              {/* Fealty Type */}
-              <div className="form-group">
-                <label htmlFor="fealtyType">Fealty Type</label>
+
+              <div className="dignity-form__group">
+                <label htmlFor="fealtyType" className="dignity-form__label">
+                  Fealty Type
+                </label>
                 <select
                   id="fealtyType"
                   name="fealtyType"
                   value={formData.fealtyType}
                   onChange={handleChange}
+                  className="dignity-form__select"
                   disabled={!formData.swornToId}
                 >
                   {Object.entries(FEALTY_TYPES).map(([key, info]) => (
                     <option key={key} value={key}>
-                      {info.name} — {info.description}
+                      {info.name} - {info.description}
                     </option>
                   ))}
                 </select>
               </div>
             </div>
-          </section>
-          
-          {/* Section: Current Holder */}
-          <section className="form-section">
-            <h2 className="section-heading">
-              <span className="section-icon">👤</span>
-              Current Holder
+          </motion.section>
+
+          {/* Current Holder Section */}
+          <motion.section className="dignity-form__section" variants={SECTION_VARIANTS}>
+            <h2 className="dignity-form__section-title">
+              <Icon name={SECTION_ICONS.holder} size={20} />
+              <span>Current Holder</span>
             </h2>
-            <p className="section-description">
+            <p className="dignity-form__section-desc">
               Who currently holds this dignity
               {formData.currentHouseId && (
-                <span className="filter-note"> — Showing members of {getHouseName(parseInt(formData.currentHouseId))}</span>
+                <span className="dignity-form__filter-note">
+                  {' '}- Showing members of {getHouseName(parseInt(formData.currentHouseId))}
+                </span>
               )}
             </p>
-            
-            <div className="form-row">
-              {/* Associated House - Now FIRST to enable filtering */}
-              <div className="form-group">
-                <label htmlFor="currentHouseId">Associated House</label>
+
+            <div className="dignity-form__row">
+              <div className="dignity-form__group">
+                <label htmlFor="currentHouseId" className="dignity-form__label">
+                  Associated House
+                </label>
                 <select
                   id="currentHouseId"
                   name="currentHouseId"
                   value={formData.currentHouseId}
                   onChange={handleChange}
+                  className="dignity-form__select"
                 >
-                  <option value="">— All Houses —</option>
+                  <option value="">- All Houses -</option>
                   {getFilteredHouses().map(h => (
-                    <option key={h.id} value={h.id}>
-                      {h.houseName}
-                    </option>
+                    <option key={h.id} value={h.id}>{h.houseName}</option>
                   ))}
                 </select>
-                <span className="field-hint">
+                <span className="dignity-form__hint">
                   Select a house to filter available holders
                 </span>
               </div>
-              
-              {/* Current Holder - Filtered by house */}
-              <div className="form-group">
-                <label htmlFor="currentHolderId">
+
+              <div className="dignity-form__group">
+                <label htmlFor="currentHolderId" className="dignity-form__label">
                   Current Holder
                   {formData.currentHouseId && (
-                    <span className="filter-badge">
+                    <span className="dignity-form__filter-badge">
                       {getFilteredPeople().length} available
                     </span>
                   )}
@@ -773,9 +742,10 @@ function DignityForm() {
                   name="currentHolderId"
                   value={formData.currentHolderId}
                   onChange={handleChange}
+                  className="dignity-form__select"
                   disabled={formData.isVacant}
                 >
-                  <option value="">— Select Person —</option>
+                  <option value="">- Select Person -</option>
                   {getFilteredPeople().map(p => (
                     <option key={p.id} value={p.id}>
                       {p.firstName} {p.lastName}
@@ -784,66 +754,67 @@ function DignityForm() {
                   ))}
                 </select>
                 {formData.currentHouseId && getFilteredPeople().length === 0 && (
-                  <span className="field-warning">
-                    No members found in this house
-                  </span>
+                  <span className="dignity-form__warning">No members found in this house</span>
                 )}
               </div>
             </div>
-            
-            {/* Clear filters helper */}
+
             {(formData.currentHouseId || formData.currentHolderId) && (
-              <div className="filter-actions">
+              <div className="dignity-form__filter-actions">
                 <button
                   type="button"
-                  className="clear-filter-btn"
-                  onClick={() => setFormData(prev => ({ 
-                    ...prev, 
-                    currentHouseId: '', 
-                    currentHolderId: '' 
+                  className="dignity-form__clear-btn"
+                  onClick={() => setFormData(prev => ({
+                    ...prev,
+                    currentHouseId: '',
+                    currentHolderId: ''
                   }))}
                 >
-                  ✕ Clear holder & house selection
+                  <Icon name="x" size={14} />
+                  <span>Clear holder & house selection</span>
                 </button>
               </div>
             )}
-          </section>
-          
-          {/* Section: Display Options */}
-          <section className="form-section">
-            <h2 className="section-heading">
-              <span className="section-icon">🎨</span>
-              Display Options
+          </motion.section>
+
+          {/* Display Options Section */}
+          <motion.section className="dignity-form__section" variants={SECTION_VARIANTS}>
+            <h2 className="dignity-form__section-title">
+              <Icon name={SECTION_ICONS.display} size={20} />
+              <span>Display Options</span>
             </h2>
-            <p className="section-description">
+            <p className="dignity-form__section-desc">
               How this dignity appears in the family tree
             </p>
-            
-            <div className="form-row">
-              {/* Display Icon */}
-              <div className="form-group">
-                <label htmlFor="displayIcon">Tree Card Icon</label>
+
+            <div className="dignity-form__row">
+              <div className="dignity-form__group">
+                <label htmlFor="displayIcon" className="dignity-form__label">
+                  Tree Card Icon
+                </label>
                 <select
                   id="displayIcon"
                   name="displayIcon"
                   value={formData.displayIcon}
                   onChange={handleChange}
+                  className="dignity-form__select"
                 >
-                  <option value="">— Auto (based on rank) —</option>
+                  <option value="">- Auto (based on rank) -</option>
                   {Object.entries(DISPLAY_ICONS).map(([key, info]) => (
                     <option key={key} value={key}>
                       {info.icon} {info.name}
                     </option>
                   ))}
                 </select>
-                <span className="field-hint">
+                <span className="dignity-form__hint">
                   Icon shown on person cards in the family tree
                 </span>
               </div>
-              
-              {/* Display Priority */}
-              <div className="form-group">
-                <label htmlFor="displayPriority">Display Priority</label>
+
+              <div className="dignity-form__group">
+                <label htmlFor="displayPriority" className="dignity-form__label">
+                  Display Priority
+                </label>
                 <input
                   type="number"
                   id="displayPriority"
@@ -852,23 +823,26 @@ function DignityForm() {
                   onChange={handleChange}
                   min="0"
                   max="100"
+                  className="dignity-form__input"
                 />
-                <span className="field-hint">
+                <span className="dignity-form__hint">
                   Higher = shown first when person holds multiple dignities
                 </span>
               </div>
             </div>
-          </section>
-          
-          {/* Section: Notes */}
-          <section className="form-section">
-            <h2 className="section-heading">
-              <span className="section-icon">📝</span>
-              Notes
+          </motion.section>
+
+          {/* Notes Section */}
+          <motion.section className="dignity-form__section" variants={SECTION_VARIANTS}>
+            <h2 className="dignity-form__section-title">
+              <Icon name={SECTION_ICONS.notes} size={20} />
+              <span>Notes</span>
             </h2>
-            
-            <div className="form-group full-width">
-              <label htmlFor="notes">Additional Notes</label>
+
+            <div className="dignity-form__group dignity-form__group--full">
+              <label htmlFor="notes" className="dignity-form__label">
+                Additional Notes
+              </label>
               <textarea
                 id="notes"
                 name="notes"
@@ -876,31 +850,31 @@ function DignityForm() {
                 onChange={handleChange}
                 rows="4"
                 placeholder="Any additional information about this dignity..."
+                className="dignity-form__textarea"
               />
             </div>
-          </section>
-          
+          </motion.section>
+
           {/* Form Actions */}
-          <div className="form-actions">
-            <button
+          <motion.div className="dignity-form__actions" variants={SECTION_VARIANTS}>
+            <ActionButton
               type="button"
-              className="cancel-button"
               onClick={() => navigate('/dignities')}
+              variant="ghost"
             >
               Cancel
-            </button>
-            <button
+            </ActionButton>
+            <ActionButton
               type="submit"
-              className="save-button"
+              icon={isEditMode ? 'save' : 'plus'}
               disabled={saving}
+              variant="primary"
             >
               {saving ? 'Saving...' : (isEditMode ? 'Update Dignity' : 'Record Dignity')}
-            </button>
-          </div>
-          
+            </ActionButton>
+          </motion.div>
         </form>
-        
-      </div>
+      </motion.div>
     </>
   );
 }
