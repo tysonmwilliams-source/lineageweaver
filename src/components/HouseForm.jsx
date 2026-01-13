@@ -468,7 +468,7 @@ function HouseForm({
             <HouseholdRolesPanel
               houseId={house.id}
               people={people}
-              defaultExpanded={false}
+              defaultExpanded={true}
             />
           </motion.div>
         )}
