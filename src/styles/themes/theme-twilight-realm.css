@@ -1,0 +1,294 @@
+/**
+ * Lineageweaver - Twilight Realm Theme (Dark Mode)
+ * 
+ * Inspired by midnight courts, astral mysticism, and manuscripts illuminated
+ * by starlight. Uses deep purples, midnight blues, and silver accents,
+ * evoking the heraldic color Purpure and celestial nobility.
+ */
+
+[data-theme="twilight-realm"] {
+  /* ============================================
+     SURFACE & BACKGROUND COLORS
+     ============================================ */
+  
+  /* Primary surfaces */
+  --bg-primary: #12101a;           /* Deep void (main background) */
+  --bg-secondary: #1e1a28;         /* Midnight violet */
+  --bg-tertiary: #2a2438;          /* Twilight shadow */
+  --bg-elevated: #363048;          /* Nebula mist */
+
+  /* Parchment tones */
+  --parchment-dark: #2d2640;       /* Dark velvet */
+  --parchment-base: #3a3450;       /* Primary parchment */
+  --parchment-light: #484260;      /* Lighter twilight */
+
+  /* ============================================
+     TEXT COLORS
+     ============================================ */
+  
+  --text-primary: #e4daf0;         /* Moonlit silver */
+  --text-secondary: #c4b8d4;       /* Soft lavender */
+  --text-tertiary: #9890a8;        /* Muted violet */
+  --text-disabled: #686078;        /* Faded dusk */
+  --text-inverse: #1a1424;         /* Text on light backgrounds */
+
+  /* ============================================
+     BORDERS & DIVIDERS
+     ============================================ */
+  
+  --border-primary: #3a3450;       /* Soft shadow */
+  --border-secondary: #4a4460;     /* Moderate twilight */
+  --border-heavy: #5a5470;         /* Strong dusk */
+  --border-focus: #9878c8;         /* Focus violet */
+
+  /* ============================================
+     SEMANTIC COLORS (Desaturated for dark mode)
+     ============================================ */
+  
+  --color-success: #6a9870;        /* Moonlit sage */
+  --color-success-light: #7aa880;
+  --color-success-dark: #5a8860;
+  --color-success-bg: #2a3830;
+  
+  --color-warning: #b8a868;        /* Starlight gold */
+  --color-warning-light: #c8b878;
+  --color-warning-dark: #a89858;
+  --color-warning-bg: #383428;
+  
+  --color-error: #b87878;          /* Dusk rose */
+  --color-error-light: #c88888;
+  --color-error-dark: #a86868;
+  --color-error-bg: #382828;
+  
+  --color-info: #7888b8;           /* Twilight blue */
+  --color-info-light: #8898c8;
+  --color-info-dark: #6878a8;
+  --color-info-bg: #282838;
+
+  /* ============================================
+     INTERACTIVE STATES
+     ============================================ */
+  
+  --interactive-default: #8878a8;  /* Violet mist */
+  --interactive-hover: #a898c8;    /* Lighter lavender */
+  --interactive-active: #c8b8e8;   /* Bright moonlight */
+  --interactive-disabled: #4a4460; /* Faded shadow */
+
+  /* ============================================
+     ACCENT COLORS
+     ============================================ */
+  
+  --accent-primary: #9868c8;       /* Violet - primary actions */
+  --accent-secondary: #8858b8;     /* Dark violet - hover */
+  --accent-tertiary: #b888e8;      /* Light violet - highlights */
+  --accent-muted: rgba(152, 104, 200, 0.15);
+
+  /* ============================================
+     FOCUS INDICATORS
+     ============================================ */
+  
+  --focus-ring: #9878c8;           /* Twilight focus */
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+  --focus-ring-opacity: 0.15;
+
+  /* ============================================
+     RELATIONSHIP TYPE COLORS (Desaturated)
+     ============================================ */
+  
+  --legitimate-primary: #6a9870;
+  --legitimate-light: #7aa880;
+  --legitimate-dark: #5a8860;
+  --legitimate-bg: #2a3830;
+  
+  --bastard-primary: #b8a868;
+  --bastard-light: #c8b878;
+  --bastard-dark: #a89858;
+  --bastard-bg: #383428;
+  
+  --adopted-primary: #7888b8;
+  --adopted-light: #8898c8;
+  --adopted-dark: #6878a8;
+  --adopted-bg: #282838;
+  
+  --unknown-primary: #787880;
+  --unknown-light: #888890;
+  --unknown-dark: #686870;
+  --unknown-bg: #2a2a30;
+  
+  --commoner-primary: #8a7a68;
+  --commoner-light: #9a8a78;
+  --commoner-dark: #7a6a58;
+  --commoner-bg: #302820;
+
+  /* ============================================
+     HOUSE COLOR PALETTE (Desaturated for dark mode)
+     ============================================ */
+  
+  --house-red: #a87878;
+  --house-blue: #7888b8;
+  --house-green: #6a9870;
+  --house-purple: #9878a8;
+  --house-gold: #b8a868;
+  --house-orange: #b88868;
+  --house-teal: #68a898;
+  --house-burgundy: #987080;
+  --house-navy: #5868a8;
+  --house-olive: #889868;
+  --house-brown: #8a7a68;
+  --house-grey: #787880;
+  --house-maroon: #a87080;
+  --house-forest: #68a878;
+  --house-amber: #c8b868;
+  --house-slate: #687898;
+
+  /* ============================================
+     SHADOWS & ELEVATION
+     ============================================ */
+  
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.6);
+  --shadow-xl: 0 16px 32px rgba(0, 0, 0, 0.7);
+  --shadow-2xl: 0 24px 48px rgba(0, 0, 0, 0.8);
+  --shadow-focus: 0 0 0 3px rgba(152, 120, 200, 0.2);
+  --shadow-card-hover: 0 6px 12px rgba(0, 0, 0, 0.6);
+
+  /* ============================================
+     TYPOGRAPHY
+     ============================================ */
+  
+  --font-display: 'Cinzel', 'Garamond', 'Georgia', serif;
+  --font-heading: 'Cinzel', 'Garamond', 'Georgia', serif;
+  --font-body: 'Crimson Text', 'Garamond', 'Georgia', serif;
+  --font-mono: 'Courier New', 'Courier', monospace;
+  
+  --text-xs: 11px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-lg: 16px;
+  --text-xl: 18px;
+  --text-2xl: 20px;
+  --text-3xl: 24px;
+  --text-4xl: 28px;
+  
+  --leading-tight: 1.2;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.75;
+  
+  --tracking-tight: -0.5px;
+  --tracking-normal: 0;
+  --tracking-wide: 0.5px;
+  --tracking-wider: 1px;
+
+  /* ============================================
+     SPACING SCALE
+     ============================================ */
+  
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+
+  /* ============================================
+     BORDER RADIUS SCALE
+     ============================================ */
+  
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-full: 9999px;
+
+  /* ============================================
+     TRANSITIONS & ANIMATIONS
+     ============================================ */
+  
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 350ms;
+  --ease-standard: cubic-bezier(0.4, 0.0, 0.2, 1);
+  --ease-decelerate: cubic-bezier(0.0, 0.0, 0.2, 1);
+  --ease-accelerate: cubic-bezier(0.4, 0.0, 1, 1);
+
+  /* ============================================
+     Z-INDEX SCALE
+     ============================================ */
+  
+  --z-base: 0;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-fixed: 300;
+  --z-modal-backdrop: 1000;
+  --z-modal: 1001;
+  --z-popover: 1100;
+  --z-tooltip: 1200;
+
+  /* ============================================
+     COMPONENT-SPECIFIC VARIABLES
+     ============================================ */
+  
+  --card-border-width: 3px;
+  --card-border-width-selected: 4px;
+  --card-padding: var(--space-3);
+  --card-min-width: 180px;
+  --card-max-width: 220px;
+  
+  --line-width: 2px;
+  --line-width-thick: 2.5px;
+  --line-width-hover: 3.5px;
+  
+  --modal-max-width: 600px;
+  --modal-padding: var(--space-6);
+  --modal-backdrop-blur: 4px;
+  
+  --nav-height: 64px;
+  --nav-padding: var(--space-3) var(--space-6);
+}
+
+/* Global styles */
+[data-theme="twilight-realm"] body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+}
+
+[data-theme="twilight-realm"] ::selection {
+  background-color: var(--focus-ring);
+  color: var(--bg-primary);
+}
+
+[data-theme="twilight-realm"] ::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+[data-theme="twilight-realm"] ::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+}
+
+[data-theme="twilight-realm"] ::-webkit-scrollbar-thumb {
+  background: var(--border-heavy);
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--bg-secondary);
+}
+
+[data-theme="twilight-realm"] ::-webkit-scrollbar-thumb:hover {
+  background: var(--interactive-default);
+}
+
+[data-theme="twilight-realm"] :focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}

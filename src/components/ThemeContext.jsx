@@ -20,6 +20,36 @@ export const AVAILABLE_THEMES = [
     name: 'Light Manuscript',
     category: 'light',
     description: 'Fresh parchment theme for daylight viewing'
+  },
+  {
+    id: 'emerald-court',
+    name: 'Emerald Court',
+    category: 'light',
+    description: 'Forest greens inspired by castle gardens and botanical manuscripts'
+  },
+  {
+    id: 'sapphire-dynasty',
+    name: 'Sapphire Dynasty',
+    category: 'light',
+    description: 'Cool blues and silvers evoking northern kingdoms and winter courts'
+  },
+  {
+    id: 'autumn-chronicle',
+    name: 'Autumn Chronicle',
+    category: 'light',
+    description: 'Warm russet and amber tones like harvest manuscripts by firelight'
+  },
+  {
+    id: 'rose-lineage',
+    name: 'Rose Lineage',
+    category: 'light',
+    description: 'Soft burgundy and dusty rose inspired by heraldic roses and courtly elegance'
+  },
+  {
+    id: 'twilight-realm',
+    name: 'Twilight Realm',
+    category: 'dark',
+    description: 'Deep purples and midnight blues evoking astral mysticism and celestial courts'
   }
 ];
 

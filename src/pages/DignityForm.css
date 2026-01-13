@@ -2,10 +2,11 @@
  * DignityForm.css
  * 
  * Styles for the dignity create/edit form.
- * Maintains medieval manuscript aesthetic with clear form structure.
+ * Medieval manuscript aesthetic with clear form structure.
+ * Uses BEM naming to match JSX class names.
  */
 
-/* ==================== LAYOUT ==================== */
+/* ==================== PAGE LAYOUT ==================== */
 
 .dignity-form-page {
   min-height: 100vh;
@@ -13,70 +14,38 @@
   padding-bottom: var(--space-12);
 }
 
-.dignity-form-page.loading {
+.dignity-form-page--loading {
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-/* ==================== LOADING ==================== */
-
-.loading-spinner {
-  text-align: center;
-}
-
-.loading-icon {
-  font-size: 48px;
-  animation: pulse 2s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.7; transform: scale(1.05); }
-}
-
-.loading-spinner p {
-  margin-top: var(--space-4);
-  font-family: var(--font-body);
-  font-size: var(--text-lg);
-  color: var(--text-secondary);
+  min-height: calc(100vh - 60px);
 }
 
 /* ==================== HEADER ==================== */
 
-.form-header {
-  padding: var(--space-6) var(--space-4);
+.dignity-form__header {
+  padding: var(--space-8) var(--space-4) var(--space-6);
   text-align: center;
-  border-bottom: 2px solid var(--border-primary);
   background: linear-gradient(
     to bottom,
     var(--bg-secondary) 0%,
     var(--bg-primary) 100%
   );
+  border-bottom: 2px solid var(--border-primary);
+  position: relative;
 }
 
-.back-button {
+.dignity-form__header .action-button {
   position: absolute;
   left: var(--space-4);
   top: var(--space-4);
-  padding: var(--space-2) var(--space-3);
-  font-family: var(--font-body);
-  font-size: var(--text-sm);
-  background-color: var(--bg-secondary);
-  color: var(--text-secondary);
-  border: 1px solid var(--border-primary);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all var(--duration-fast) var(--ease-standard);
 }
 
-.back-button:hover {
-  background-color: var(--bg-tertiary);
-  border-color: var(--focus-ring);
-  color: var(--text-primary);
-}
-
-.form-title {
+.dignity-form__title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
   font-family: var(--font-display);
   font-size: var(--text-3xl);
   font-weight: 700;
@@ -84,7 +53,11 @@
   margin: 0 0 var(--space-2) 0;
 }
 
-.form-subtitle {
+.dignity-form__title svg {
+  color: var(--accent-primary);
+}
+
+.dignity-form__subtitle {
   font-family: var(--font-body);
   font-size: var(--text-sm);
   color: var(--text-tertiary);
@@ -92,9 +65,9 @@
   margin: 0;
 }
 
-/* ==================== ERROR BANNER ==================== */
+/* ==================== ERROR ALERT ==================== */
 
-.error-banner {
+.dignity-form__error {
   display: flex;
   align-items: center;
   gap: var(--space-3);
@@ -102,40 +75,42 @@
   background-color: rgba(239, 68, 68, 0.1);
   border: 1px solid var(--color-error);
   border-radius: var(--radius-md);
-  margin: var(--space-4);
+  margin: var(--space-4) auto;
   max-width: 800px;
-  margin-left: auto;
-  margin-right: auto;
 }
 
-.error-icon {
-  font-size: var(--text-xl);
+.dignity-form__error svg {
+  color: var(--color-error);
   flex-shrink: 0;
 }
 
-.error-text {
+.dignity-form__error span {
   flex: 1;
   font-family: var(--font-body);
   font-size: var(--text-sm);
   color: var(--color-error);
 }
 
-.error-dismiss {
-  padding: var(--space-1) var(--space-2);
+.dignity-form__error-close {
+  padding: var(--space-1);
   background: none;
   border: none;
   color: var(--color-error);
-  font-size: var(--text-xl);
   cursor: pointer;
   opacity: 0.7;
-  transition: opacity var(--duration-fast) var(--ease-standard);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--duration-fast) var(--ease-standard);
 }
 
-.error-dismiss:hover {
+.dignity-form__error-close:hover {
   opacity: 1;
+  background-color: rgba(239, 68, 68, 0.1);
 }
 
-/* ==================== FORM ==================== */
+/* ==================== FORM CONTAINER ==================== */
 
 .dignity-form {
   max-width: 800px;
@@ -145,15 +120,21 @@
 
 /* ==================== FORM SECTIONS ==================== */
 
-.form-section {
+.dignity-form__section {
   background-color: var(--bg-secondary);
   border: 1px solid var(--border-primary);
   border-radius: var(--radius-lg);
   padding: var(--space-5);
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-5);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: border-color var(--duration-fast) var(--ease-standard);
 }
 
-.section-heading {
+.dignity-form__section:hover {
+  border-color: var(--border-secondary);
+}
+
+.dignity-form__section-title {
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -164,11 +145,11 @@
   margin: 0 0 var(--space-1) 0;
 }
 
-.section-icon {
-  font-size: var(--text-xl);
+.dignity-form__section-title svg {
+  color: var(--accent-primary);
 }
 
-.section-description {
+.dignity-form__section-desc {
   font-family: var(--font-body);
   font-size: var(--text-sm);
   color: var(--text-tertiary);
@@ -179,154 +160,186 @@
 
 /* ==================== FORM ROWS & GROUPS ==================== */
 
-.form-row {
+.dignity-form__row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: var(--space-4);
   margin-bottom: var(--space-4);
 }
 
-.form-row:last-child {
+.dignity-form__row:last-child {
   margin-bottom: 0;
 }
 
-.form-group {
+.dignity-form__group {
   display: flex;
   flex-direction: column;
 }
 
-.form-group.full-width {
+.dignity-form__group--full {
   grid-column: 1 / -1;
 }
 
-.form-group label {
+.dignity-form__group--checkbox {
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+/* ==================== LABELS ==================== */
+
+.dignity-form__label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   font-family: var(--font-body);
   font-size: var(--text-sm);
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: var(--space-1);
+  margin-bottom: var(--space-2);
 }
 
-.form-group input[type="text"],
-.form-group input[type="number"],
-.form-group select,
-.form-group textarea {
-  padding: var(--space-2) var(--space-3);
+/* ==================== INPUTS & SELECTS ==================== */
+
+.dignity-form__input,
+.dignity-form__select,
+.dignity-form__textarea {
+  padding: var(--space-3);
   font-family: var(--font-body);
   font-size: var(--text-base);
   background-color: var(--bg-primary);
-  border: 1px solid var(--border-primary);
+  border: 2px solid var(--border-primary);
   border-radius: var(--radius-md);
   color: var(--text-primary);
-  transition: border-color var(--duration-fast) var(--ease-standard);
+  transition: all var(--duration-fast) var(--ease-standard);
 }
 
-.form-group input:focus,
-.form-group select:focus,
-.form-group textarea:focus {
+.dignity-form__input:hover,
+.dignity-form__select:hover,
+.dignity-form__textarea:hover {
+  border-color: var(--border-secondary);
+}
+
+.dignity-form__input:focus,
+.dignity-form__select:focus,
+.dignity-form__textarea:focus {
   outline: none;
-  border-color: var(--focus-ring);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(var(--accent-primary-rgb, 212, 175, 55), 0.15);
 }
 
-.form-group input::placeholder,
-.form-group textarea::placeholder {
+.dignity-form__input::placeholder,
+.dignity-form__textarea::placeholder {
   color: var(--text-tertiary);
 }
 
-.form-group input:disabled,
-.form-group select:disabled,
-.form-group textarea:disabled {
+.dignity-form__input:disabled,
+.dignity-form__select:disabled,
+.dignity-form__textarea:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  background-color: var(--bg-tertiary);
 }
 
-.form-group textarea {
+.dignity-form__select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--space-3) center;
+  padding-right: var(--space-10);
+}
+
+.dignity-form__textarea {
   resize: vertical;
-  min-height: 100px;
+  min-height: 120px;
+  line-height: 1.6;
 }
 
-.field-hint {
+/* ==================== INPUT WITH ACTION BUTTON ==================== */
+
+.dignity-form__input-action {
+  display: flex;
+  gap: var(--space-2);
+  align-items: stretch;
+}
+
+.dignity-form__input-action .dignity-form__input {
+  flex: 1;
+}
+
+.dignity-form__input-action .action-button {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* ==================== HINTS & HELP TEXT ==================== */
+
+.dignity-form__hint {
   font-family: var(--font-body);
   font-size: var(--text-xs);
   color: var(--text-tertiary);
   margin-top: var(--space-1);
+  line-height: 1.4;
 }
 
-/* ==================== INPUT WITH ACTION ==================== */
-
-.input-with-action {
-  display: flex;
-  gap: var(--space-2);
-}
-
-.input-with-action input {
-  flex: 1;
-}
-
-.generate-btn {
-  padding: var(--space-2) var(--space-3);
+.dignity-form__warning {
   font-family: var(--font-body);
-  font-size: var(--text-sm);
-  background-color: var(--accent-primary);
-  color: var(--bg-primary);
-  border: none;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all var(--duration-fast) var(--ease-standard);
-}
-
-.generate-btn:hover:not(:disabled) {
-  background-color: var(--accent-secondary);
-}
-
-.generate-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+  font-size: var(--text-xs);
+  color: var(--color-warning);
+  margin-top: var(--space-1);
+  font-style: italic;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
 }
 
 /* ==================== CHECKBOXES ==================== */
 
-.checkbox-group {
-  flex-direction: row;
-  align-items: flex-start;
-}
-
-.checkbox-label {
+.dignity-form__checkbox {
   display: flex;
   align-items: center;
   gap: var(--space-2);
   cursor: pointer;
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  transition: background-color var(--duration-fast) var(--ease-standard);
 }
 
-.checkbox-label input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
+.dignity-form__checkbox:hover {
+  background-color: var(--bg-tertiary);
+}
+
+.dignity-form__checkbox input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
   accent-color: var(--accent-primary);
   cursor: pointer;
+  flex-shrink: 0;
 }
 
-.checkbox-text {
+.dignity-form__checkbox span {
   font-family: var(--font-body);
   font-size: var(--text-base);
   color: var(--text-primary);
-  font-weight: normal;
+  font-weight: 500;
 }
 
-.checkbox-group .field-hint {
-  margin-left: 26px;
+.dignity-form__group--checkbox .dignity-form__hint {
+  margin-left: 28px;
+  margin-top: 0;
 }
 
-/* ==================== SMART FILTERING ==================== */
+/* ==================== FILTER INDICATORS ==================== */
 
-.filter-note {
+.dignity-form__filter-note {
   color: var(--accent-primary);
   font-weight: 600;
   font-style: normal;
 }
 
-.filter-badge {
-  display: inline-block;
+.dignity-form__filter-badge {
+  display: inline-flex;
+  align-items: center;
   margin-left: var(--space-2);
   padding: var(--space-1) var(--space-2);
   font-size: var(--text-xs);
@@ -336,22 +349,19 @@
   border-radius: var(--radius-full);
 }
 
-.field-warning {
-  font-family: var(--font-body);
-  font-size: var(--text-xs);
-  color: var(--color-warning);
-  margin-top: var(--space-1);
-  font-style: italic;
-}
+/* ==================== FILTER ACTIONS ==================== */
 
-.filter-actions {
+.dignity-form__filter-actions {
   margin-top: var(--space-3);
   padding-top: var(--space-3);
   border-top: 1px dashed var(--border-secondary);
 }
 
-.clear-filter-btn {
-  padding: var(--space-1) var(--space-3);
+.dignity-form__clear-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
   font-family: var(--font-body);
   font-size: var(--text-sm);
   background-color: transparent;
@@ -362,89 +372,109 @@
   transition: all var(--duration-fast) var(--ease-standard);
 }
 
-.clear-filter-btn:hover {
+.dignity-form__clear-btn:hover {
   background-color: var(--bg-tertiary);
   color: var(--text-secondary);
   border-color: var(--border-secondary);
 }
 
+.dignity-form__clear-btn svg {
+  flex-shrink: 0;
+}
+
 /* ==================== FORM ACTIONS ==================== */
 
-.form-actions {
+.dignity-form__actions {
   display: flex;
   justify-content: flex-end;
   gap: var(--space-3);
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--border-primary);
-  margin-top: var(--space-4);
-}
-
-.cancel-button {
-  padding: var(--space-3) var(--space-6);
-  font-family: var(--font-body);
-  font-size: var(--text-base);
-  font-weight: 600;
-  background-color: var(--bg-secondary);
-  color: var(--text-primary);
-  border: 1px solid var(--border-primary);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all var(--duration-fast) var(--ease-standard);
-}
-
-.cancel-button:hover {
-  background-color: var(--bg-tertiary);
-  border-color: var(--focus-ring);
-}
-
-.save-button {
-  padding: var(--space-3) var(--space-6);
-  font-family: var(--font-body);
-  font-size: var(--text-base);
-  font-weight: 600;
-  background-color: var(--accent-primary);
-  color: var(--bg-primary);
-  border: none;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all var(--duration-fast) var(--ease-standard);
-}
-
-.save-button:hover:not(:disabled) {
-  background-color: var(--accent-secondary);
-  transform: translateY(-1px);
-}
-
-.save-button:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
+  padding-top: var(--space-5);
+  border-top: 2px solid var(--border-primary);
+  margin-top: var(--space-2);
 }
 
 /* ==================== RESPONSIVE ==================== */
 
 @media (max-width: 768px) {
-  .back-button {
+  .dignity-form__header {
+    padding-top: var(--space-16);
+  }
+
+  .dignity-form__header .action-button {
     position: relative;
     left: auto;
     top: auto;
     margin-bottom: var(--space-4);
   }
-  
-  .form-title {
+
+  .dignity-form__title {
     font-size: var(--text-2xl);
+    flex-wrap: wrap;
   }
-  
-  .form-row {
+
+  .dignity-form__row {
     grid-template-columns: 1fr;
   }
-  
-  .form-actions {
+
+  .dignity-form__section {
+    padding: var(--space-4);
+  }
+
+  .dignity-form__input-action {
     flex-direction: column;
   }
-  
-  .cancel-button,
-  .save-button {
+
+  .dignity-form__actions {
+    flex-direction: column-reverse;
+  }
+
+  .dignity-form__actions .action-button {
     width: 100%;
     justify-content: center;
   }
+}
+
+/* ==================== DARK THEME ADJUSTMENTS ==================== */
+
+[data-theme="dark"] .dignity-form__section {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .dignity-form__select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+
+/* ==================== ANIMATION STATES ==================== */
+
+.dignity-form__section {
+  animation: sectionFadeIn 0.4s ease-out;
+}
+
+@keyframes sectionFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ==================== SELECT OPTIONS STYLING ==================== */
+
+.dignity-form__select option {
+  padding: var(--space-2);
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+/* ==================== FOCUS VISIBLE FOR ACCESSIBILITY ==================== */
+
+.dignity-form__input:focus-visible,
+.dignity-form__select:focus-visible,
+.dignity-form__textarea:focus-visible,
+.dignity-form__checkbox input:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
 }

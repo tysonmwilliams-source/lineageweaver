@@ -4,6 +4,7 @@
  * PURPOSE:
  * Displays all houses in a list with heraldry thumbnails,
  * edit and delete options, and quick heraldry actions.
+ * Includes search and sort functionality.
  *
  * Uses Framer Motion for animations, Lucide icons, and BEM CSS.
  *
@@ -14,12 +15,35 @@
  * - onAddHeraldry: Function to handle adding heraldry to a house
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getHeraldry } from '../services/heraldryService';
 import Icon from './icons';
+import EmptyState from './shared/EmptyState';
+import ListControls from './shared/ListControls';
+import ListSearchBar from './shared/ListSearchBar';
+import SortDropdown from './shared/SortDropdown';
+import FilterDropdown from './shared/FilterDropdown';
+import Pagination from './shared/Pagination';
 import './HouseList.css';
+
+// ==================== PAGINATION CONFIG ====================
+const ITEMS_PER_PAGE = 25;
+
+// ==================== FILTER OPTIONS ====================
+const HOUSE_TYPE_OPTIONS = [
+  { value: 'great', label: 'Great House' },
+  { value: 'cadet', label: 'Cadet Branch' },
+  { value: 'minor', label: 'Minor House' },
+  { value: 'vassal', label: 'Vassal House' },
+  { value: 'extinct', label: 'Extinct House' }
+];
+
+const HAS_HERALDRY_OPTIONS = [
+  { value: 'yes', label: 'Has Heraldry' },
+  { value: 'no', label: 'No Heraldry' }
+];
 
 // ==================== ANIMATION VARIANTS ====================
 const LIST_VARIANTS = {
@@ -63,6 +87,15 @@ const EMPTY_VARIANTS = {
   }
 };
 
+// ==================== SORT OPTIONS ====================
+const SORT_OPTIONS = [
+  { value: 'name', label: 'House Name (A-Z)' },
+  { value: 'nameDesc', label: 'House Name (Z-A)' },
+  { value: 'founded', label: 'Founded (Oldest)' },
+  { value: 'foundedDesc', label: 'Founded (Newest)' },
+  { value: 'type', label: 'By Type' }
+];
+
 function HouseList({
   houses,
   onEdit,
@@ -71,9 +104,100 @@ function HouseList({
 }) {
   const navigate = useNavigate();
 
+  // ==================== SEARCH & SORT STATE ====================
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState('name');
+
+  // ==================== FILTER STATE ====================
+  const [filterType, setFilterType] = useState('');
+  const [filterHasHeraldry, setFilterHasHeraldry] = useState('');
+
+  // ==================== PAGINATION STATE ====================
+  const [currentPage, setCurrentPage] = useState(1);
+
   // Cache heraldry data for houses
   const [heraldryCache, setHeraldryCache] = useState({});
   const [loadingHeraldry, setLoadingHeraldry] = useState({});
+
+  // ==================== FILTERED & SORTED HOUSES ====================
+  const filteredAndSortedHouses = useMemo(() => {
+    let filtered = [...houses];
+
+    // Apply search filter
+    if (searchTerm) {
+      const search = searchTerm.toLowerCase();
+      filtered = filtered.filter(h =>
+        h.houseName?.toLowerCase().includes(search) ||
+        h.motto?.toLowerCase().includes(search) ||
+        h.notes?.toLowerCase().includes(search) ||
+        h.sigil?.toLowerCase().includes(search) ||
+        h.houseType?.toLowerCase().includes(search)
+      );
+    }
+
+    // Apply type filter
+    if (filterType) {
+      filtered = filtered.filter(h => h.houseType === filterType);
+    }
+
+    // Apply heraldry filter
+    if (filterHasHeraldry) {
+      if (filterHasHeraldry === 'yes') {
+        filtered = filtered.filter(h => h.heraldryId || h.heraldryThumbnail || h.heraldryImageData);
+      } else if (filterHasHeraldry === 'no') {
+        filtered = filtered.filter(h => !h.heraldryId && !h.heraldryThumbnail && !h.heraldryImageData);
+      }
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'name':
+          return (a.houseName || '').localeCompare(b.houseName || '');
+        case 'nameDesc':
+          return (b.houseName || '').localeCompare(a.houseName || '');
+        case 'founded':
+          return (a.foundedDate || '9999').localeCompare(b.foundedDate || '9999');
+        case 'foundedDesc':
+          return (b.foundedDate || '').localeCompare(a.foundedDate || '');
+        case 'type':
+          return (a.houseType || 'zzz').localeCompare(b.houseType || 'zzz');
+        default:
+          return 0;
+      }
+    });
+
+    return filtered;
+  }, [houses, searchTerm, sortBy, filterType, filterHasHeraldry]);
+
+  // Check if filters are active
+  const hasActiveFilters = searchTerm.length > 0 ||
+    filterType.length > 0 ||
+    filterHasHeraldry.length > 0;
+
+  // ==================== PAGINATION LOGIC ====================
+  // Reset page when filters/sort change
+  useMemo(() => {
+    setCurrentPage(1);
+  }, [searchTerm, sortBy, filterType, filterHasHeraldry]);
+
+  // Calculate total pages
+  const totalPages = Math.ceil(filteredAndSortedHouses.length / ITEMS_PER_PAGE);
+
+  // Paginate houses
+  const paginatedHouses = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredAndSortedHouses.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredAndSortedHouses, currentPage]);
+
+  // Clear all filters
+  const handleClearFilters = useCallback(() => {
+    setSearchTerm('');
+    setFilterType('');
+    setFilterHasHeraldry('');
+    setSortBy('name');
+    setCurrentPage(1);
+  }, []);
 
   // ==================== LOAD HERALDRY ====================
   useEffect(() => {
@@ -183,30 +307,69 @@ function HouseList({
   // ==================== EMPTY STATE ====================
   if (houses.length === 0) {
     return (
-      <motion.div
-        className="house-list__empty"
-        variants={EMPTY_VARIANTS}
-        initial="hidden"
-        animate="visible"
-      >
-        <Icon name="castle" size={48} className="house-list__empty-icon" />
-        <p className="house-list__empty-text">
-          No houses yet. Create your first noble house!
-        </p>
-      </motion.div>
+      <EmptyState
+        icon="castle"
+        title="No Houses Yet"
+        description="Create your first noble house to start building your dynasty."
+      />
     );
   }
 
   // ==================== RENDER ====================
   return (
-    <motion.div
-      className="house-list"
-      variants={LIST_VARIANTS}
-      initial="hidden"
-      animate="visible"
-    >
-      <AnimatePresence mode="popLayout">
-        {houses.map(house => {
+    <div className="house-list-container">
+      {/* Search, Filter & Sort Controls */}
+      <ListControls
+        resultCount={filteredAndSortedHouses.length}
+        totalCount={houses.length}
+        hasActiveFilters={hasActiveFilters}
+        onClearFilters={handleClearFilters}
+      >
+        <ListSearchBar
+          value={searchTerm}
+          onChange={setSearchTerm}
+          placeholder="Search houses..."
+        />
+        <FilterDropdown
+          value={filterType}
+          onChange={setFilterType}
+          options={HOUSE_TYPE_OPTIONS}
+          label="Type:"
+          icon="crown"
+          allLabel="All Types"
+        />
+        <FilterDropdown
+          value={filterHasHeraldry}
+          onChange={setFilterHasHeraldry}
+          options={HAS_HERALDRY_OPTIONS}
+          label="Heraldry:"
+          icon="shield"
+          allLabel="All"
+        />
+        <SortDropdown
+          value={sortBy}
+          onChange={setSortBy}
+          options={SORT_OPTIONS}
+        />
+      </ListControls>
+
+      {/* Empty state for filtered results */}
+      {filteredAndSortedHouses.length === 0 && hasActiveFilters ? (
+        <EmptyState
+          icon="search"
+          title="No Matching Houses"
+          description="Try adjusting your search terms or clear the filters."
+        />
+      ) : (
+        <>
+          <motion.div
+            className="house-list"
+            variants={LIST_VARIANTS}
+            initial="hidden"
+            animate="visible"
+          >
+            <AnimatePresence mode="popLayout">
+              {paginatedHouses.map(house => {
           const heraldry = house.heraldryId ? heraldryCache[house.heraldryId] : null;
           const hasHeraldry = heraldry || house.heraldryThumbnail || house.heraldryImageData;
 
@@ -304,10 +467,18 @@ function HouseList({
                 </div>
               </div>
             </motion.div>
-          );
-        })}
-      </AnimatePresence>
-    </motion.div>
+                );
+              })}
+            </AnimatePresence>
+          </motion.div>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
+        </>
+      )}
+    </div>
   );
 }
 

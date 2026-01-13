@@ -96,6 +96,10 @@ import {
   createHeraldry as localCreateHeraldry
 } from './heraldryService';
 
+import {
+  getAllHouseholdRoles as localGetAllHouseholdRoles
+} from './householdRoleService';
+
 import { db as localDb } from './database';
 
 // ==================== SYNC STATE ====================
@@ -223,13 +227,21 @@ export async function initializeSync(userId) {
       let dignities = [];
       let dignityTenures = [];
       let dignityLinks = [];
-      
+
       try {
         dignities = await localDb.dignities.toArray();
         dignityTenures = await localDb.dignityTenures.toArray();
         dignityLinks = await localDb.dignityLinks.toArray();
       } catch (e) {
         console.warn('Could not get dignities:', e);
+      }
+
+      // Get household roles
+      let householdRoles = [];
+      try {
+        householdRoles = await localGetAllHouseholdRoles();
+      } catch (e) {
+        console.warn('Could not get household roles:', e);
       }
 
       await syncAllToCloud(userId, {
@@ -241,7 +253,8 @@ export async function initializeSync(userId) {
         heraldryLinks,
         dignities,
         dignityTenures,
-        dignityLinks
+        dignityLinks,
+        householdRoles
       });
 
       updateSyncStatus({ isSyncing: false, lastSyncTime: new Date() });
@@ -266,7 +279,8 @@ export async function initializeSync(userId) {
     for (const house of cloudData.houses || []) {
       // Remove Firestore-specific fields before saving locally
       const { createdAt, updatedAt, syncedAt, localId, ...houseData } = house;
-      await localAddHouse({ ...houseData, id: parseInt(house.id) || house.id });
+      // Skip Codex auto-creation during sync restore to prevent duplicates
+      await localAddHouse({ ...houseData, id: parseInt(house.id) || house.id }, { skipCodexCreation: true });
     }
 
     for (const person of cloudData.people || []) {
@@ -342,11 +356,21 @@ export async function initializeSync(userId) {
       }
     }
 
+    // Handle household roles if they exist
+    for (const role of cloudData.householdRoles || []) {
+      const { createdAt, updatedAt, syncedAt, localId, ...roleData } = role;
+      try {
+        await localDb.householdRoles.put({ ...roleData, id: parseInt(role.id) || role.id });
+      } catch (e) {
+        console.warn('Could not restore household role:', e);
+      }
+    }
+
     updateSyncStatus({ isSyncing: false, lastSyncTime: new Date() });
-    
-    return { 
-      status: 'downloaded', 
-      data: cloudData 
+
+    return {
+      status: 'downloaded',
+      data: cloudData
     };
 
   } catch (error) {
@@ -772,7 +796,8 @@ export async function forceCloudSync(userId) {
     // Re-populate local - houses first (people reference houses)
     for (const house of cloudData.houses || []) {
       const { createdAt, updatedAt, syncedAt, localId, ...houseData } = house;
-      await localAddHouse({ ...houseData, id: parseInt(house.id) || house.id });
+      // Skip Codex auto-creation during sync restore to prevent duplicates
+      await localAddHouse({ ...houseData, id: parseInt(house.id) || house.id }, { skipCodexCreation: true });
     }
 
     for (const person of cloudData.people || []) {
@@ -844,7 +869,17 @@ export async function forceCloudSync(userId) {
         console.warn('Could not restore dignity link during force sync:', e);
       }
     }
-    
+
+    // Restore household roles
+    for (const role of cloudData.householdRoles || []) {
+      const { createdAt, updatedAt, syncedAt, localId, ...roleData } = role;
+      try {
+        await localDb.householdRoles.put({ ...roleData, id: parseInt(role.id) || role.id });
+      } catch (e) {
+        console.warn('Could not restore household role during force sync:', e);
+      }
+    }
+
     updateSyncStatus({ isSyncing: false, lastSyncTime: new Date() });
     return { status: 'success', data: cloudData };
   } catch (error) {

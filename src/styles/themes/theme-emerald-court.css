@@ -1,0 +1,294 @@
+/**
+ * Lineageweaver - Emerald Court Theme (Light Mode)
+ * 
+ * Inspired by castle gardens, forest estates, and illuminated manuscripts
+ * with botanical borders. Uses verdant greens with warm cream accents,
+ * evoking the heraldic color Vert and the natural world.
+ */
+
+[data-theme="emerald-court"] {
+  /* ============================================
+     SURFACE & BACKGROUND COLORS
+     ============================================ */
+  
+  /* Primary surfaces */
+  --bg-primary: #f4f7f2;           /* Pale sage (main background) */
+  --bg-secondary: #e8efe4;         /* Soft moss */
+  --bg-tertiary: #dce6d6;          /* Muted fern */
+  --bg-elevated: #d0ddc8;          /* Garden stone */
+
+  /* Parchment tones */
+  --parchment-light: #f6f9f3;      /* Fresh leaf */
+  --parchment-base: #e8efe4;       /* Primary parchment */
+  --parchment-dark: #dce6d6;       /* Aged garden note */
+
+  /* ============================================
+     TEXT COLORS
+     ============================================ */
+  
+  --text-primary: #1e2d1a;         /* Deep forest ink */
+  --text-secondary: #3d4d38;       /* Woodland brown-green */
+  --text-tertiary: #5d6d58;        /* Muted sage */
+  --text-disabled: #8d9d88;        /* Faded moss */
+  --text-inverse: #e8f0e4;         /* Text on dark backgrounds */
+
+  /* ============================================
+     BORDERS & DIVIDERS
+     ============================================ */
+  
+  --border-primary: #c4d4b8;       /* Soft vine */
+  --border-secondary: #a8c49c;     /* Garden border */
+  --border-heavy: #8cb480;         /* Strong leaf */
+  --border-focus: #5a8a4c;         /* Focus emerald */
+
+  /* ============================================
+     SEMANTIC COLORS
+     ============================================ */
+  
+  --color-success: #4a7c3c;        /* Forest green */
+  --color-success-light: #5a8c4c;
+  --color-success-dark: #3a6c2c;
+  --color-success-bg: #e4f4e0;
+  
+  --color-warning: #b8943c;        /* Autumn gold */
+  --color-warning-light: #c8a44c;
+  --color-warning-dark: #a8842c;
+  --color-warning-bg: #f8f2e0;
+  
+  --color-error: #b84c4c;          /* Berry red */
+  --color-error-light: #c85c5c;
+  --color-error-dark: #a83c3c;
+  --color-error-bg: #f8e4e4;
+  
+  --color-info: #3c6c8c;           /* River blue */
+  --color-info-light: #4c7c9c;
+  --color-info-dark: #2c5c7c;
+  --color-info-bg: #e0f0f8;
+
+  /* ============================================
+     INTERACTIVE STATES
+     ============================================ */
+  
+  --interactive-default: #5d7d4d;  /* Garden path */
+  --interactive-hover: #4d6d3d;    /* Deeper forest */
+  --interactive-active: #3d5d2d;   /* Shadowed grove */
+  --interactive-disabled: #a8c49c; /* Faded fern */
+
+  /* ============================================
+     ACCENT COLORS
+     ============================================ */
+  
+  --accent-primary: #4a8a3c;       /* Emerald - primary actions */
+  --accent-secondary: #3a7a2c;     /* Dark emerald - hover */
+  --accent-tertiary: #6aaa5c;      /* Light emerald - highlights */
+  --accent-muted: rgba(74, 138, 60, 0.15);
+
+  /* ============================================
+     FOCUS INDICATORS
+     ============================================ */
+  
+  --focus-ring: #5a8a4c;           /* Forest focus */
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+  --focus-ring-opacity: 0.15;
+
+  /* ============================================
+     RELATIONSHIP TYPE COLORS
+     ============================================ */
+  
+  --legitimate-primary: #3c7c3c;
+  --legitimate-light: #4c8c4c;
+  --legitimate-dark: #2c6c2c;
+  --legitimate-bg: #e4f4e4;
+  
+  --bastard-primary: #c49434;
+  --bastard-light: #d4a444;
+  --bastard-dark: #b48424;
+  --bastard-bg: #f8f0e0;
+  
+  --adopted-primary: #3c6c8c;
+  --adopted-light: #4c7c9c;
+  --adopted-dark: #2c5c7c;
+  --adopted-bg: #e0ecf4;
+  
+  --unknown-primary: #6d7d6d;
+  --unknown-light: #7d8d7d;
+  --unknown-dark: #5d6d5d;
+  --unknown-bg: #e8ece8;
+  
+  --commoner-primary: #7c6d4c;
+  --commoner-light: #8c7d5c;
+  --commoner-dark: #6c5d3c;
+  --commoner-bg: #f0ebe0;
+
+  /* ============================================
+     HOUSE COLOR PALETTE
+     ============================================ */
+  
+  --house-red: #b84c4c;
+  --house-blue: #3c6c8c;
+  --house-green: #3c7c3c;
+  --house-purple: #7c3c8c;
+  --house-gold: #b8943c;
+  --house-orange: #b87c3c;
+  --house-teal: #3c8c7c;
+  --house-burgundy: #8c3c5c;
+  --house-navy: #3c4c7c;
+  --house-olive: #6c7c3c;
+  --house-brown: #7c6d4c;
+  --house-grey: #6d7d6d;
+  --house-maroon: #9c3c5c;
+  --house-forest: #3c7c4c;
+  --house-amber: #c4a434;
+  --house-slate: #5c6d7c;
+
+  /* ============================================
+     SHADOWS & ELEVATION
+     ============================================ */
+  
+  --shadow-sm: 0 2px 4px rgba(30, 45, 26, 0.1);
+  --shadow-md: 0 4px 8px rgba(30, 45, 26, 0.15);
+  --shadow-lg: 0 8px 16px rgba(30, 45, 26, 0.2);
+  --shadow-xl: 0 16px 32px rgba(30, 45, 26, 0.25);
+  --shadow-2xl: 0 24px 48px rgba(30, 45, 26, 0.3);
+  --shadow-focus: 0 0 0 3px rgba(90, 138, 76, 0.15);
+  --shadow-card-hover: 0 4px 8px rgba(30, 45, 26, 0.2);
+
+  /* ============================================
+     TYPOGRAPHY
+     ============================================ */
+  
+  --font-display: 'Cinzel', 'Garamond', 'Georgia', serif;
+  --font-heading: 'Cinzel', 'Garamond', 'Georgia', serif;
+  --font-body: 'Crimson Text', 'Garamond', 'Georgia', serif;
+  --font-mono: 'Courier New', 'Courier', monospace;
+  
+  --text-xs: 11px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-lg: 16px;
+  --text-xl: 18px;
+  --text-2xl: 20px;
+  --text-3xl: 24px;
+  --text-4xl: 28px;
+  
+  --leading-tight: 1.2;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.75;
+  
+  --tracking-tight: -0.5px;
+  --tracking-normal: 0;
+  --tracking-wide: 0.5px;
+  --tracking-wider: 1px;
+
+  /* ============================================
+     SPACING SCALE
+     ============================================ */
+  
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+
+  /* ============================================
+     BORDER RADIUS SCALE
+     ============================================ */
+  
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-full: 9999px;
+
+  /* ============================================
+     TRANSITIONS & ANIMATIONS
+     ============================================ */
+  
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 350ms;
+  --ease-standard: cubic-bezier(0.4, 0.0, 0.2, 1);
+  --ease-decelerate: cubic-bezier(0.0, 0.0, 0.2, 1);
+  --ease-accelerate: cubic-bezier(0.4, 0.0, 1, 1);
+
+  /* ============================================
+     Z-INDEX SCALE
+     ============================================ */
+  
+  --z-base: 0;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-fixed: 300;
+  --z-modal-backdrop: 1000;
+  --z-modal: 1001;
+  --z-popover: 1100;
+  --z-tooltip: 1200;
+
+  /* ============================================
+     COMPONENT-SPECIFIC VARIABLES
+     ============================================ */
+  
+  --card-border-width: 3px;
+  --card-border-width-selected: 4px;
+  --card-padding: var(--space-3);
+  --card-min-width: 180px;
+  --card-max-width: 220px;
+  
+  --line-width: 2px;
+  --line-width-thick: 2.5px;
+  --line-width-hover: 3.5px;
+  
+  --modal-max-width: 600px;
+  --modal-padding: var(--space-6);
+  --modal-backdrop-blur: 4px;
+  
+  --nav-height: 64px;
+  --nav-padding: var(--space-3) var(--space-6);
+}
+
+/* Global styles */
+[data-theme="emerald-court"] body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+}
+
+[data-theme="emerald-court"] ::selection {
+  background-color: var(--focus-ring);
+  color: var(--bg-primary);
+}
+
+[data-theme="emerald-court"] ::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+[data-theme="emerald-court"] ::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+}
+
+[data-theme="emerald-court"] ::-webkit-scrollbar-thumb {
+  background: var(--border-heavy);
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--bg-secondary);
+}
+
+[data-theme="emerald-court"] ::-webkit-scrollbar-thumb:hover {
+  background: var(--interactive-default);
+}
+
+[data-theme="emerald-court"] :focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}

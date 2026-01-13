@@ -15,6 +15,13 @@
  */
 
 import { db } from './database';
+import {
+  syncAddHeraldry,
+  syncUpdateHeraldry,
+  syncDeleteHeraldry,
+  syncAddHeraldryLink,
+  syncDeleteHeraldryLink
+} from './dataSyncService';
 
 // ==================== HERALDRY CRUD OPERATIONS ====================
 
@@ -43,50 +50,57 @@ import { db } from './database';
  * - derivationType: 'cadency' | 'marriage' | 'grant' | 'adoption' | null
  * - isTemplate: Boolean - can be used as starting point
  * - codexEntryId: Link to Codex article about this heraldry
+ * @param {string} [userId] - Optional user ID for cloud sync
  */
-export async function createHeraldry(heraldryData) {
+export async function createHeraldry(heraldryData, userId = null) {
   try {
     const now = new Date().toISOString();
-    
+
     const record = {
       // Identity
       name: heraldryData.name || 'Untitled Arms',
       description: heraldryData.description || null,
       blazon: heraldryData.blazon || null,
-      
+
       // Visual Data
       heraldrySVG: heraldryData.heraldrySVG || null,
       heraldrySourceSVG: heraldryData.heraldrySourceSVG || null,
       heraldryThumbnail: heraldryData.heraldryThumbnail || null,
       heraldryDisplay: heraldryData.heraldryDisplay || heraldryData.heraldryImageData || null,
       heraldryHighRes: heraldryData.heraldryHighRes || null,
-      
+
       // Composition
       shieldType: heraldryData.shieldType || heraldryData.heraldryShieldType || 'heater',
       composition: heraldryData.composition || null,
-      
+
       // Classification
       category: heraldryData.category || 'noble',
       tags: heraldryData.tags || [],
-      
+
       // Lineage
       parentHeraldryId: heraldryData.parentHeraldryId || null,
       derivationType: heraldryData.derivationType || null,
-      
+
       // Metadata
       isTemplate: heraldryData.isTemplate || false,
       codexEntryId: heraldryData.codexEntryId || null,
       source: heraldryData.source || heraldryData.heraldrySource || null,
       seed: heraldryData.seed || heraldryData.heraldrySeed || null,
       metadata: heraldryData.metadata || heraldryData.heraldryMetadata || null,
-      
+
       // Timestamps
       created: now,
       updated: now
     };
-    
+
     const id = await db.heraldry.add(record);
     console.log('🛡️ Heraldry created with ID:', id);
+
+    // Sync to cloud if userId provided
+    if (userId) {
+      await syncAddHeraldry(userId, id, record);
+    }
+
     return id;
   } catch (error) {
     console.error('❌ Error creating heraldry:', error);
@@ -127,19 +141,27 @@ export async function getAllHeraldry() {
 
 /**
  * Update an existing heraldry record
- * 
+ *
  * @param {number} id - The heraldry ID to update
  * @param {Object} updates - The fields to update
+ * @param {string} [userId] - Optional user ID for cloud sync
  * @returns {Promise<number>} Number of records updated (1 or 0)
  */
-export async function updateHeraldry(id, updates) {
+export async function updateHeraldry(id, updates, userId = null) {
   try {
-    // Always update the 'updated' timestamp
-    const result = await db.heraldry.update(id, {
+    const updateData = {
       ...updates,
       updated: new Date().toISOString()
-    });
+    };
+    // Always update the 'updated' timestamp
+    const result = await db.heraldry.update(id, updateData);
     console.log('🛡️ Heraldry updated:', id);
+
+    // Sync to cloud if userId provided
+    if (userId) {
+      await syncUpdateHeraldry(userId, id, updateData);
+    }
+
     return result;
   } catch (error) {
     console.error('❌ Error updating heraldry:', error);
@@ -150,18 +172,32 @@ export async function updateHeraldry(id, updates) {
 /**
  * Delete a heraldry record
  * Also removes any associated heraldryLinks
- * 
+ *
  * @param {number} id - The heraldry ID to delete
+ * @param {string} [userId] - Optional user ID for cloud sync
  * @returns {Promise<void>}
  */
-export async function deleteHeraldry(id) {
+export async function deleteHeraldry(id, userId = null) {
   try {
-    // First, remove all links to this heraldry
+    // First, get all links to this heraldry (for cloud sync)
+    const links = await db.heraldryLinks.where('heraldryId').equals(id).toArray();
+
+    // Remove all links to this heraldry
     await db.heraldryLinks.where('heraldryId').equals(id).delete();
-    
+
     // Then delete the heraldry record itself
     await db.heraldry.delete(id);
     console.log('🛡️ Heraldry deleted:', id);
+
+    // Sync to cloud if userId provided
+    if (userId) {
+      // Delete all the links from cloud
+      for (const link of links) {
+        await syncDeleteHeraldryLink(userId, link.id);
+      }
+      // Delete the heraldry from cloud
+      await syncDeleteHeraldry(userId, id);
+    }
   } catch (error) {
     console.error('❌ Error deleting heraldry:', error);
     throw error;
@@ -172,7 +208,7 @@ export async function deleteHeraldry(id) {
 
 /**
  * Link a heraldry record to an entity (house, person, location, event)
- * 
+ *
  * @param {Object} linkData - The link data
  * @param {number} linkData.heraldryId - The heraldry record ID
  * @param {string} linkData.entityType - 'house' | 'person' | 'location' | 'event'
@@ -180,9 +216,10 @@ export async function deleteHeraldry(id) {
  * @param {string} linkData.linkType - 'primary' | 'quartered' | 'impaled' | 'banner' | 'seal'
  * @param {string} [linkData.since] - Optional date when link started
  * @param {string} [linkData.until] - Optional date when link ended
+ * @param {string} [userId] - Optional user ID for cloud sync
  * @returns {Promise<number>} The link ID
  */
-export async function linkHeraldryToEntity(linkData) {
+export async function linkHeraldryToEntity(linkData, userId = null) {
   try {
     const link = {
       heraldryId: linkData.heraldryId,
@@ -193,21 +230,27 @@ export async function linkHeraldryToEntity(linkData) {
       until: linkData.until || null,
       created: new Date().toISOString()
     };
-    
+
     const id = await db.heraldryLinks.add(link);
-    
+
     // If linking to a house, also update the house's heraldryId for quick access
     if (linkData.entityType === 'house' && linkData.linkType === 'primary') {
       await db.houses.update(linkData.entityId, { heraldryId: linkData.heraldryId });
     }
-    
+
     // If linking to a person, also update the person's heraldryId for quick access
     // (Personal arms - Phase 4 feature)
     if (linkData.entityType === 'person' && linkData.linkType === 'primary') {
       await db.people.update(linkData.entityId, { heraldryId: linkData.heraldryId });
     }
-    
+
     console.log('🔗 Heraldry linked to', linkData.entityType, linkData.entityId);
+
+    // Sync to cloud if userId provided
+    if (userId) {
+      await syncAddHeraldryLink(userId, id, link);
+    }
+
     return id;
   } catch (error) {
     console.error('❌ Error linking heraldry:', error);
@@ -217,28 +260,34 @@ export async function linkHeraldryToEntity(linkData) {
 
 /**
  * Remove a heraldry link
- * 
+ *
  * @param {number} linkId - The link ID to remove
+ * @param {string} [userId] - Optional user ID for cloud sync
  * @returns {Promise<void>}
  */
-export async function unlinkHeraldry(linkId) {
+export async function unlinkHeraldry(linkId, userId = null) {
   try {
     const link = await db.heraldryLinks.get(linkId);
-    
+
     if (link) {
       // If this was a primary house link, clear the house's heraldryId
       if (link.entityType === 'house' && link.linkType === 'primary') {
         await db.houses.update(link.entityId, { heraldryId: null });
       }
-      
+
       // If this was a primary person link, clear the person's heraldryId
       // (Personal arms - Phase 4 feature)
       if (link.entityType === 'person' && link.linkType === 'primary') {
         await db.people.update(link.entityId, { heraldryId: null });
       }
-      
+
       await db.heraldryLinks.delete(linkId);
       console.log('🔗 Heraldry link removed:', linkId);
+
+      // Sync to cloud if userId provided
+      if (userId) {
+        await syncDeleteHeraldryLink(userId, linkId);
+      }
     }
   } catch (error) {
     console.error('❌ Error unlinking heraldry:', error);

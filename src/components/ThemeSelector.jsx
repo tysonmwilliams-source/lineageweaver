@@ -2,7 +2,7 @@
  * ThemeSelector.jsx
  * 
  * UI component for selecting and switching themes in Lineageweaver.
- * Can be displayed as a dropdown, toggle button, or button group.
+ * Can be displayed as a dropdown, toggle button, button group, or nav-dropdown.
  */
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -10,10 +10,24 @@ import { useTheme } from './ThemeContext';
 import './ThemeSelector.css';
 
 /**
+ * Theme color swatches for visual preview
+ * Maps theme IDs to their primary accent colors
+ */
+const THEME_SWATCHES = {
+  'royal-parchment': { bg: '#1a1410', accent: '#c9a227' },
+  'light-manuscript': { bg: '#f9f6f0', accent: '#b8874a' },
+  'emerald-court': { bg: '#f4f7f2', accent: '#4a8a3c' },
+  'sapphire-dynasty': { bg: '#f2f5f8', accent: '#3868a8' },
+  'autumn-chronicle': { bg: '#faf6f0', accent: '#c86828' },
+  'rose-lineage': { bg: '#faf5f6', accent: '#a84868' },
+  'twilight-realm': { bg: '#12101a', accent: '#9868c8' }
+};
+
+/**
  * ThemeSelector Component
  * 
  * @param {Object} props
- * @param {string} props.variant - Display variant: 'dropdown' | 'toggle' | 'buttons'
+ * @param {string} props.variant - Display variant: 'dropdown' | 'toggle' | 'buttons' | 'nav-dropdown'
  * @param {boolean} props.showLabel - Show "Theme:" label
  * @param {string} props.className - Additional CSS classes
  */
@@ -40,7 +54,144 @@ export const ThemeSelector = ({
     }
   }, [isOpen]);
 
-  // Render dropdown variant
+  // Close on Escape key
+  useEffect(() => {
+    const handleEscape = (event) => {
+      if (event.key === 'Escape' && isOpen) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isOpen]);
+
+  // ============================================
+  // NAV-DROPDOWN VARIANT (New! Compact for navigation bar)
+  // ============================================
+  if (variant === 'nav-dropdown') {
+    const currentConfig = getCurrentThemeConfig();
+    const isDark = currentConfig.category === 'dark';
+    const currentSwatch = THEME_SWATCHES[theme] || THEME_SWATCHES['light-manuscript'];
+
+    return (
+      <div className={`theme-selector theme-selector--nav-dropdown ${className}`} ref={dropdownRef}>
+        <button 
+          className="theme-selector__nav-trigger"
+          onClick={() => setIsOpen(!isOpen)}
+          aria-expanded={isOpen}
+          aria-haspopup="listbox"
+          aria-label="Select theme"
+          title={`Theme: ${currentConfig.name}`}
+        >
+          {/* Palette icon with current theme accent */}
+          <svg 
+            width="20" 
+            height="20" 
+            viewBox="0 0 24 24" 
+            fill="none"
+            className="theme-selector__nav-icon"
+          >
+            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+            <circle cx="12" cy="8" r="2" fill={currentSwatch.accent}/>
+            <circle cx="8" cy="14" r="2" fill={currentSwatch.accent}/>
+            <circle cx="16" cy="14" r="2" fill={currentSwatch.accent}/>
+          </svg>
+          <svg 
+            className={`theme-selector__nav-chevron ${isOpen ? 'theme-selector__nav-chevron--open' : ''}`}
+            width="12" 
+            height="12" 
+            viewBox="0 0 12 12" 
+            fill="none"
+          >
+            <path 
+              d="M3 4.5L6 7.5L9 4.5" 
+              stroke="currentColor" 
+              strokeWidth="1.5" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
+
+        {isOpen && (
+          <div className="theme-selector__nav-panel" role="listbox" aria-label="Available themes">
+            <div className="theme-selector__nav-header">
+              <span className="theme-selector__nav-title">Choose Theme</span>
+            </div>
+            
+            <div className="theme-selector__nav-list">
+              {availableThemes.map((themeConfig) => {
+                const swatch = THEME_SWATCHES[themeConfig.id] || THEME_SWATCHES['light-manuscript'];
+                const isSelected = themeConfig.id === theme;
+                const isLight = themeConfig.category === 'light';
+                
+                return (
+                  <button
+                    key={themeConfig.id}
+                    role="option"
+                    aria-selected={isSelected}
+                    className={`theme-selector__nav-option ${isSelected ? 'theme-selector__nav-option--selected' : ''}`}
+                    onClick={() => {
+                      setTheme(themeConfig.id);
+                      setIsOpen(false);
+                    }}
+                  >
+                    {/* Color swatch preview */}
+                    <span 
+                      className="theme-selector__nav-swatch"
+                      style={{ 
+                        backgroundColor: swatch.bg,
+                        borderColor: swatch.accent
+                      }}
+                    >
+                      <span 
+                        className="theme-selector__nav-swatch-accent"
+                        style={{ backgroundColor: swatch.accent }}
+                      />
+                    </span>
+                    
+                    {/* Theme info */}
+                    <span className="theme-selector__nav-info">
+                      <span className="theme-selector__nav-name">
+                        {themeConfig.name}
+                      </span>
+                      <span className={`theme-selector__nav-category theme-selector__nav-category--${themeConfig.category}`}>
+                        {isLight ? '☀️' : '🌙'} {themeConfig.category}
+                      </span>
+                    </span>
+                    
+                    {/* Checkmark for selected */}
+                    {isSelected && (
+                      <svg 
+                        className="theme-selector__nav-check" 
+                        width="16" 
+                        height="16" 
+                        viewBox="0 0 16 16" 
+                        fill="none"
+                      >
+                        <path 
+                          d="M3 8L6 11L13 4" 
+                          stroke="currentColor" 
+                          strokeWidth="2" 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ============================================
+  // DROPDOWN VARIANT (Original)
+  // ============================================
   if (variant === 'dropdown') {
     const currentConfig = getCurrentThemeConfig();
 
@@ -114,7 +265,9 @@ export const ThemeSelector = ({
     );
   }
 
-  // Render toggle button variant
+  // ============================================
+  // TOGGLE VARIANT (Original)
+  // ============================================
   if (variant === 'toggle') {
     const currentConfig = getCurrentThemeConfig();
     const isDark = currentConfig.category === 'dark';
@@ -161,7 +314,9 @@ export const ThemeSelector = ({
     );
   }
 
-  // Render button group variant
+  // ============================================
+  // BUTTONS VARIANT (Original)
+  // ============================================
   if (variant === 'buttons') {
     return (
       <div className={`theme-selector theme-selector--buttons ${className}`}>

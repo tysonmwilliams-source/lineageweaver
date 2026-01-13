@@ -18,7 +18,7 @@
  * Changes made here are immediately reflected in FamilyTree and vice versa.
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGenealogy } from '../contexts/GenealogyContext';
 import Navigation from '../components/Navigation';
@@ -34,6 +34,7 @@ import RelationshipList from '../components/RelationshipList';
 import CadetHouseCeremonyModal from '../components/CadetHouseCeremonyModal';
 import ImportExportManager from '../components/ImportExportManager';
 import DataHealthDashboard from '../components/DataHealthDashboard';
+import { getMigrationStatus, runAllMigrations } from '../services/migrationService';
 import './ManageData.css';
 
 // Animation variants
@@ -57,7 +58,8 @@ const TABS = [
   { id: 'houses', label: 'Houses', icon: 'castle' },
   { id: 'relationships', label: 'Relationships', icon: 'link' },
   { id: 'import-export', label: 'Import/Export', icon: 'hard-drive' },
-  { id: 'health', label: 'Data Health', icon: 'heart-pulse' }
+  { id: 'health', label: 'Data Health', icon: 'heart-pulse' },
+  { id: 'maintenance', label: 'Maintenance', icon: 'wrench' }
 ];
 
 /**
@@ -98,6 +100,49 @@ function ManageData() {
   const [editingRelationship, setEditingRelationship] = useState(null);
   const [cadetFounder, setCadetFounder] = useState(null);
   const [cadetParentHouse, setCadetParentHouse] = useState(null);
+
+  // Migration states
+  const [migrationStatus, setMigrationStatus] = useState(null);
+  const [isMigrating, setIsMigrating] = useState(false);
+  const [migrationResults, setMigrationResults] = useState(null);
+
+  // Load migration status when maintenance tab is active
+  useEffect(() => {
+    if (activeTab === 'maintenance') {
+      getMigrationStatus()
+        .then(setMigrationStatus)
+        .catch(err => console.error('Error loading migration status:', err));
+    }
+  }, [activeTab]);
+
+  // Migration handler
+  const handleRunMigrations = useCallback(async () => {
+    if (!window.confirm('Run data migrations?\n\nThis will create Codex entries for houses and dignities that don\'t have them.')) {
+      return;
+    }
+
+    setIsMigrating(true);
+    setMigrationResults(null);
+
+    try {
+      const results = await runAllMigrations();
+      setMigrationResults(results);
+
+      // Refresh migration status
+      const newStatus = await getMigrationStatus();
+      setMigrationStatus(newStatus);
+
+      if (results.success) {
+        alert(`Migration complete!\n\nHouses migrated: ${results.houses?.migrated || 0}\nDignities migrated: ${results.dignities?.migrated || 0}\nCross-links created: ${results.crossLinks?.totalLinked || 0}`);
+      } else {
+        alert(`Migration completed with ${results.errors.length} errors. Check console for details.`);
+      }
+    } catch (error) {
+      alert('Migration failed: ' + error.message);
+    } finally {
+      setIsMigrating(false);
+    }
+  }, []);
 
   // Person handlers
   const handleAddPerson = useCallback(() => {
@@ -465,6 +510,189 @@ function ManageData() {
                             if (rel) handleEditRelationship(rel);
                           }}
                         />
+                      </motion.div>
+                    )}
+
+                    {/* Maintenance Tab */}
+                    {activeTab === 'maintenance' && (
+                      <motion.div
+                        key="maintenance"
+                        className="manage-panel"
+                        variants={TAB_CONTENT_VARIANTS}
+                        initial="hidden"
+                        animate="visible"
+                        exit="exit"
+                      >
+                        <div className="manage-panel__header">
+                          <SectionHeader icon="wrench" title="Data Maintenance" size="sm" />
+                        </div>
+
+                        {/* Migration Status */}
+                        <div className="maintenance-section">
+                          <h3 className="maintenance-section__title">
+                            <Icon name="database" size={18} />
+                            Data Integration Status
+                          </h3>
+                          <p className="maintenance-section__description">
+                            Ensure all houses and dignities have corresponding Codex entries for full system integration.
+                          </p>
+
+                          {migrationStatus ? (
+                            <div className="maintenance-status">
+                              <div className="maintenance-status__item">
+                                <div className="maintenance-status__label">
+                                  <Icon name="castle" size={16} />
+                                  Houses
+                                </div>
+                                <div className="maintenance-status__values">
+                                  <span className="maintenance-status__count">{migrationStatus.houses.withCodex}</span>
+                                  <span className="maintenance-status__separator">/</span>
+                                  <span className="maintenance-status__total">{migrationStatus.houses.total}</span>
+                                  <span className="maintenance-status__label-text">with Codex</span>
+                                </div>
+                                {migrationStatus.houses.needsMigration > 0 && (
+                                  <span className="maintenance-status__badge maintenance-status__badge--warning">
+                                    {migrationStatus.houses.needsMigration} need migration
+                                  </span>
+                                )}
+                                {migrationStatus.houses.needsMigration === 0 && (
+                                  <span className="maintenance-status__badge maintenance-status__badge--success">
+                                    <Icon name="check" size={12} /> Complete
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="maintenance-status__item">
+                                <div className="maintenance-status__label">
+                                  <Icon name="crown" size={16} />
+                                  Dignities
+                                </div>
+                                <div className="maintenance-status__values">
+                                  <span className="maintenance-status__count">{migrationStatus.dignities.withCodex}</span>
+                                  <span className="maintenance-status__separator">/</span>
+                                  <span className="maintenance-status__total">{migrationStatus.dignities.total}</span>
+                                  <span className="maintenance-status__label-text">with Codex</span>
+                                </div>
+                                {migrationStatus.dignities.needsMigration > 0 && (
+                                  <span className="maintenance-status__badge maintenance-status__badge--warning">
+                                    {migrationStatus.dignities.needsMigration} need migration
+                                  </span>
+                                )}
+                                {migrationStatus.dignities.needsMigration === 0 && (
+                                  <span className="maintenance-status__badge maintenance-status__badge--success">
+                                    <Icon name="check" size={12} /> Complete
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          ) : (
+                            <LoadingState message="Loading migration status..." size="sm" />
+                          )}
+
+                          {/* Cross-Links Status */}
+                          {migrationStatus?.crossLinks && (
+                            <div className="maintenance-status" style={{ marginTop: 'var(--space-4)' }}>
+                              <div className="maintenance-status__item">
+                                <div className="maintenance-status__label">
+                                  <Icon name="link" size={16} />
+                                  Person ↔ House
+                                </div>
+                                <div className="maintenance-status__values">
+                                  <span className="maintenance-status__count">{migrationStatus.crossLinks.personHouse.existing}</span>
+                                  <span className="maintenance-status__separator">/</span>
+                                  <span className="maintenance-status__total">{migrationStatus.crossLinks.personHouse.potential}</span>
+                                  <span className="maintenance-status__label-text">links</span>
+                                </div>
+                                {migrationStatus.crossLinks.personHouse.existing < migrationStatus.crossLinks.personHouse.potential ? (
+                                  <span className="maintenance-status__badge maintenance-status__badge--warning">
+                                    Needs linking
+                                  </span>
+                                ) : migrationStatus.crossLinks.personHouse.potential > 0 && (
+                                  <span className="maintenance-status__badge maintenance-status__badge--success">
+                                    <Icon name="check" size={12} /> Complete
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="maintenance-status__item">
+                                <div className="maintenance-status__label">
+                                  <Icon name="link" size={16} />
+                                  Person ↔ Dignity
+                                </div>
+                                <div className="maintenance-status__values">
+                                  <span className="maintenance-status__count">{migrationStatus.crossLinks.personDignity.existing}</span>
+                                  <span className="maintenance-status__separator">/</span>
+                                  <span className="maintenance-status__total">{migrationStatus.crossLinks.personDignity.potential}</span>
+                                  <span className="maintenance-status__label-text">links</span>
+                                </div>
+                                {migrationStatus.crossLinks.personDignity.existing < migrationStatus.crossLinks.personDignity.potential ? (
+                                  <span className="maintenance-status__badge maintenance-status__badge--warning">
+                                    Needs linking
+                                  </span>
+                                ) : migrationStatus.crossLinks.personDignity.potential > 0 && (
+                                  <span className="maintenance-status__badge maintenance-status__badge--success">
+                                    <Icon name="check" size={12} /> Complete
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="maintenance-status__item">
+                                <div className="maintenance-status__label">
+                                  <Icon name="link" size={16} />
+                                  House ↔ Dignity
+                                </div>
+                                <div className="maintenance-status__values">
+                                  <span className="maintenance-status__count">{migrationStatus.crossLinks.houseDignity.existing}</span>
+                                  <span className="maintenance-status__separator">/</span>
+                                  <span className="maintenance-status__total">{migrationStatus.crossLinks.houseDignity.potential}</span>
+                                  <span className="maintenance-status__label-text">links</span>
+                                </div>
+                                {migrationStatus.crossLinks.houseDignity.existing < migrationStatus.crossLinks.houseDignity.potential ? (
+                                  <span className="maintenance-status__badge maintenance-status__badge--warning">
+                                    Needs linking
+                                  </span>
+                                ) : migrationStatus.crossLinks.houseDignity.potential > 0 && (
+                                  <span className="maintenance-status__badge maintenance-status__badge--success">
+                                    <Icon name="check" size={12} /> Complete
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {migrationStatus?.needsMigration && (
+                            <div className="maintenance-actions">
+                              <ActionButton
+                                icon={isMigrating ? 'loader' : 'play'}
+                                variant="primary"
+                                onClick={handleRunMigrations}
+                                disabled={isMigrating}
+                              >
+                                {isMigrating ? 'Running Migrations...' : 'Run Migrations'}
+                              </ActionButton>
+                              <p className="maintenance-actions__note">
+                                Creates Codex entries and cross-links for full data integration.
+                              </p>
+                            </div>
+                          )}
+
+                          {migrationResults && (
+                            <div className={`maintenance-results ${migrationResults.success ? 'maintenance-results--success' : 'maintenance-results--error'}`}>
+                              <h4>
+                                <Icon name={migrationResults.success ? 'check-circle' : 'alert-circle'} size={16} />
+                                Migration Results
+                              </h4>
+                              <ul>
+                                <li>Houses migrated: {migrationResults.houses?.migrated || 0}</li>
+                                <li>Dignities migrated: {migrationResults.dignities?.migrated || 0}</li>
+                                <li>Cross-links created: {migrationResults.crossLinks?.totalLinked || 0}</li>
+                                {migrationResults.errors.length > 0 && (
+                                  <li className="maintenance-results__errors">Errors: {migrationResults.errors.length}</li>
+                                )}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
                       </motion.div>
                     )}
                   </AnimatePresence>

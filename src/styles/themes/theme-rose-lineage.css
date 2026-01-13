@@ -1,0 +1,294 @@
+/**
+ * Lineageweaver - Rose Lineage Theme (Light Mode)
+ * 
+ * Inspired by heraldic roses, romantic courts, and manuscripts illuminated
+ * with madder and carmine pigments. Uses soft burgundy, dusty rose, and
+ * muted wine tones, evoking Tudor roses and courtly elegance.
+ */
+
+[data-theme="rose-lineage"] {
+  /* ============================================
+     SURFACE & BACKGROUND COLORS
+     ============================================ */
+  
+  /* Primary surfaces */
+  --bg-primary: #faf5f6;           /* Pale blush (main background) */
+  --bg-secondary: #f2e8ea;         /* Soft rose cream */
+  --bg-tertiary: #e8dade;          /* Muted petal */
+  --bg-elevated: #dcccd2;          /* Dusty rose */
+
+  /* Parchment tones */
+  --parchment-light: #fcf7f8;      /* Fresh rose petal */
+  --parchment-base: #f2e8ea;       /* Primary parchment */
+  --parchment-dark: #e8dade;       /* Aged romance note */
+
+  /* ============================================
+     TEXT COLORS
+     ============================================ */
+  
+  --text-primary: #2d1a20;         /* Deep wine ink */
+  --text-secondary: #4d2e38;       /* Warm burgundy */
+  --text-tertiary: #6d4a54;        /* Muted mauve */
+  --text-disabled: #9d7a84;        /* Faded rose */
+  --text-inverse: #f4e4e8;         /* Text on dark backgrounds */
+
+  /* ============================================
+     BORDERS & DIVIDERS
+     ============================================ */
+  
+  --border-primary: #d4bcc4;       /* Soft blush */
+  --border-secondary: #c4a0ac;     /* Rose gold */
+  --border-heavy: #b48494;         /* Strong wine */
+  --border-focus: #a85878;         /* Focus burgundy */
+
+  /* ============================================
+     SEMANTIC COLORS
+     ============================================ */
+  
+  --color-success: #5c7c5c;        /* Garden green */
+  --color-success-light: #6c8c6c;
+  --color-success-dark: #4c6c4c;
+  --color-success-bg: #e8f4e8;
+  
+  --color-warning: #b89848;        /* Honey gold */
+  --color-warning-light: #c8a858;
+  --color-warning-dark: #a88838;
+  --color-warning-bg: #f8f4e4;
+  
+  --color-error: #b85454;          /* Rose red */
+  --color-error-light: #c86464;
+  --color-error-dark: #a84444;
+  --color-error-bg: #f8e8e8;
+  
+  --color-info: #5868a8;           /* Lavender blue */
+  --color-info-light: #6878b8;
+  --color-info-dark: #485898;
+  --color-info-bg: #ece8f8;
+
+  /* ============================================
+     INTERACTIVE STATES
+     ============================================ */
+  
+  --interactive-default: #8c5468;  /* Dusty rose */
+  --interactive-hover: #7c4458;    /* Deep wine */
+  --interactive-active: #6c3448;   /* Dark burgundy */
+  --interactive-disabled: #c4a0ac; /* Faded petal */
+
+  /* ============================================
+     ACCENT COLORS
+     ============================================ */
+  
+  --accent-primary: #a84868;       /* Rose - primary actions */
+  --accent-secondary: #983858;     /* Dark rose - hover */
+  --accent-tertiary: #c86888;      /* Light rose - highlights */
+  --accent-muted: rgba(168, 72, 104, 0.15);
+
+  /* ============================================
+     FOCUS INDICATORS
+     ============================================ */
+  
+  --focus-ring: #a85878;           /* Rose focus */
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+  --focus-ring-opacity: 0.15;
+
+  /* ============================================
+     RELATIONSHIP TYPE COLORS
+     ============================================ */
+  
+  --legitimate-primary: #5c7c5c;
+  --legitimate-light: #6c8c6c;
+  --legitimate-dark: #4c6c4c;
+  --legitimate-bg: #e8f4e8;
+  
+  --bastard-primary: #b89448;
+  --bastard-light: #c8a458;
+  --bastard-dark: #a88438;
+  --bastard-bg: #f8f4e4;
+  
+  --adopted-primary: #5868a8;
+  --adopted-light: #6878b8;
+  --adopted-dark: #485898;
+  --adopted-bg: #e8ecf8;
+  
+  --unknown-primary: #7d6874;
+  --unknown-light: #8d7884;
+  --unknown-dark: #6d5864;
+  --unknown-bg: #ece4e8;
+  
+  --commoner-primary: #7c6458;
+  --commoner-light: #8c7468;
+  --commoner-dark: #6c5448;
+  --commoner-bg: #f0e8e4;
+
+  /* ============================================
+     HOUSE COLOR PALETTE
+     ============================================ */
+  
+  --house-red: #b85454;
+  --house-blue: #5868a8;
+  --house-green: #5c7c5c;
+  --house-purple: #885898;
+  --house-gold: #b89448;
+  --house-orange: #b87848;
+  --house-teal: #589888;
+  --house-burgundy: #984858;
+  --house-navy: #484878;
+  --house-olive: #787c48;
+  --house-brown: #7c6458;
+  --house-grey: #7d6874;
+  --house-maroon: #a84858;
+  --house-forest: #488868;
+  --house-amber: #c8a448;
+  --house-slate: #586878;
+
+  /* ============================================
+     SHADOWS & ELEVATION
+     ============================================ */
+  
+  --shadow-sm: 0 2px 4px rgba(45, 26, 32, 0.1);
+  --shadow-md: 0 4px 8px rgba(45, 26, 32, 0.15);
+  --shadow-lg: 0 8px 16px rgba(45, 26, 32, 0.2);
+  --shadow-xl: 0 16px 32px rgba(45, 26, 32, 0.25);
+  --shadow-2xl: 0 24px 48px rgba(45, 26, 32, 0.3);
+  --shadow-focus: 0 0 0 3px rgba(168, 88, 120, 0.15);
+  --shadow-card-hover: 0 4px 8px rgba(45, 26, 32, 0.2);
+
+  /* ============================================
+     TYPOGRAPHY
+     ============================================ */
+  
+  --font-display: 'Cinzel', 'Garamond', 'Georgia', serif;
+  --font-heading: 'Cinzel', 'Garamond', 'Georgia', serif;
+  --font-body: 'Crimson Text', 'Garamond', 'Georgia', serif;
+  --font-mono: 'Courier New', 'Courier', monospace;
+  
+  --text-xs: 11px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-lg: 16px;
+  --text-xl: 18px;
+  --text-2xl: 20px;
+  --text-3xl: 24px;
+  --text-4xl: 28px;
+  
+  --leading-tight: 1.2;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.75;
+  
+  --tracking-tight: -0.5px;
+  --tracking-normal: 0;
+  --tracking-wide: 0.5px;
+  --tracking-wider: 1px;
+
+  /* ============================================
+     SPACING SCALE
+     ============================================ */
+  
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+
+  /* ============================================
+     BORDER RADIUS SCALE
+     ============================================ */
+  
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-full: 9999px;
+
+  /* ============================================
+     TRANSITIONS & ANIMATIONS
+     ============================================ */
+  
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 350ms;
+  --ease-standard: cubic-bezier(0.4, 0.0, 0.2, 1);
+  --ease-decelerate: cubic-bezier(0.0, 0.0, 0.2, 1);
+  --ease-accelerate: cubic-bezier(0.4, 0.0, 1, 1);
+
+  /* ============================================
+     Z-INDEX SCALE
+     ============================================ */
+  
+  --z-base: 0;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-fixed: 300;
+  --z-modal-backdrop: 1000;
+  --z-modal: 1001;
+  --z-popover: 1100;
+  --z-tooltip: 1200;
+
+  /* ============================================
+     COMPONENT-SPECIFIC VARIABLES
+     ============================================ */
+  
+  --card-border-width: 3px;
+  --card-border-width-selected: 4px;
+  --card-padding: var(--space-3);
+  --card-min-width: 180px;
+  --card-max-width: 220px;
+  
+  --line-width: 2px;
+  --line-width-thick: 2.5px;
+  --line-width-hover: 3.5px;
+  
+  --modal-max-width: 600px;
+  --modal-padding: var(--space-6);
+  --modal-backdrop-blur: 4px;
+  
+  --nav-height: 64px;
+  --nav-padding: var(--space-3) var(--space-6);
+}
+
+/* Global styles */
+[data-theme="rose-lineage"] body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+}
+
+[data-theme="rose-lineage"] ::selection {
+  background-color: var(--focus-ring);
+  color: var(--bg-primary);
+}
+
+[data-theme="rose-lineage"] ::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+[data-theme="rose-lineage"] ::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+}
+
+[data-theme="rose-lineage"] ::-webkit-scrollbar-thumb {
+  background: var(--border-heavy);
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--bg-secondary);
+}
+
+[data-theme="rose-lineage"] ::-webkit-scrollbar-thumb:hover {
+  background: var(--interactive-default);
+}
+
+[data-theme="rose-lineage"] :focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}

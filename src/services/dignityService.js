@@ -508,12 +508,38 @@ export async function createDignity(dignityData, userId = null) {
     
     const id = await db.dignities.add(record);
     console.log('📜 Dignity created with ID:', id, '-', record.name);
-    
+
+    // Auto-create Codex entry for the dignity (unless explicitly skipped)
+    if (!record.codexEntryId) {
+      try {
+        // Use dynamic import to avoid circular dependency
+        const { createEntry } = await import('./codexService.js');
+
+        // Create a Codex entry for this dignity
+        const codexEntryId = await createEntry({
+          type: 'mysteria', // Dignities go under mysteria (world-building)
+          title: record.name,
+          subtitle: record.dignityRank ? `${DIGNITY_CLASSES[record.dignityClass]?.name || record.dignityClass} Dignity` : 'Dignity',
+          content: record.notes || '',
+          category: record.dignityClass || 'driht',
+          tags: ['dignity', record.dignityClass, record.dignityRank].filter(Boolean),
+          dignityId: id
+        });
+
+        // Update the dignity with the codexEntryId
+        await db.dignities.update(id, { codexEntryId });
+        console.log('📚 Auto-created Codex entry for dignity:', codexEntryId);
+      } catch (codexError) {
+        // Log but don't fail the dignity creation if Codex creation fails
+        console.warn('⚠️ Could not auto-create Codex entry for dignity:', codexError);
+      }
+    }
+
     // Sync to cloud if userId provided
     if (userId) {
       syncAddDignity(userId, id, record);
     }
-    
+
     return id;
   } catch (error) {
     console.error('❌ Error creating dignity:', error);
@@ -590,6 +616,22 @@ export async function updateDignity(id, updates, userId = null) {
  */
 export async function deleteDignity(id, userId = null) {
   try {
+    // Cascade delete Codex entry if it exists
+    try {
+      // Use dynamic import to avoid circular dependency
+      const { getEntryByDignityId, deleteEntry } = await import('./codexService.js');
+
+      // Find and delete the associated Codex entry
+      const codexEntry = await getEntryByDignityId(id);
+      if (codexEntry) {
+        await deleteEntry(codexEntry.id);
+        console.log('📚 Cascade deleted Codex entry for dignity:', codexEntry.id);
+      }
+    } catch (codexError) {
+      // Log but don't fail the dignity deletion if Codex deletion fails
+      console.warn('⚠️ Could not cascade delete Codex entry for dignity:', codexError);
+    }
+
     // Remove all tenure records for this dignity
     const tenures = await db.dignityTenures.where('dignityId').equals(id).toArray();
     for (const tenure of tenures) {
@@ -598,7 +640,7 @@ export async function deleteDignity(id, userId = null) {
         syncDeleteDignityTenure(userId, tenure.id);
       }
     }
-    
+
     // Remove all links to this dignity
     const links = await db.dignityLinks.where('dignityId').equals(id).toArray();
     for (const link of links) {
@@ -607,11 +649,11 @@ export async function deleteDignity(id, userId = null) {
         syncDeleteDignityLink(userId, link.id);
       }
     }
-    
+
     // Delete the dignity itself
     await db.dignities.delete(id);
     console.log('📜 Dignity deleted:', id);
-    
+
     // Sync to cloud if userId provided
     if (userId) {
       syncDeleteDignity(userId, id);

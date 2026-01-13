@@ -1,0 +1,105 @@
+/**
+ * FilterDropdown.css - Filter Dropdown Styles
+ *
+ * PURPOSE:
+ * Styles for the filter dropdown component.
+ * Uses CSS custom properties for theming.
+ * Follows BEM naming convention.
+ */
+
+/* ============================================
+   CONTAINER
+   ============================================ */
+
+.filter-dropdown {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* ============================================
+   LABEL
+   ============================================ */
+
+.filter-dropdown__label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.filter-dropdown__label svg {
+  opacity: 0.7;
+}
+
+/* ============================================
+   SELECT
+   ============================================ */
+
+.filter-dropdown__select {
+  padding: var(--space-2) var(--space-3);
+  padding-right: var(--space-8);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  background: var(--bg-primary);
+  border: 2px solid var(--border-secondary);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239d8d78' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--space-3) center;
+  min-width: 120px;
+}
+
+.filter-dropdown__select:hover {
+  border-color: var(--accent-primary);
+}
+
+.filter-dropdown__select:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-muted, rgba(201, 162, 39, 0.15));
+}
+
+.filter-dropdown__select option {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  padding: var(--space-2);
+}
+
+/* Active filter indicator */
+.filter-dropdown__select:not([value=""]) {
+  border-color: var(--accent-secondary, var(--accent-primary));
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 768px) {
+  .filter-dropdown {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .filter-dropdown__select {
+    flex: 1;
+  }
+}
+
+/* ============================================
+   REDUCED MOTION
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .filter-dropdown__select {
+    transition: none;
+  }
+}

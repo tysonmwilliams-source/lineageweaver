@@ -200,6 +200,18 @@ button {
   cursor: pointer;
 }
 
+/* Form elements should use the themed font */
+select,
+input,
+textarea {
+  font-family: var(--font-body);
+}
+
+/* Select dropdown options (some browsers allow styling) */
+select option {
+  font-family: var(--font-body);
+}
+
 img {
   max-width: 100%;
   height: auto;

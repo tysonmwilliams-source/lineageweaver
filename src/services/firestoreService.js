@@ -416,8 +416,8 @@ export async function deleteCodexEntryCloud(userId, entryId) {
 export async function syncAllToCloud(userId, localData) {
   try {
     console.log('☁️ Starting full sync to cloud...');
-    
-    const { people, houses, relationships, codexEntries, heraldry, heraldryLinks, dignities, dignityTenures, dignityLinks } = localData;
+
+    const { people, houses, relationships, codexEntries, heraldry, heraldryLinks, dignities, dignityTenures, dignityLinks, householdRoles } = localData;
     
     // Use batched writes for efficiency (max 500 operations per batch)
     // We'll create multiple batches if needed
@@ -534,12 +534,23 @@ export async function syncAllToCloud(userId, localData) {
       });
       await checkBatch();
     }
-    
+
+    // Sync household roles
+    for (const role of householdRoles || []) {
+      const docRef = getUserDoc(userId, 'householdRoles', String(role.id));
+      batch.set(docRef, {
+        ...role,
+        localId: role.id,
+        syncedAt: serverTimestamp()
+      });
+      await checkBatch();
+    }
+
     // Commit remaining operations
     if (operationCount > 0) {
       await batch.commit();
     }
-    
+
     console.log('☁️ Full sync to cloud complete!', {
       houses: houses?.length || 0,
       people: people?.length || 0,
@@ -549,7 +560,8 @@ export async function syncAllToCloud(userId, localData) {
       heraldryLinks: heraldryLinks?.length || 0,
       dignities: dignities?.length || 0,
       dignityTenures: dignityTenures?.length || 0,
-      dignityLinks: dignityLinks?.length || 0
+      dignityLinks: dignityLinks?.length || 0,
+      householdRoles: householdRoles?.length || 0
     });
     
     return true;
@@ -569,8 +581,8 @@ export async function syncAllToCloud(userId, localData) {
 export async function downloadAllFromCloud(userId) {
   try {
     console.log('☁️ Downloading all data from cloud...');
-    
-    const [people, houses, relationships, codexEntries, heraldry, heraldryLinks, dignities, dignityTenures, dignityLinks] = await Promise.all([
+
+    const [people, houses, relationships, codexEntries, heraldry, heraldryLinks, dignities, dignityTenures, dignityLinks, householdRoles] = await Promise.all([
       getAllPeopleCloud(userId),
       getAllHousesCloud(userId),
       getAllRelationshipsCloud(userId),
@@ -579,9 +591,10 @@ export async function downloadAllFromCloud(userId) {
       getAllHeraldryLinksCloud(userId),
       getAllDignitiesCloud(userId),
       getAllDignityTenuresCloud(userId),
-      getAllDignityLinksCloud(userId)
+      getAllDignityLinksCloud(userId),
+      getAllHouseholdRolesCloud(userId)
     ]);
-    
+
     console.log('☁️ Download complete!', {
       houses: houses.length,
       people: people.length,
@@ -591,10 +604,11 @@ export async function downloadAllFromCloud(userId) {
       heraldryLinks: heraldryLinks.length,
       dignities: dignities.length,
       dignityTenures: dignityTenures.length,
-      dignityLinks: dignityLinks.length
+      dignityLinks: dignityLinks.length,
+      householdRoles: householdRoles.length
     });
-    
-    return { people, houses, relationships, codexEntries, heraldry, heraldryLinks, dignities, dignityTenures, dignityLinks };
+
+    return { people, houses, relationships, codexEntries, heraldry, heraldryLinks, dignities, dignityTenures, dignityLinks, householdRoles };
   } catch (error) {
     console.error('☁️ Error downloading from cloud:', error);
     throw error;

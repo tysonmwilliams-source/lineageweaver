@@ -337,10 +337,46 @@ export async function deletePerson(id) {
 
 // ==================== HOUSE OPERATIONS ====================
 
-export async function addHouse(houseData) {
+/**
+ * Add a new house with optional auto-creation of Codex entry
+ *
+ * @param {Object} houseData - House data to add
+ * @param {Object} [options] - Options for house creation
+ * @param {boolean} [options.skipCodexCreation=false] - Skip auto-creation of Codex entry
+ * @returns {Promise<number>} The new house ID
+ */
+export async function addHouse(houseData, options = {}) {
   try {
     const id = await db.houses.add(houseData);
     console.log('House added with ID:', id);
+
+    // Auto-create Codex entry for the house (unless explicitly skipped)
+    // This is skipped during cloud sync restore to prevent duplicates
+    if (!options.skipCodexCreation) {
+      try {
+        // Use dynamic import to avoid circular dependency
+        const { createEntry, updateEntry } = await import('./codexService.js');
+
+        // Create a Codex entry for this house
+        const codexEntryId = await createEntry({
+          type: 'house',
+          title: `House ${houseData.houseName}`,
+          subtitle: houseData.houseType === 'cadet' ? 'Cadet Branch' : 'Noble House',
+          content: houseData.notes || '',
+          category: houseData.houseType || 'main',
+          tags: ['house', houseData.houseType || 'main'].filter(Boolean),
+          houseId: id
+        });
+
+        // Update the house with the codexEntryId
+        await db.houses.update(id, { codexEntryId });
+        console.log('📚 Auto-created Codex entry for house:', codexEntryId);
+      } catch (codexError) {
+        // Log but don't fail the house creation if Codex creation fails
+        console.warn('⚠️ Could not auto-create Codex entry for house:', codexError);
+      }
+    }
+
     return id;
   } catch (error) {
     console.error('Error adding house:', error);
@@ -392,8 +428,34 @@ export async function updateHouse(id, updates) {
   }
 }
 
-export async function deleteHouse(id) {
+/**
+ * Delete a house with cascade delete of associated Codex entry
+ *
+ * @param {number} id - House ID to delete
+ * @param {Object} [options] - Options for deletion
+ * @param {boolean} [options.skipCodexDeletion=false] - Skip cascade deletion of Codex entry
+ * @returns {Promise<void>}
+ */
+export async function deleteHouse(id, options = {}) {
   try {
+    // Cascade delete Codex entry if it exists (unless explicitly skipped)
+    if (!options.skipCodexDeletion) {
+      try {
+        // Use dynamic import to avoid circular dependency
+        const { getEntryByHouseId, deleteEntry } = await import('./codexService.js');
+
+        // Find and delete the associated Codex entry
+        const codexEntry = await getEntryByHouseId(id);
+        if (codexEntry) {
+          await deleteEntry(codexEntry.id);
+          console.log('📚 Cascade deleted Codex entry for house:', codexEntry.id);
+        }
+      } catch (codexError) {
+        // Log but don't fail the house deletion if Codex deletion fails
+        console.warn('⚠️ Could not cascade delete Codex entry for house:', codexError);
+      }
+    }
+
     await db.houses.delete(id);
     console.log('House deleted:', id);
   } catch (error) {
@@ -571,8 +633,11 @@ export async function deleteAllData() {
     
     // Clear bugs table if it exists
     if (db.bugs) await db.bugs.clear();
-    
-    console.log('✅ All data deleted successfully (including Codex, Dignities, and Bugs)');
+
+    // Clear household roles table if it exists
+    if (db.householdRoles) await db.householdRoles.clear();
+
+    console.log('✅ All data deleted successfully (including Codex, Dignities, Household Roles, and Bugs)');
     return true;
   } catch (error) {
     console.error('❌ Error deleting all data:', error);

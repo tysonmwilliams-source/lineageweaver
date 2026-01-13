@@ -3,6 +3,7 @@
  *
  * PURPOSE:
  * Displays all relationships in an animated list format.
+ * Includes search and sort functionality.
  * Uses Framer Motion for animations, Lucide icons, and BEM CSS.
  *
  * Props:
@@ -12,12 +13,30 @@
  * - onDelete: Function to call when user wants to delete a relationship
  */
 
-import { useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Icon from './icons';
 import ActionButton from './shared/ActionButton';
 import EmptyState from './shared/EmptyState';
+import ListControls from './shared/ListControls';
+import ListSearchBar from './shared/ListSearchBar';
+import SortDropdown from './shared/SortDropdown';
+import FilterDropdown from './shared/FilterDropdown';
+import Pagination from './shared/Pagination';
 import './RelationshipList.css';
+
+// ==================== PAGINATION CONFIG ====================
+const ITEMS_PER_PAGE = 25;
+
+// ==================== FILTER OPTIONS ====================
+const RELATIONSHIP_TYPE_OPTIONS = [
+  { value: 'parent', label: 'Parent' },
+  { value: 'spouse', label: 'Spouse' },
+  { value: 'adopted-parent', label: 'Adopted Parent' },
+  { value: 'foster-parent', label: 'Foster Parent' },
+  { value: 'mentor', label: 'Mentor' },
+  { value: 'twin', label: 'Twin' }
+];
 
 // ==================== ANIMATION VARIANTS ====================
 const LIST_VARIANTS = {
@@ -92,12 +111,35 @@ const RELATIONSHIP_CONFIG = {
   }
 };
 
+// ==================== SORT OPTIONS ====================
+const SORT_OPTIONS = [
+  { value: 'type', label: 'By Type' },
+  { value: 'person1', label: 'Person 1 Name (A-Z)' },
+  { value: 'person2', label: 'Person 2 Name (A-Z)' },
+  { value: 'marriageDate', label: 'Marriage Date' }
+];
+
 function RelationshipList({ relationships, people, onEdit, onDelete }) {
+  // ==================== SEARCH & SORT STATE ====================
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState('type');
+
+  // ==================== FILTER STATE ====================
+  const [filterType, setFilterType] = useState('');
+
+  // ==================== PAGINATION STATE ====================
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // ==================== PERSON LOOKUP MAP ====================
+  const personMap = useMemo(() => {
+    return new Map(people.map(p => [p.id, p]));
+  }, [people]);
+
   /**
-   * Get person name by ID
+   * Get person name by ID (using Map for O(1) lookup)
    */
   const getPersonName = (personId) => {
-    const person = people.find(p => p.id === personId);
+    const person = personMap.get(personId);
     return person ? `${person.firstName} ${person.lastName}` : 'Unknown';
   };
 
@@ -112,18 +154,88 @@ function RelationshipList({ relationships, people, onEdit, onDelete }) {
     return {
       text: config.getDescription(person1, person2, rel),
       icon: config.icon,
-      color: config.color
+      color: config.color,
+      person1Name: person1,
+      person2Name: person2
     };
   };
 
+  // ==================== FILTERED & SORTED RELATIONSHIPS ====================
+  const filteredAndSortedRelationships = useMemo(() => {
+    let filtered = [...relationships];
+
+    // Apply search filter
+    if (searchTerm) {
+      const search = searchTerm.toLowerCase();
+      filtered = filtered.filter(rel => {
+        const person1 = getPersonName(rel.person1Id).toLowerCase();
+        const person2 = getPersonName(rel.person2Id).toLowerCase();
+        const type = rel.relationshipType?.toLowerCase() || '';
+        return person1.includes(search) ||
+               person2.includes(search) ||
+               type.includes(search);
+      });
+    }
+
+    // Apply type filter
+    if (filterType) {
+      filtered = filtered.filter(rel => rel.relationshipType === filterType);
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'type':
+          return (a.relationshipType || '').localeCompare(b.relationshipType || '');
+        case 'person1':
+          return getPersonName(a.person1Id).localeCompare(getPersonName(b.person1Id));
+        case 'person2':
+          return getPersonName(a.person2Id).localeCompare(getPersonName(b.person2Id));
+        case 'marriageDate':
+          return (a.marriageDate || '9999').localeCompare(b.marriageDate || '9999');
+        default:
+          return 0;
+      }
+    });
+
+    return filtered;
+  }, [relationships, searchTerm, sortBy, filterType, personMap]);
+
   // Memoize processed relationships
   const processedRelationships = useMemo(() => {
-    return relationships.map(rel => ({
+    return filteredAndSortedRelationships.map(rel => ({
       ...rel,
       details: getRelationshipDetails(rel)
     }));
-  }, [relationships, people]);
+  }, [filteredAndSortedRelationships, personMap]);
 
+  // Check if filters are active
+  const hasActiveFilters = searchTerm.length > 0 || filterType.length > 0;
+
+  // ==================== PAGINATION LOGIC ====================
+  // Reset page when filters/sort change
+  useMemo(() => {
+    setCurrentPage(1);
+  }, [searchTerm, sortBy, filterType]);
+
+  // Calculate total pages
+  const totalPages = Math.ceil(processedRelationships.length / ITEMS_PER_PAGE);
+
+  // Paginate relationships
+  const paginatedRelationships = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return processedRelationships.slice(start, start + ITEMS_PER_PAGE);
+  }, [processedRelationships, currentPage]);
+
+  // Clear all filters
+  const handleClearFilters = useCallback(() => {
+    setSearchTerm('');
+    setFilterType('');
+    setSortBy('type');
+    setCurrentPage(1);
+  }, []);
+
+  // If no data at all, show empty state without controls
   if (relationships.length === 0) {
     return (
       <EmptyState
@@ -135,14 +247,51 @@ function RelationshipList({ relationships, people, onEdit, onDelete }) {
   }
 
   return (
-    <motion.div
-      className="relationship-list"
-      variants={LIST_VARIANTS}
-      initial="hidden"
-      animate="visible"
-    >
-      <AnimatePresence mode="popLayout">
-        {processedRelationships.map(rel => (
+    <div className="relationship-list-container">
+      {/* Search, Filter & Sort Controls */}
+      <ListControls
+        resultCount={processedRelationships.length}
+        totalCount={relationships.length}
+        hasActiveFilters={hasActiveFilters}
+        onClearFilters={handleClearFilters}
+      >
+        <ListSearchBar
+          value={searchTerm}
+          onChange={setSearchTerm}
+          placeholder="Search relationships..."
+        />
+        <FilterDropdown
+          value={filterType}
+          onChange={setFilterType}
+          options={RELATIONSHIP_TYPE_OPTIONS}
+          label="Type:"
+          icon="link"
+          allLabel="All Types"
+        />
+        <SortDropdown
+          value={sortBy}
+          onChange={setSortBy}
+          options={SORT_OPTIONS}
+        />
+      </ListControls>
+
+      {/* Empty state for filtered results */}
+      {processedRelationships.length === 0 && hasActiveFilters ? (
+        <EmptyState
+          icon="search"
+          title="No Matching Relationships"
+          description="Try adjusting your search terms or clear the filters."
+        />
+      ) : (
+        <>
+          <motion.div
+            className="relationship-list"
+            variants={LIST_VARIANTS}
+            initial="hidden"
+            animate="visible"
+          >
+            <AnimatePresence mode="popLayout">
+              {paginatedRelationships.map(rel => (
           <motion.div
             key={rel.id}
             className={`relationship-list__item relationship-list__item--${rel.details.color}`}
@@ -207,9 +356,17 @@ function RelationshipList({ relationships, people, onEdit, onDelete }) {
               </div>
             </div>
           </motion.div>
-        ))}
-      </AnimatePresence>
-    </motion.div>
+              ))}
+            </AnimatePresence>
+          </motion.div>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
+        </>
+      )}
+    </div>
   );
 }
 

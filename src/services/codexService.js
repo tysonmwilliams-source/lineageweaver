@@ -32,10 +32,11 @@ export async function createEntry(entryData) {
       tags: entryData.tags || [], // Array of strings
       era: entryData.era || null, // Time period
       
-      // Links (for external references - personId, houseId, heraldryId, etc.)
+      // Links (for external references - personId, houseId, heraldryId, dignityId, etc.)
       personId: entryData.personId || null, // Link to Person entity
       houseId: entryData.houseId || null, // Link to House entity
       heraldryId: entryData.heraldryId || null, // Link to Heraldry entity (Phase 5)
+      dignityId: entryData.dignityId || null, // Link to Dignity entity
       
       // Metadata
       created: new Date().toISOString(),
@@ -91,7 +92,8 @@ export async function restoreEntry(entryData) {
       personId: entryData.personId || null,
       houseId: entryData.houseId || null,
       heraldryId: entryData.heraldryId || null,
-      
+      dignityId: entryData.dignityId || null,
+
       // Metadata - preserve original timestamps if available
       created: entryData.created || new Date().toISOString(),
       updated: entryData.updated || new Date().toISOString(),
@@ -150,11 +152,57 @@ export async function getEntryByPersonId(personId) {
 }
 
 /**
+ * Get a codex entry by houseId
+ *
+ * HOUSE-CODEX INTEGRATION: Used to find the Codex entry for a house
+ * when navigating from Data Management or for cascade delete.
+ *
+ * @param {number} houseId - The house's database ID
+ * @returns {Object|null} The codex entry or null if not found
+ */
+export async function getEntryByHouseId(houseId) {
+  try {
+    const entries = await db.codexEntries
+      .filter(entry => entry.houseId === houseId)
+      .toArray();
+
+    // Return the first match (should only be one per house)
+    return entries.length > 0 ? entries[0] : null;
+  } catch (error) {
+    console.error('Error getting codex entry by houseId:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get a codex entry by dignityId
+ *
+ * DIGNITY-CODEX INTEGRATION: Used to find the Codex entry for a dignity
+ * when navigating from the Dignities system or for cascade delete.
+ *
+ * @param {number} dignityId - The dignity's database ID
+ * @returns {Object|null} The codex entry or null if not found
+ */
+export async function getEntryByDignityId(dignityId) {
+  try {
+    const entries = await db.codexEntries
+      .filter(entry => entry.dignityId === dignityId)
+      .toArray();
+
+    // Return the first match (should only be one per dignity)
+    return entries.length > 0 ? entries[0] : null;
+  } catch (error) {
+    console.error('Error getting codex entry by dignityId:', error);
+    throw error;
+  }
+}
+
+/**
  * Get a codex entry by heraldryId
- * 
+ *
  * PHASE 5 - CODEX-HERALDRY INTEGRATION: Used to find the Codex entry
  * for a heraldry record when navigating from The Armory.
- * 
+ *
  * @param {number} heraldryId - The heraldry record's database ID
  * @returns {Object|null} The codex entry or null if not found
  */
@@ -163,7 +211,7 @@ export async function getEntryByHeraldryId(heraldryId) {
     const entries = await db.codexEntries
       .filter(entry => entry.heraldryId === heraldryId)
       .toArray();
-    
+
     // Return the first match (should only be one per heraldry)
     return entries.length > 0 ? entries[0] : null;
   } catch (error) {
@@ -478,6 +526,8 @@ export default {
   restoreEntry, // Used for cloud sync - preserves original IDs
   getEntry,
   getEntryByPersonId, // TREE-CODEX INTEGRATION
+  getEntryByHouseId, // HOUSE-CODEX INTEGRATION
+  getEntryByDignityId, // DIGNITY-CODEX INTEGRATION
   getEntryByHeraldryId, // PHASE 5 - CODEX-HERALDRY INTEGRATION
   getAllEntries,
   getEntriesByType,

@@ -1,0 +1,78 @@
+/**
+ * GroupToggle.css - Group Toggle Styles
+ *
+ * PURPOSE:
+ * Styles for the group toggle button.
+ * Uses CSS custom properties for theming.
+ * Follows BEM naming convention.
+ */
+
+/* ============================================
+   TOGGLE BUTTON
+   ============================================ */
+
+.group-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: transparent;
+  border: 2px solid var(--border-secondary);
+  border-radius: var(--radius-md);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
+  white-space: nowrap;
+}
+
+.group-toggle:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+.group-toggle:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--accent-primary);
+}
+
+.group-toggle svg {
+  flex-shrink: 0;
+}
+
+/* ============================================
+   ACTIVE STATE
+   ============================================ */
+
+.group-toggle--active {
+  background: var(--accent-muted, rgba(201, 162, 39, 0.15));
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+.group-toggle--active:hover {
+  background: var(--accent-muted, rgba(201, 162, 39, 0.2));
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 768px) {
+  .group-toggle {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ============================================
+   REDUCED MOTION
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .group-toggle {
+    transition: none;
+  }
+}

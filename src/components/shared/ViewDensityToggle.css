@@ -1,0 +1,79 @@
+/**
+ * ViewDensityToggle.css - View Density Toggle Styles
+ *
+ * PURPOSE:
+ * Styles for the view density toggle component.
+ * Uses CSS custom properties for theming.
+ * Follows BEM naming convention.
+ */
+
+/* ============================================
+   CONTAINER
+   ============================================ */
+
+.view-density {
+  display: flex;
+  background: var(--bg-primary);
+  border: 2px solid var(--border-secondary);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+/* ============================================
+   BUTTONS
+   ============================================ */
+
+.view-density__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.view-density__btn:hover {
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+}
+
+.view-density__btn:focus {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--accent-primary);
+}
+
+/* ============================================
+   ACTIVE STATE
+   ============================================ */
+
+.view-density__btn--active {
+  background: var(--accent-primary);
+  color: var(--bg-primary);
+}
+
+.view-density__btn--active:hover {
+  background: var(--accent-secondary, var(--accent-primary));
+  color: var(--bg-primary);
+}
+
+/* ============================================
+   DIVIDER
+   ============================================ */
+
+.view-density__btn:not(:last-child) {
+  border-right: 1px solid var(--border-secondary);
+}
+
+/* ============================================
+   REDUCED MOTION
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .view-density__btn {
+    transition: none;
+  }
+}

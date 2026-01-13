@@ -1,0 +1,294 @@
+/**
+ * Lineageweaver - Sapphire Dynasty Theme (Light Mode)
+ * 
+ * Inspired by northern kingdoms, winter courts, and manuscripts illuminated
+ * with lapis lazuli pigments. Uses cool blues with silver accents,
+ * evoking the heraldic color Azure and crystalline ice.
+ */
+
+[data-theme="sapphire-dynasty"] {
+  /* ============================================
+     SURFACE & BACKGROUND COLORS
+     ============================================ */
+  
+  /* Primary surfaces */
+  --bg-primary: #f2f5f8;           /* Pale frost (main background) */
+  --bg-secondary: #e4eaf0;         /* Soft ice */
+  --bg-tertiary: #d6e0e8;          /* Muted steel */
+  --bg-elevated: #c8d4e0;          /* Silver mist */
+
+  /* Parchment tones */
+  --parchment-light: #f5f7fa;      /* Fresh snow */
+  --parchment-base: #e4eaf0;       /* Primary parchment */
+  --parchment-dark: #d6e0e8;       /* Aged winter note */
+
+  /* ============================================
+     TEXT COLORS
+     ============================================ */
+  
+  --text-primary: #1a2434;         /* Deep midnight ink */
+  --text-secondary: #384458;       /* Storm grey */
+  --text-tertiary: #586478;        /* Muted slate */
+  --text-disabled: #8898a8;        /* Faded silver */
+  --text-inverse: #e4eaf4;         /* Text on dark backgrounds */
+
+  /* ============================================
+     BORDERS & DIVIDERS
+     ============================================ */
+  
+  --border-primary: #b8c8d8;       /* Soft silver */
+  --border-secondary: #98b0c4;     /* Cool steel */
+  --border-heavy: #7898b0;         /* Strong slate */
+  --border-focus: #4878a8;         /* Focus sapphire */
+
+  /* ============================================
+     SEMANTIC COLORS
+     ============================================ */
+  
+  --color-success: #3c7c5c;        /* Pine green */
+  --color-success-light: #4c8c6c;
+  --color-success-dark: #2c6c4c;
+  --color-success-bg: #e0f4ec;
+  
+  --color-warning: #a8843c;        /* Amber gold */
+  --color-warning-light: #b8944c;
+  --color-warning-dark: #98742c;
+  --color-warning-bg: #f4efe0;
+  
+  --color-error: #a84c4c;          /* Frost rose */
+  --color-error-light: #b85c5c;
+  --color-error-dark: #983c3c;
+  --color-error-bg: #f4e4e4;
+  
+  --color-info: #3c5c8c;           /* Deep azure */
+  --color-info-light: #4c6c9c;
+  --color-info-dark: #2c4c7c;
+  --color-info-bg: #e0e8f4;
+
+  /* ============================================
+     INTERACTIVE STATES
+     ============================================ */
+  
+  --interactive-default: #4d6888;  /* Steel blue */
+  --interactive-hover: #3d5878;    /* Deeper slate */
+  --interactive-active: #2d4868;   /* Midnight touch */
+  --interactive-disabled: #98b0c4; /* Faded ice */
+
+  /* ============================================
+     ACCENT COLORS
+     ============================================ */
+  
+  --accent-primary: #3868a8;       /* Sapphire - primary actions */
+  --accent-secondary: #285898;     /* Dark sapphire - hover */
+  --accent-tertiary: #5888c8;      /* Light sapphire - highlights */
+  --accent-muted: rgba(56, 104, 168, 0.15);
+
+  /* ============================================
+     FOCUS INDICATORS
+     ============================================ */
+  
+  --focus-ring: #4878a8;           /* Azure focus */
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+  --focus-ring-opacity: 0.15;
+
+  /* ============================================
+     RELATIONSHIP TYPE COLORS
+     ============================================ */
+  
+  --legitimate-primary: #3c7c5c;
+  --legitimate-light: #4c8c6c;
+  --legitimate-dark: #2c6c4c;
+  --legitimate-bg: #e0f4ec;
+  
+  --bastard-primary: #b88c3c;
+  --bastard-light: #c89c4c;
+  --bastard-dark: #a87c2c;
+  --bastard-bg: #f4efe0;
+  
+  --adopted-primary: #3c5c8c;
+  --adopted-light: #4c6c9c;
+  --adopted-dark: #2c4c7c;
+  --adopted-bg: #e0e8f4;
+  
+  --unknown-primary: #6d7888;
+  --unknown-light: #7d8898;
+  --unknown-dark: #5d6878;
+  --unknown-bg: #e8ecf0;
+  
+  --commoner-primary: #6c6458;
+  --commoner-light: #7c7468;
+  --commoner-dark: #5c5448;
+  --commoner-bg: #ece8e0;
+
+  /* ============================================
+     HOUSE COLOR PALETTE
+     ============================================ */
+  
+  --house-red: #a84c4c;
+  --house-blue: #3c5c8c;
+  --house-green: #3c7c5c;
+  --house-purple: #6c3c8c;
+  --house-gold: #a8843c;
+  --house-orange: #a86c3c;
+  --house-teal: #3c8c8c;
+  --house-burgundy: #8c3c5c;
+  --house-navy: #2c3c6c;
+  --house-olive: #6c7c3c;
+  --house-brown: #6c6458;
+  --house-grey: #6d7888;
+  --house-maroon: #8c3c4c;
+  --house-forest: #3c6c5c;
+  --house-amber: #b89c3c;
+  --house-slate: #4c5c6c;
+
+  /* ============================================
+     SHADOWS & ELEVATION
+     ============================================ */
+  
+  --shadow-sm: 0 2px 4px rgba(26, 36, 52, 0.1);
+  --shadow-md: 0 4px 8px rgba(26, 36, 52, 0.15);
+  --shadow-lg: 0 8px 16px rgba(26, 36, 52, 0.2);
+  --shadow-xl: 0 16px 32px rgba(26, 36, 52, 0.25);
+  --shadow-2xl: 0 24px 48px rgba(26, 36, 52, 0.3);
+  --shadow-focus: 0 0 0 3px rgba(72, 120, 168, 0.15);
+  --shadow-card-hover: 0 4px 8px rgba(26, 36, 52, 0.2);
+
+  /* ============================================
+     TYPOGRAPHY
+     ============================================ */
+  
+  --font-display: 'Cinzel', 'Garamond', 'Georgia', serif;
+  --font-heading: 'Cinzel', 'Garamond', 'Georgia', serif;
+  --font-body: 'Crimson Text', 'Garamond', 'Georgia', serif;
+  --font-mono: 'Courier New', 'Courier', monospace;
+  
+  --text-xs: 11px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-lg: 16px;
+  --text-xl: 18px;
+  --text-2xl: 20px;
+  --text-3xl: 24px;
+  --text-4xl: 28px;
+  
+  --leading-tight: 1.2;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.75;
+  
+  --tracking-tight: -0.5px;
+  --tracking-normal: 0;
+  --tracking-wide: 0.5px;
+  --tracking-wider: 1px;
+
+  /* ============================================
+     SPACING SCALE
+     ============================================ */
+  
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+
+  /* ============================================
+     BORDER RADIUS SCALE
+     ============================================ */
+  
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-full: 9999px;
+
+  /* ============================================
+     TRANSITIONS & ANIMATIONS
+     ============================================ */
+  
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 350ms;
+  --ease-standard: cubic-bezier(0.4, 0.0, 0.2, 1);
+  --ease-decelerate: cubic-bezier(0.0, 0.0, 0.2, 1);
+  --ease-accelerate: cubic-bezier(0.4, 0.0, 1, 1);
+
+  /* ============================================
+     Z-INDEX SCALE
+     ============================================ */
+  
+  --z-base: 0;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-fixed: 300;
+  --z-modal-backdrop: 1000;
+  --z-modal: 1001;
+  --z-popover: 1100;
+  --z-tooltip: 1200;
+
+  /* ============================================
+     COMPONENT-SPECIFIC VARIABLES
+     ============================================ */
+  
+  --card-border-width: 3px;
+  --card-border-width-selected: 4px;
+  --card-padding: var(--space-3);
+  --card-min-width: 180px;
+  --card-max-width: 220px;
+  
+  --line-width: 2px;
+  --line-width-thick: 2.5px;
+  --line-width-hover: 3.5px;
+  
+  --modal-max-width: 600px;
+  --modal-padding: var(--space-6);
+  --modal-backdrop-blur: 4px;
+  
+  --nav-height: 64px;
+  --nav-padding: var(--space-3) var(--space-6);
+}
+
+/* Global styles */
+[data-theme="sapphire-dynasty"] body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+}
+
+[data-theme="sapphire-dynasty"] ::selection {
+  background-color: var(--focus-ring);
+  color: var(--bg-primary);
+}
+
+[data-theme="sapphire-dynasty"] ::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+[data-theme="sapphire-dynasty"] ::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+}
+
+[data-theme="sapphire-dynasty"] ::-webkit-scrollbar-thumb {
+  background: var(--border-heavy);
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--bg-secondary);
+}
+
+[data-theme="sapphire-dynasty"] ::-webkit-scrollbar-thumb:hover {
+  background: var(--interactive-default);
+}
+
+[data-theme="sapphire-dynasty"] :focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}

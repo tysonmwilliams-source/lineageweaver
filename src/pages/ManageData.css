@@ -470,3 +470,188 @@
     animation: none;
   }
 }
+
+/* ============================================
+   MAINTENANCE SECTION
+   ============================================ */
+
+.maintenance-section {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+}
+
+.maintenance-section__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 var(--space-2) 0;
+}
+
+.maintenance-section__title svg {
+  color: var(--accent-primary);
+}
+
+.maintenance-section__description {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin: 0 0 var(--space-4) 0;
+  line-height: 1.5;
+}
+
+/* Migration Status */
+.maintenance-status {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.maintenance-status__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  flex-wrap: wrap;
+}
+
+.maintenance-status__label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-primary);
+  min-width: 100px;
+}
+
+.maintenance-status__label svg {
+  color: var(--accent-primary);
+}
+
+.maintenance-status__values {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  font-family: var(--font-mono, monospace);
+}
+
+.maintenance-status__count {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--accent-primary);
+}
+
+.maintenance-status__separator {
+  color: var(--text-tertiary);
+}
+
+.maintenance-status__total {
+  font-size: var(--text-base);
+  color: var(--text-secondary);
+}
+
+.maintenance-status__label-text {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  margin-left: var(--space-1);
+}
+
+.maintenance-status__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  margin-left: auto;
+}
+
+.maintenance-status__badge--warning {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--color-warning);
+}
+
+.maintenance-status__badge--success {
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--color-success);
+}
+
+/* Migration Actions */
+.maintenance-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border-primary);
+}
+
+.maintenance-actions__note {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  margin: 0;
+}
+
+/* Migration Results */
+.maintenance-results {
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+}
+
+.maintenance-results--success {
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.maintenance-results--error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.maintenance-results h4 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+  font-weight: 600;
+  margin: 0 0 var(--space-2) 0;
+}
+
+.maintenance-results--success h4 {
+  color: var(--color-success);
+}
+
+.maintenance-results--error h4 {
+  color: var(--color-error);
+}
+
+.maintenance-results ul {
+  margin: 0;
+  padding-left: var(--space-6);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.maintenance-results li {
+  margin-bottom: var(--space-1);
+}
+
+.maintenance-results__errors {
+  color: var(--color-error);
+}

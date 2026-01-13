@@ -165,8 +165,8 @@ function Navigation({
               </motion.button>
             )}
 
-            {/* Theme Toggle */}
-            <ThemeSelector variant="toggle" showLabel={false} />
+            {/* Theme Dropdown */}
+            <ThemeSelector variant="nav-dropdown" />
 
             {/* Cloud Sync Status */}
             <SyncStatusIndicator />
@@ -220,7 +220,7 @@ function Navigation({
               </div>
 
               <div className="nav__mobile-actions">
-                <ThemeSelector variant="toggle" showLabel />
+                <ThemeSelector variant="nav-dropdown" />
               </div>
             </motion.div>
           )}

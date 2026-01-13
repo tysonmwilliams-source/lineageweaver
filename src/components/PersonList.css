@@ -252,6 +252,100 @@
 }
 
 /* ============================================
+   COMPACT VIEW
+   ============================================ */
+
+.person-list--compact .person-list__item {
+  border-left-width: 3px;
+}
+
+.person-list--compact .person-list__content {
+  padding: var(--space-2) var(--space-3);
+  gap: var(--space-2);
+}
+
+.person-list--compact .person-list__header {
+  margin-bottom: var(--space-1);
+  gap: var(--space-2);
+}
+
+.person-list--compact .person-list__house-dot {
+  width: 8px;
+  height: 8px;
+}
+
+.person-list--compact .person-list__name {
+  font-size: var(--text-base);
+}
+
+.person-list--compact .person-list__maiden-name {
+  font-size: var(--text-xs);
+}
+
+.person-list--compact .person-list__house,
+.person-list--compact .person-list__dates {
+  font-size: var(--text-xs);
+  margin-bottom: 0;
+}
+
+.person-list--compact .person-list__titles {
+  display: none;
+}
+
+.person-list--compact .person-list__badges {
+  margin-top: var(--space-1);
+  gap: var(--space-1);
+}
+
+.person-list--compact .person-list__badge {
+  padding: var(--space-1);
+  font-size: 10px;
+}
+
+.person-list--compact .person-list__fantasy {
+  display: none;
+}
+
+.person-list--compact .person-list__actions {
+  gap: var(--space-1);
+}
+
+/* ============================================
+   GROUPED VIEW
+   ============================================ */
+
+.person-list--grouped {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.person-list__group {
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.person-list__group:last-child {
+  border-bottom: none;
+}
+
+.person-list__group-members {
+  overflow: hidden;
+}
+
+.person-list__group-members .person-list__item {
+  border-radius: 0;
+  border: none;
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.person-list__group-members .person-list__item:last-child {
+  border-bottom: none;
+}
+
+/* ============================================
    REDUCED MOTION
    ============================================ */
 

@@ -9,6 +9,11 @@
 
 import { db } from './database';
 import { HOUSEHOLD_ROLE_TYPES, getRoleType } from '../data/householdRoleTypes';
+import {
+  syncAddHouseholdRole,
+  syncUpdateHouseholdRole,
+  syncDeleteHouseholdRole
+} from './dataSyncService';
 
 // ==================== CRUD OPERATIONS ====================
 
@@ -22,9 +27,10 @@ import { HOUSEHOLD_ROLE_TYPES, getRoleType } from '../data/householdRoleTypes';
  * @param {number} [roleData.currentHolderId] - Person currently in role
  * @param {string} [roleData.startDate] - When current holder started
  * @param {string} [roleData.notes] - Additional notes
+ * @param {string} [userId] - Optional user ID for cloud sync
  * @returns {Promise<number>} New role ID
  */
-export async function createHouseholdRole(roleData) {
+export async function createHouseholdRole(roleData, userId = null) {
   const now = new Date().toISOString();
 
   const role = {
@@ -43,6 +49,12 @@ export async function createHouseholdRole(roleData) {
     if (import.meta.env.DEV) {
       console.log('Household role created:', id);
     }
+
+    // Sync to cloud if userId provided
+    if (userId) {
+      await syncAddHouseholdRole(userId, id, role);
+    }
+
     return id;
   } catch (error) {
     console.error('Error creating household role:', error);
@@ -127,9 +139,10 @@ export async function getRolesForPerson(personId) {
  *
  * @param {number} id - Role ID
  * @param {Object} updates - Fields to update
+ * @param {string} [userId] - Optional user ID for cloud sync
  * @returns {Promise<number>} Number of records updated (1 if successful)
  */
-export async function updateHouseholdRole(id, updates) {
+export async function updateHouseholdRole(id, updates, userId = null) {
   try {
     const updateData = {
       ...updates,
@@ -140,6 +153,12 @@ export async function updateHouseholdRole(id, updates) {
     if (import.meta.env.DEV) {
       console.log('Household role updated:', id);
     }
+
+    // Sync to cloud if userId provided
+    if (userId) {
+      await syncUpdateHouseholdRole(userId, id, updateData);
+    }
+
     return count;
   } catch (error) {
     console.error('Error updating household role:', error);
@@ -151,13 +170,19 @@ export async function updateHouseholdRole(id, updates) {
  * Delete a household role
  *
  * @param {number} id - Role ID
+ * @param {string} [userId] - Optional user ID for cloud sync
  * @returns {Promise<void>}
  */
-export async function deleteHouseholdRole(id) {
+export async function deleteHouseholdRole(id, userId = null) {
   try {
     await db.householdRoles.delete(id);
     if (import.meta.env.DEV) {
       console.log('Household role deleted:', id);
+    }
+
+    // Sync to cloud if userId provided
+    if (userId) {
+      await syncDeleteHouseholdRole(userId, id);
     }
   } catch (error) {
     console.error('Error deleting household role:', error);
