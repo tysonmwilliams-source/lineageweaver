@@ -19,6 +19,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
+import { useDataset } from '../contexts/DatasetContext';
 import {
   getAllDignities,
   getDignityStatistics,
@@ -77,6 +78,7 @@ const CLASS_ICONS = {
 function DignitiesLanding() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { activeDataset } = useDataset();
 
   // State
   const [dignities, setDignities] = useState([]);
@@ -104,16 +106,17 @@ function DignitiesLanding() {
   // Load data
   useEffect(() => {
     let cancelled = false;
+    const datasetId = activeDataset?.id;
 
     async function loadData() {
       try {
         setLoading(true);
 
         const [dignitiesData, housesData, peopleData, stats] = await Promise.all([
-          getAllDignities(),
-          getAllHouses(),
-          getAllPeople(),
-          getDignityStatistics()
+          getAllDignities(datasetId),
+          getAllHouses(datasetId),
+          getAllPeople(datasetId),
+          getDignityStatistics(datasetId)
         ]);
 
         if (cancelled) return;
@@ -133,7 +136,7 @@ function DignitiesLanding() {
 
     loadData();
     return () => { cancelled = true; };
-  }, []);
+  }, [activeDataset]);
 
   // Helper functions
   const getHouseName = useCallback((houseId) => {
@@ -266,12 +269,13 @@ function DignitiesLanding() {
       return;
     }
 
+    const datasetId = activeDataset?.id;
     try {
-      await deleteDignity(id, user?.uid);
+      await deleteDignity(id, user?.uid, datasetId);
       // Refresh data
       const [dignitiesData, stats] = await Promise.all([
-        getAllDignities(),
-        getDignityStatistics()
+        getAllDignities(datasetId),
+        getDignityStatistics(datasetId)
       ]);
       setDignities(dignitiesData);
       setStatistics(stats);
@@ -279,7 +283,7 @@ function DignitiesLanding() {
       console.error('Error deleting dignity:', error);
       alert('Failed to delete dignity');
     }
-  }, [user?.uid]);
+  }, [user?.uid, activeDataset]);
 
   const clearFilters = useCallback(() => {
     setSearchTerm('');

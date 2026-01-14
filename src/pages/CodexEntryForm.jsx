@@ -15,6 +15,7 @@ import {
   getEntry
 } from '../services/codexService';
 import { updateHeraldry } from '../services/heraldryService';
+import { useDataset } from '../contexts/DatasetContext';
 import Navigation from '../components/Navigation';
 import Icon from '../components/icons/Icon';
 import ActionButton from '../components/shared/ActionButton';
@@ -55,6 +56,7 @@ function CodexEntryForm() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { id } = useParams();
+  const { activeDataset } = useDataset();
 
   const isEditing = Boolean(id);
   const initialType = searchParams.get('type') || 'personage';
@@ -87,12 +89,13 @@ function CodexEntryForm() {
     } else {
       applyTemplate(initialType);
     }
-  }, [id, isEditing]);
+  }, [id, isEditing, activeDataset]);
 
   async function loadEntry() {
     try {
       setLoading(true);
-      const entry = await getEntry(parseInt(id));
+      const datasetId = activeDataset?.id;
+      const entry = await getEntry(parseInt(id), datasetId);
       if (entry) {
         setFormData({
           type: entry.type,
@@ -177,6 +180,7 @@ function CodexEntryForm() {
     try {
       setSaving(true);
       setError(null);
+      const datasetId = activeDataset?.id;
 
       const entryData = {
         type: formData.type,
@@ -192,16 +196,16 @@ function CodexEntryForm() {
       let codexEntryId;
 
       if (isEditing) {
-        await updateEntry(parseInt(id), entryData);
+        await updateEntry(parseInt(id), entryData, datasetId);
         codexEntryId = parseInt(id);
       } else {
-        codexEntryId = await createEntry(entryData);
+        codexEntryId = await createEntry(entryData, datasetId);
       }
 
       // Bidirectional linking - update heraldry record with codexEntryId
       if (entryData.heraldryId && codexEntryId) {
         try {
-          await updateHeraldry(entryData.heraldryId, { codexEntryId });
+          await updateHeraldry(entryData.heraldryId, { codexEntryId }, null, datasetId);
         } catch (linkError) {
           console.error('Warning: Failed to create bidirectional link:', linkError);
         }

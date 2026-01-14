@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getEntriesByType } from '../services/codexService';
+import { useDataset } from '../contexts/DatasetContext';
 import Navigation from '../components/Navigation';
 import Icon from '../components/icons/Icon';
 import LoadingState from '../components/shared/LoadingState';
@@ -61,6 +62,7 @@ const TYPE_CONFIG = {
 function CodexBrowse() {
   const { type } = useParams();
   const navigate = useNavigate();
+  const { activeDataset } = useDataset();
 
   const [allEntries, setAllEntries] = useState([]);
   const [filteredEntries, setFilteredEntries] = useState([]);
@@ -103,7 +105,7 @@ function CodexBrowse() {
     try {
       setLoading(true);
 
-      const entries = await getEntriesByType(type);
+      const entries = await getEntriesByType(type, activeDataset?.id);
       setAllEntries(entries);
 
       // Extract unique tags and eras
@@ -127,7 +129,7 @@ function CodexBrowse() {
       console.error('Error loading entries:', error);
       setLoading(false);
     }
-  }, [type, calculateStatistics]);
+  }, [type, calculateStatistics, activeDataset]);
 
   useEffect(() => {
     loadEntries();

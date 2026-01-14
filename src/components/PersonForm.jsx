@@ -1,10 +1,16 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { isFeatureEnabled } from '../config/featureFlags';
 import EpithetsSection from './EpithetsSection';
 import Icon from './icons/Icon';
 import ActionButton from './shared/ActionButton';
+import { 
+  generateDunSurname, 
+  isValidDunSurname, 
+  shouldHaveDunSurname,
+  BASTARD_PREFIX 
+} from '../utils/bastardNaming';
 import './PersonForm.css';
 
 /**
@@ -52,6 +58,52 @@ function PersonForm({ person = null, houses = [], onSave, onCancel }) {
 
   // Track validation errors
   const [errors, setErrors] = useState({});
+  
+  // Track if user dismissed the bastard name suggestion
+  const [dismissedBastardSuggestion, setDismissedBastardSuggestion] = useState(false);
+
+  // ==================== BASTARD NAMING LOGIC ====================
+  
+  // Get the selected house object
+  const selectedHouse = useMemo(() => {
+    if (!formData.houseId) return null;
+    return houses.find(h => h.id === parseInt(formData.houseId));
+  }, [formData.houseId, houses]);
+  
+  // Calculate the suggested Dun- surname
+  const suggestedBastardSurname = useMemo(() => {
+    if (!selectedHouse) return null;
+    return generateDunSurname(selectedHouse.houseName);
+  }, [selectedHouse]);
+  
+  // Check if we should show the bastard naming suggestion
+  const showBastardSuggestion = useMemo(() => {
+    // Must be a bastard with a house
+    if (formData.legitimacyStatus !== 'bastard') return false;
+    if (!formData.houseId) return false;
+    if (!suggestedBastardSurname) return false;
+    
+    // Don't show if user dismissed it
+    if (dismissedBastardSuggestion) return false;
+    
+    // Don't show if surname already has Dun- prefix
+    if (isValidDunSurname(formData.lastName)) return false;
+    
+    // Don't show if surname already matches suggestion
+    if (formData.lastName === suggestedBastardSurname) return false;
+    
+    return true;
+  }, [formData.legitimacyStatus, formData.houseId, formData.lastName, suggestedBastardSurname, dismissedBastardSuggestion]);
+  
+  // Apply the suggested bastard surname
+  const applyBastardSurname = () => {
+    if (suggestedBastardSurname) {
+      setFormData(prev => ({
+        ...prev,
+        lastName: suggestedBastardSurname
+      }));
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -61,6 +113,11 @@ function PersonForm({ person = null, houses = [], onSave, onCancel }) {
     }));
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+    
+    // Reset dismissed state if legitimacy or house changes
+    if (name === 'legitimacyStatus' || name === 'houseId') {
+      setDismissedBastardSuggestion(false);
     }
   };
 
@@ -185,6 +242,51 @@ function PersonForm({ person = null, houses = [], onSave, onCancel }) {
             )}
           </div>
         </div>
+
+        {/* Bastard Naming Suggestion */}
+        <AnimatePresence>
+          {showBastardSuggestion && (
+            <motion.div
+              className="person-form__bastard-suggestion"
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="person-form__bastard-suggestion-content">
+                <div className="person-form__bastard-suggestion-icon">
+                  <Icon name="alert-triangle" size={18} />
+                </div>
+                <div className="person-form__bastard-suggestion-text">
+                  <p className="person-form__bastard-suggestion-title">
+                    Bastard Naming Convention
+                  </p>
+                  <p className="person-form__bastard-suggestion-desc">
+                    Noble bastards carry the "<strong>{BASTARD_PREFIX}-</strong>" prefix. 
+                    Suggested surname: <strong>{suggestedBastardSurname}</strong>
+                  </p>
+                </div>
+                <div className="person-form__bastard-suggestion-actions">
+                  <button
+                    type="button"
+                    className="person-form__bastard-apply-btn"
+                    onClick={applyBastardSurname}
+                  >
+                    Apply
+                  </button>
+                  <button
+                    type="button"
+                    className="person-form__bastard-dismiss-btn"
+                    onClick={() => setDismissedBastardSuggestion(true)}
+                    title="Keep current surname"
+                  >
+                    <Icon name="x" size={14} />
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Maiden Name */}
         <div className="person-form__group">

@@ -27,13 +27,15 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useDataset } from '../contexts/DatasetContext';
 import { getHeraldry } from '../services/heraldryService';
 import HeraldryThumbnail from './HeraldryThumbnail';
 import './HouseHeraldrySection.css';
 
 function HouseHeraldrySection({ house, isDarkTheme = true }) {
   const navigate = useNavigate();
-  
+  const { activeDataset } = useDataset();
+
   // ==================== STATE ====================
   const [heraldry, setHeraldry] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -68,14 +70,15 @@ function HouseHeraldrySection({ house, isDarkTheme = true }) {
       setHeraldry(null);
       setLoading(false);
     }
-  }, [house?.heraldryId]);
+  }, [house?.heraldryId, activeDataset]);
 
   const loadHeraldry = async (heraldryId) => {
+    const datasetId = activeDataset?.id;
     setLoading(true);
     setError(null);
-    
+
     try {
-      const data = await getHeraldry(heraldryId);
+      const data = await getHeraldry(heraldryId, datasetId);
       setHeraldry(data);
     } catch (err) {
       console.error('❌ Failed to load heraldry:', err);

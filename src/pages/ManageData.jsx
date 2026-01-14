@@ -21,6 +21,8 @@
 import { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGenealogy } from '../contexts/GenealogyContext';
+import { useAuth } from '../contexts/AuthContext';
+import { useDataset } from '../contexts/DatasetContext';
 import Navigation from '../components/Navigation';
 import Icon from '../components/icons';
 import { LoadingState, SectionHeader, ActionButton, Card } from '../components/shared';
@@ -34,6 +36,8 @@ import RelationshipList from '../components/RelationshipList';
 import CadetHouseCeremonyModal from '../components/CadetHouseCeremonyModal';
 import ImportExportManager from '../components/ImportExportManager';
 import DataHealthDashboard from '../components/DataHealthDashboard';
+import BulkFamilyImportTool from '../components/BulkFamilyImportTool';
+import BastardNameAudit from '../components/BastardNameAudit';
 import { getMigrationStatus, runAllMigrations } from '../services/migrationService';
 import './ManageData.css';
 
@@ -58,6 +62,7 @@ const TABS = [
   { id: 'houses', label: 'Houses', icon: 'castle' },
   { id: 'relationships', label: 'Relationships', icon: 'link' },
   { id: 'import-export', label: 'Import/Export', icon: 'hard-drive' },
+  { id: 'bulk-import', label: 'Bulk Import', icon: 'users-round' },
   { id: 'health', label: 'Data Health', icon: 'heart-pulse' },
   { id: 'maintenance', label: 'Maintenance', icon: 'wrench' }
 ];
@@ -84,6 +89,10 @@ function ManageData() {
     foundCadetHouse,
     deleteAllData
   } = useGenealogy();
+
+  // Auth and dataset context for cloud sync
+  const { user } = useAuth();
+  const { activeDataset } = useDataset();
 
   // Local UI state
   const [activeTab, setActiveTab] = useState('people');
@@ -125,7 +134,12 @@ function ManageData() {
     setMigrationResults(null);
 
     try {
-      const results = await runAllMigrations();
+      // Build sync context if user is logged in (enables cloud sync of created links)
+      const syncContext = user?.uid && activeDataset?.id
+        ? { userId: user.uid, datasetId: activeDataset.id }
+        : null;
+
+      const results = await runAllMigrations(syncContext);
       setMigrationResults(results);
 
       // Refresh migration status
@@ -142,7 +156,7 @@ function ManageData() {
     } finally {
       setIsMigrating(false);
     }
-  }, []);
+  }, [user, activeDataset]);
 
   // Person handlers
   const handleAddPerson = useCallback(() => {
@@ -489,6 +503,20 @@ function ManageData() {
                       </motion.div>
                     )}
 
+                    {/* Bulk Family Import Tab */}
+                    {activeTab === 'bulk-import' && (
+                      <motion.div
+                        key="bulk-import"
+                        className="manage-panel"
+                        variants={TAB_CONTENT_VARIANTS}
+                        initial="hidden"
+                        animate="visible"
+                        exit="exit"
+                      >
+                        <BulkFamilyImportTool />
+                      </motion.div>
+                    )}
+
                     {/* Data Health Tab */}
                     {activeTab === 'health' && (
                       <motion.div
@@ -692,6 +720,15 @@ function ManageData() {
                               </ul>
                             </div>
                           )}
+                        </div>
+
+                        {/* Bastard Naming Audit */}
+                        <div className="maintenance-section" style={{ marginTop: 'var(--space-6)' }}>
+                          <BastardNameAudit
+                            people={people}
+                            houses={houses}
+                            onUpdatePerson={updatePerson}
+                          />
                         </div>
                       </motion.div>
                     )}

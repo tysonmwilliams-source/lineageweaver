@@ -11,7 +11,7 @@
  * - runAllMigrations: Runs all pending migrations
  */
 
-import { db } from './database';
+import { db, getDatabase, DEFAULT_DATASET_ID } from './database';
 import {
   createEntry,
   createLink,
@@ -22,6 +22,23 @@ import {
   getAllEntries
 } from './codexService';
 import { getAllDignities, updateDignity, DIGNITY_CLASSES } from './dignityService';
+import { syncAddCodexLink } from './dataSyncService';
+import {
+  createDataset,
+  getDataset,
+  setActiveDatasetId,
+  DEFAULT_DATASET_ID as DATASET_DEFAULT_ID
+} from './datasetService';
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+  deleteDoc,
+  writeBatch
+} from 'firebase/firestore';
+import { db as firestoreDb } from '../config/firebase';
 
 // ==================== HOUSE → CODEX MIGRATION ====================
 
@@ -202,21 +219,29 @@ async function linkExists(sourceId, targetId) {
  * @param {number} entryId2 - Second entry ID
  * @param {string} type - Link type
  * @param {string} label - Link label
+ * @param {Object} syncContext - Optional sync context { userId, datasetId }
  * @returns {Promise<boolean>} True if link was created
  */
-async function createBidirectionalLink(entryId1, entryId2, type, label) {
+async function createBidirectionalLink(entryId1, entryId2, type, label, syncContext = null) {
   if (!entryId1 || !entryId2 || entryId1 === entryId2) return false;
 
   const exists = await linkExists(entryId1, entryId2);
   if (exists) return false;
 
-  await createLink({
+  const linkData = {
     sourceId: entryId1,
     targetId: entryId2,
     type,
     label,
     bidirectional: true
-  });
+  };
+
+  const linkId = await createLink(linkData);
+
+  // Sync to cloud if userId is provided
+  if (syncContext?.userId && linkId) {
+    syncAddCodexLink(syncContext.userId, syncContext.datasetId, linkId, linkData);
+  }
 
   return true;
 }
@@ -226,9 +251,10 @@ async function createBidirectionalLink(entryId1, entryId2, type, label) {
  *
  * Creates links between a person's Codex entry and their house's Codex entry.
  *
+ * @param {Object} syncContext - Optional sync context { userId, datasetId }
  * @returns {Promise<Object>} Migration results
  */
-export async function migratePersonHouseLinks() {
+export async function migratePersonHouseLinks(syncContext = null) {
   console.log('🔗 Starting Person ↔ House cross-linking...');
 
   const results = {
@@ -269,7 +295,8 @@ export async function migratePersonHouseLinks() {
           personEntry.id,
           houseEntry.id,
           'member-of',
-          'House Member'
+          'House Member',
+          syncContext
         );
 
         if (created) {
@@ -303,9 +330,10 @@ export async function migratePersonHouseLinks() {
  * Creates links between a person's Codex entry and their dignity's Codex entry.
  * Links current holders of dignities.
  *
+ * @param {Object} syncContext - Optional sync context { userId, datasetId }
  * @returns {Promise<Object>} Migration results
  */
-export async function migratePersonDignityLinks() {
+export async function migratePersonDignityLinks(syncContext = null) {
   console.log('🔗 Starting Person ↔ Dignity cross-linking...');
 
   const results = {
@@ -346,7 +374,8 @@ export async function migratePersonDignityLinks() {
           personEntry.id,
           dignityEntry.id,
           'holds-title',
-          'Current Holder'
+          'Current Holder',
+          syncContext
         );
 
         if (created) {
@@ -379,9 +408,10 @@ export async function migratePersonDignityLinks() {
  *
  * Creates links between a house's Codex entry and dignities held by that house.
  *
+ * @param {Object} syncContext - Optional sync context { userId, datasetId }
  * @returns {Promise<Object>} Migration results
  */
-export async function migrateHouseDignityLinks() {
+export async function migrateHouseDignityLinks(syncContext = null) {
   console.log('🔗 Starting House ↔ Dignity cross-linking...');
 
   const results = {
@@ -422,7 +452,8 @@ export async function migrateHouseDignityLinks() {
           houseEntry.id,
           dignityEntry.id,
           'house-holds',
-          'House Title'
+          'House Title',
+          syncContext
         );
 
         if (created) {
@@ -453,9 +484,10 @@ export async function migrateHouseDignityLinks() {
 /**
  * Run all cross-linking migrations
  *
+ * @param {Object} syncContext - Optional sync context { userId, datasetId }
  * @returns {Promise<Object>} Combined results
  */
-export async function runCrossLinkingMigrations() {
+export async function runCrossLinkingMigrations(syncContext = null) {
   console.log('🔗 Running all cross-linking migrations...');
 
   const results = {
@@ -468,19 +500,19 @@ export async function runCrossLinkingMigrations() {
   };
 
   try {
-    results.personHouse = await migratePersonHouseLinks();
+    results.personHouse = await migratePersonHouseLinks(syncContext);
     results.totalLinked += results.personHouse.linked;
     if (results.personHouse.errors.length > 0) {
       results.errors.push(...results.personHouse.errors);
     }
 
-    results.personDignity = await migratePersonDignityLinks();
+    results.personDignity = await migratePersonDignityLinks(syncContext);
     results.totalLinked += results.personDignity.linked;
     if (results.personDignity.errors.length > 0) {
       results.errors.push(...results.personDignity.errors);
     }
 
-    results.houseDignity = await migrateHouseDignityLinks();
+    results.houseDignity = await migrateHouseDignityLinks(syncContext);
     results.totalLinked += results.houseDignity.linked;
     if (results.houseDignity.errors.length > 0) {
       results.errors.push(...results.houseDignity.errors);
@@ -513,9 +545,10 @@ export async function runCrossLinkingMigrations() {
  * This is the main entry point for running all migrations.
  * Safe to run multiple times - migrations are idempotent.
  *
+ * @param {Object} syncContext - Optional sync context { userId, datasetId } for cloud sync
  * @returns {Promise<Object>} Combined migration results
  */
-export async function runAllMigrations() {
+export async function runAllMigrations(syncContext = null) {
   console.log('🔄 Running all data migrations...');
 
   const results = {
@@ -539,8 +572,8 @@ export async function runAllMigrations() {
       results.errors.push(...results.dignities.errors);
     }
 
-    // Run cross-linking migrations
-    results.crossLinks = await runCrossLinkingMigrations();
+    // Run cross-linking migrations (with sync context for cloud persistence)
+    results.crossLinks = await runCrossLinkingMigrations(syncContext);
     if (results.crossLinks.errors.length > 0) {
       results.errors.push(...results.crossLinks.errors);
     }
@@ -637,6 +670,311 @@ export async function getMigrationStatus() {
   }
 }
 
+// ==================== DATASET STRUCTURE MIGRATION ====================
+
+/**
+ * Collections that need to be migrated to the new dataset structure
+ */
+const ENTITY_COLLECTIONS = [
+  'people',
+  'houses',
+  'relationships',
+  'codexEntries',
+  'codexLinks',
+  'acknowledgedDuplicates',
+  'heraldry',
+  'heraldryLinks',
+  'dignities',
+  'dignityTenures',
+  'dignityLinks',
+  'bugs',
+  'householdRoles'
+];
+
+/**
+ * Check if user needs dataset structure migration
+ *
+ * Returns true if:
+ * - User has data in old structure (users/{userId}/{collection})
+ * - AND does NOT have datasetsMetadata collection
+ *
+ * @param {string} userId - The user's Firebase UID
+ * @returns {Promise<boolean>} True if migration is needed
+ */
+export async function needsDatasetMigration(userId) {
+  if (!userId) return false;
+
+  try {
+    // Check if datasetsMetadata collection exists
+    const metadataRef = collection(firestoreDb, 'users', userId, 'datasetsMetadata');
+    const metadataSnapshot = await getDocs(metadataRef);
+
+    // If user already has dataset metadata, no migration needed
+    if (!metadataSnapshot.empty) {
+      console.log('📂 User already has dataset structure');
+      return false;
+    }
+
+    // Check if user has any data in old structure
+    // Just check 'people' collection as a quick test
+    const oldPeopleRef = collection(firestoreDb, 'users', userId, 'people');
+    const oldPeopleSnapshot = await getDocs(oldPeopleRef);
+
+    if (!oldPeopleSnapshot.empty) {
+      console.log('📂 User has old structure data, migration needed');
+      return true;
+    }
+
+    // No old data and no new structure = new user, will be set up fresh
+    console.log('📂 New user, no migration needed');
+    return false;
+
+  } catch (error) {
+    console.error('❌ Error checking dataset migration:', error);
+    return false;
+  }
+}
+
+/**
+ * Migrate existing user data to the new dataset structure
+ *
+ * This migration:
+ * 1. Creates "Default" dataset metadata in Firestore
+ * 2. Moves all existing data from users/{userId}/{collection}
+ *    to users/{userId}/datasets/default/{collection}
+ * 3. Cleans up old data structure
+ * 4. Sets activeDatasetId in localStorage to 'default'
+ *
+ * Safe to run multiple times - checks if migration is needed first.
+ *
+ * @param {string} userId - The user's Firebase UID
+ * @returns {Promise<Object>} Migration results
+ */
+export async function migrateToDatasetStructure(userId) {
+  console.log('📂 Starting dataset structure migration for user:', userId);
+
+  const results = {
+    success: false,
+    collectionsProcessed: 0,
+    documentsMovedTotal: 0,
+    documentsByCollection: {},
+    errors: []
+  };
+
+  if (!userId) {
+    results.errors.push({ type: 'validation', error: 'No userId provided' });
+    return results;
+  }
+
+  try {
+    // Check if migration is actually needed
+    const needsMigration = await needsDatasetMigration(userId);
+    if (!needsMigration) {
+      console.log('📂 No migration needed, skipping');
+      results.success = true;
+      return results;
+    }
+
+    // Step 1: Create Default dataset metadata
+    console.log('📂 Step 1: Creating Default dataset metadata...');
+    const existingDefault = await getDataset(userId, DATASET_DEFAULT_ID);
+    if (!existingDefault) {
+      await createDataset(userId, {
+        id: DATASET_DEFAULT_ID,
+        name: 'Default',
+        isDefault: true
+      });
+      console.log('📂 Created Default dataset metadata');
+    } else {
+      console.log('📂 Default dataset metadata already exists');
+    }
+
+    // Step 2: Move data from old structure to new structure
+    console.log('📂 Step 2: Moving data to new structure...');
+
+    for (const collectionName of ENTITY_COLLECTIONS) {
+      try {
+        // Get all documents from old location
+        const oldCollRef = collection(firestoreDb, 'users', userId, collectionName);
+        const snapshot = await getDocs(oldCollRef);
+
+        if (snapshot.empty) {
+          console.log(`📂 Collection "${collectionName}" is empty, skipping`);
+          results.documentsByCollection[collectionName] = 0;
+          continue;
+        }
+
+        const docCount = snapshot.docs.length;
+        console.log(`📂 Moving ${docCount} documents from "${collectionName}"...`);
+
+        // Use batched writes for efficiency (max 500 operations per batch)
+        const batchSize = 250; // Each doc needs 2 ops: set + delete
+        let processed = 0;
+
+        while (processed < snapshot.docs.length) {
+          const batch = writeBatch(firestoreDb);
+          const batchDocs = snapshot.docs.slice(processed, processed + batchSize);
+
+          for (const docSnap of batchDocs) {
+            const data = docSnap.data();
+
+            // New location: users/{userId}/datasets/default/{collection}/{docId}
+            const newDocRef = doc(
+              firestoreDb,
+              'users',
+              userId,
+              'datasets',
+              DATASET_DEFAULT_ID,
+              collectionName,
+              docSnap.id
+            );
+
+            // Copy to new location
+            batch.set(newDocRef, data);
+
+            // Delete from old location
+            batch.delete(docSnap.ref);
+          }
+
+          await batch.commit();
+          processed += batchDocs.length;
+          console.log(`📂 Batch processed: ${processed}/${docCount} in "${collectionName}"`);
+        }
+
+        results.collectionsProcessed++;
+        results.documentsMovedTotal += docCount;
+        results.documentsByCollection[collectionName] = docCount;
+        console.log(`📂 Completed "${collectionName}": ${docCount} documents moved`);
+
+      } catch (collError) {
+        console.error(`❌ Error migrating collection "${collectionName}":`, collError);
+        results.errors.push({
+          type: 'collection',
+          collection: collectionName,
+          error: collError.message
+        });
+      }
+    }
+
+    // Step 3: Set active dataset in localStorage
+    console.log('📂 Step 3: Setting active dataset...');
+    setActiveDatasetId(DATASET_DEFAULT_ID);
+
+    results.success = results.errors.length === 0;
+
+    console.log('📂 Dataset structure migration complete:', {
+      collectionsProcessed: results.collectionsProcessed,
+      documentsMovedTotal: results.documentsMovedTotal,
+      errors: results.errors.length
+    });
+
+    return results;
+
+  } catch (error) {
+    console.error('❌ Dataset structure migration failed:', error);
+    results.errors.push({ type: 'fatal', error: error.message });
+    return results;
+  }
+}
+
+/**
+ * Migrate local IndexedDB to new dataset-aware structure
+ *
+ * Note: This is handled automatically by the database.js changes.
+ * The old "LineageweaverDB" will be replaced by "LineageweaverDB_default".
+ * This function is provided for explicit migration if needed.
+ *
+ * @returns {Promise<Object>} Migration results
+ */
+export async function migrateLocalDatabase() {
+  console.log('📂 Checking local database migration...');
+
+  const results = {
+    success: false,
+    action: 'none',
+    error: null
+  };
+
+  try {
+    // Check if old database exists
+    const databases = await indexedDB.databases();
+    const oldDbExists = databases.some(db => db.name === 'LineageweaverDB');
+    const newDbExists = databases.some(db => db.name === `LineageweaverDB_${DEFAULT_DATASET_ID}`);
+
+    if (!oldDbExists) {
+      console.log('📂 No old local database found');
+      results.success = true;
+      results.action = 'none';
+      return results;
+    }
+
+    if (newDbExists) {
+      console.log('📂 New database already exists, cleaning up old database');
+      // Delete old database
+      await new Promise((resolve, reject) => {
+        const request = indexedDB.deleteDatabase('LineageweaverDB');
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+      });
+      results.action = 'cleaned_old';
+      results.success = true;
+      return results;
+    }
+
+    // Old database exists, new doesn't - we need to migrate
+    // The simplest approach is to let the sync process repopulate from Firestore
+    // since we've already migrated Firestore data
+    console.log('📂 Old database found, will be repopulated from cloud on next sync');
+    results.action = 'will_repopulate';
+    results.success = true;
+
+    return results;
+
+  } catch (error) {
+    console.error('❌ Local database migration check failed:', error);
+    results.error = error.message;
+    return results;
+  }
+}
+
+/**
+ * Run full dataset migration (Firestore + local)
+ *
+ * @param {string} userId - The user's Firebase UID
+ * @returns {Promise<Object>} Combined results
+ */
+export async function runDatasetMigration(userId) {
+  console.log('📂 Running full dataset migration...');
+
+  const results = {
+    firestore: null,
+    local: null,
+    success: false
+  };
+
+  try {
+    // Migrate Firestore structure
+    results.firestore = await migrateToDatasetStructure(userId);
+
+    // Check local database
+    results.local = await migrateLocalDatabase();
+
+    results.success = results.firestore.success && results.local.success;
+
+    console.log('📂 Full dataset migration complete:', {
+      firestoreSuccess: results.firestore.success,
+      localAction: results.local.action
+    });
+
+    return results;
+
+  } catch (error) {
+    console.error('❌ Full dataset migration failed:', error);
+    results.success = false;
+    return results;
+  }
+}
+
 // ==================== EXPORTS ====================
 
 export default {
@@ -647,5 +985,10 @@ export default {
   migrateHouseDignityLinks,
   runCrossLinkingMigrations,
   runAllMigrations,
-  getMigrationStatus
+  getMigrationStatus,
+  // Dataset migration
+  needsDatasetMigration,
+  migrateToDatasetStructure,
+  migrateLocalDatabase,
+  runDatasetMigration
 };

@@ -18,6 +18,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useDataset } from '../contexts/DatasetContext';
 import { getHeraldry } from '../services/heraldryService';
 import Icon from './icons';
 import EmptyState from './shared/EmptyState';
@@ -103,6 +104,7 @@ function HouseList({
   onAddHeraldry = null
 }) {
   const navigate = useNavigate();
+  const { activeDataset } = useDataset();
 
   // ==================== SEARCH & SORT STATE ====================
   const [searchTerm, setSearchTerm] = useState('');
@@ -201,18 +203,19 @@ function HouseList({
 
   // ==================== LOAD HERALDRY ====================
   useEffect(() => {
+    const datasetId = activeDataset?.id;
     houses.forEach(house => {
       if (house.heraldryId && !heraldryCache[house.heraldryId] && !loadingHeraldry[house.heraldryId]) {
-        loadHeraldryForHouse(house.heraldryId);
+        loadHeraldryForHouse(house.heraldryId, datasetId);
       }
     });
-  }, [houses]);
+  }, [houses, activeDataset]);
 
-  const loadHeraldryForHouse = async (heraldryId) => {
+  const loadHeraldryForHouse = async (heraldryId, datasetId) => {
     setLoadingHeraldry(prev => ({ ...prev, [heraldryId]: true }));
 
     try {
-      const heraldry = await getHeraldry(heraldryId);
+      const heraldry = await getHeraldry(heraldryId, datasetId);
       if (heraldry) {
         setHeraldryCache(prev => ({ ...prev, [heraldryId]: heraldry }));
       }

@@ -3,7 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getEntry, getAllLinksForEntry, getEntry as getBacklinkEntry } from '../services/codexService';
 import { getHeraldry } from '../services/heraldryService';
-import { db } from '../services/database';
+import { getDatabase } from '../services/database';
+import { useDataset } from '../contexts/DatasetContext';
 import { parseWikiLinks, getContextSnippet } from '../utils/wikiLinkParser';
 import { getPrimaryEpithet } from '../utils/epithetUtils';
 import Navigation from '../components/Navigation';
@@ -67,6 +68,7 @@ const TYPE_CONFIG = {
 function CodexEntryView() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { activeDataset } = useDataset();
 
   const [entry, setEntry] = useState(null);
   const [renderedContent, setRenderedContent] = useState('');
@@ -90,7 +92,7 @@ function CodexEntryView() {
   const loadLinkedHeraldry = useCallback(async (heraldryId) => {
     try {
       setLoadingHeraldry(true);
-      const heraldryData = await getHeraldry(heraldryId);
+      const heraldryData = await getHeraldry(heraldryId, activeDataset?.id);
       setLinkedHeraldry(heraldryData);
     } catch (err) {
       console.error('Error loading linked heraldry:', err);
@@ -98,14 +100,15 @@ function CodexEntryView() {
     } finally {
       setLoadingHeraldry(false);
     }
-  }, []);
+  }, [activeDataset]);
 
   // Load backlinks for the entry
   const loadBacklinks = useCallback(async (entryData) => {
     try {
       setLoadingBacklinks(true);
+      const datasetId = activeDataset?.id;
 
-      const links = await getAllLinksForEntry(entryData.id);
+      const links = await getAllLinksForEntry(entryData.id, datasetId);
       const incomingLinks = links.incoming || [];
 
       setBacklinks(incomingLinks);
@@ -113,7 +116,7 @@ function CodexEntryView() {
       if (incomingLinks.length > 0) {
         const details = await Promise.all(
           incomingLinks.map(async (link) => {
-            const sourceEntry = await getBacklinkEntry(link.sourceId);
+            const sourceEntry = await getBacklinkEntry(link.sourceId, datasetId);
             const snippet = getContextSnippet(sourceEntry.content, entryData.title);
 
             return {
@@ -132,15 +135,17 @@ function CodexEntryView() {
       console.error('Error loading backlinks:', err);
       setLoadingBacklinks(false);
     }
-  }, []);
+  }, [activeDataset]);
 
   // Load the main entry
   const loadEntry = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
+      const datasetId = activeDataset?.id;
+      const db = getDatabase(datasetId);
 
-      const entryData = await getEntry(parseInt(id));
+      const entryData = await getEntry(parseInt(id), datasetId);
 
       if (!entryData) {
         setError('Entry not found');
@@ -151,7 +156,7 @@ function CodexEntryView() {
       setEntry(entryData);
 
       // Parse markdown and process wiki-links
-      const html = await parseWikiLinks(entryData.content, entryData.id);
+      const html = await parseWikiLinks(entryData.content, entryData.id, datasetId);
       setRenderedContent(html);
 
       // Load backlinks
@@ -183,7 +188,7 @@ function CodexEntryView() {
       setError('Failed to load entry');
       setLoading(false);
     }
-  }, [id, loadBacklinks, loadLinkedHeraldry]);
+  }, [id, loadBacklinks, loadLinkedHeraldry, activeDataset]);
 
   useEffect(() => {
     loadEntry();

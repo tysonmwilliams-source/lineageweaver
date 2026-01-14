@@ -113,7 +113,16 @@ import {
   ArrowUpRight,
   Undo,
   Redo,
-  Grip
+  Grip,
+  UsersRound,
+  FileUp,
+  PartyPopper,
+  HardDrive,
+  HeartPulse,
+  Wrench,
+  AlertTriangle,
+  Loader,
+  RefreshCcw
 } from 'lucide-react';
 
 /**
@@ -294,7 +303,19 @@ const LUCIDE_ICONS = {
   'sun': Sun,
   'light': Sun,
   'moon': Moon,
-  'dark': Moon
+  'dark': Moon,
+
+  // Bulk import / additional icons
+  'users-round': UsersRound,
+  'file-up': FileUp,
+  'party-popper': PartyPopper,
+  'hard-drive': HardDrive,
+  'heart-pulse': HeartPulse,
+  'wrench': Wrench,
+  'alert-triangle': AlertTriangle,
+  'loader': Loader,
+  'refresh-cw': RefreshCcw,
+  'git-branch': GitBranch
 };
 
 /**

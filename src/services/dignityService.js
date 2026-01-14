@@ -19,7 +19,7 @@
  * - dignityLinks: Junction table for complex entity relationships
  */
 
-import { db } from './database';
+import { getDatabase } from './database';
 import {
   syncAddDignity,
   syncUpdateDignity,
@@ -444,10 +444,11 @@ export const DISPLAY_ICONS = {
  * - notes: Free-form notes
  * @param {string} [userId] - Optional user ID for cloud sync
  */
-export async function createDignity(dignityData, userId = null) {
+export async function createDignity(dignityData, userId = null, datasetId = null) {
   try {
+    const db = getDatabase(datasetId);
     const now = new Date().toISOString();
-    
+
     const record = {
       // Identity
       name: dignityData.name || 'Untitled Dignity',
@@ -524,7 +525,7 @@ export async function createDignity(dignityData, userId = null) {
           category: record.dignityClass || 'driht',
           tags: ['dignity', record.dignityClass, record.dignityRank].filter(Boolean),
           dignityId: id
-        });
+        }, datasetId);
 
         // Update the dignity with the codexEntryId
         await db.dignities.update(id, { codexEntryId });
@@ -553,8 +554,9 @@ export async function createDignity(dignityData, userId = null) {
  * @param {number} id - The dignity ID
  * @returns {Promise<Object|undefined>} The dignity record or undefined
  */
-export async function getDignity(id) {
+export async function getDignity(id, datasetId = null) {
   try {
+    const db = getDatabase(datasetId);
     const dignity = await db.dignities.get(id);
     return dignity;
   } catch (error) {
@@ -568,8 +570,9 @@ export async function getDignity(id) {
  * 
  * @returns {Promise<Array>} Array of all dignity records
  */
-export async function getAllDignities() {
+export async function getAllDignities(datasetId = null) {
   try {
+    const db = getDatabase(datasetId);
     const dignities = await db.dignities.toArray();
     return dignities;
   } catch (error) {
@@ -586,8 +589,9 @@ export async function getAllDignities() {
  * @param {string} [userId] - Optional user ID for cloud sync
  * @returns {Promise<number>} Number of records updated (1 or 0)
  */
-export async function updateDignity(id, updates, userId = null) {
+export async function updateDignity(id, updates, userId = null, datasetId = null) {
   try {
+    const db = getDatabase(datasetId);
     const result = await db.dignities.update(id, {
       ...updates,
       updated: new Date().toISOString()
@@ -614,17 +618,18 @@ export async function updateDignity(id, updates, userId = null) {
  * @param {string} [userId] - Optional user ID for cloud sync
  * @returns {Promise<void>}
  */
-export async function deleteDignity(id, userId = null) {
+export async function deleteDignity(id, userId = null, datasetId = null) {
   try {
+    const db = getDatabase(datasetId);
     // Cascade delete Codex entry if it exists
     try {
       // Use dynamic import to avoid circular dependency
       const { getEntryByDignityId, deleteEntry } = await import('./codexService.js');
 
       // Find and delete the associated Codex entry
-      const codexEntry = await getEntryByDignityId(id);
+      const codexEntry = await getEntryByDignityId(id, datasetId);
       if (codexEntry) {
-        await deleteEntry(codexEntry.id);
+        await deleteEntry(codexEntry.id, datasetId);
         console.log('📚 Cascade deleted Codex entry for dignity:', codexEntry.id);
       }
     } catch (codexError) {
@@ -673,10 +678,11 @@ export async function deleteDignity(id, userId = null) {
  * @param {string} [userId] - Optional user ID for cloud sync
  * @returns {Promise<number>} The tenure ID
  */
-export async function createDignityTenure(tenureData, userId = null) {
+export async function createDignityTenure(tenureData, userId = null, datasetId = null) {
   try {
+    const db = getDatabase(datasetId);
     const now = new Date().toISOString();
-    
+
     const record = {
       dignityId: tenureData.dignityId,
       personId: tenureData.personId,
@@ -720,8 +726,9 @@ export async function createDignityTenure(tenureData, userId = null) {
  * @param {number} dignityId - The dignity ID
  * @returns {Promise<Array>} Array of tenure records
  */
-export async function getTenuresForDignity(dignityId) {
+export async function getTenuresForDignity(dignityId, datasetId = null) {
   try {
+    const db = getDatabase(datasetId);
     const tenures = await db.dignityTenures
       .where('dignityId')
       .equals(dignityId)
@@ -746,17 +753,18 @@ export async function getTenuresForDignity(dignityId) {
  * @param {number} personId - The person ID
  * @returns {Promise<Array>} Array of tenure records with dignity data
  */
-export async function getTenuresForPerson(personId) {
+export async function getTenuresForPerson(personId, datasetId = null) {
   try {
+    const db = getDatabase(datasetId);
     const tenures = await db.dignityTenures
       .where('personId')
       .equals(personId)
       .toArray();
-    
+
     // Enrich with dignity data
     const enrichedTenures = await Promise.all(
       tenures.map(async (tenure) => {
-        const dignity = await getDignity(tenure.dignityId);
+        const dignity = await getDignity(tenure.dignityId, datasetId);
         return {
           ...tenure,
           dignity
@@ -777,9 +785,9 @@ export async function getTenuresForPerson(personId) {
  * @param {number} dignityId - The dignity ID
  * @returns {Promise<Object|null>} The current tenure or null
  */
-export async function getCurrentTenure(dignityId) {
+export async function getCurrentTenure(dignityId, datasetId = null) {
   try {
-    const tenures = await getTenuresForDignity(dignityId);
+    const tenures = await getTenuresForDignity(dignityId, datasetId);
     return tenures.find(t => !t.dateEnded) || null;
   } catch (error) {
     console.error('❌ Error getting current tenure:', error);
@@ -795,8 +803,9 @@ export async function getCurrentTenure(dignityId) {
  * @param {string} [userId] - Optional user ID for cloud sync
  * @returns {Promise<number>} Number of records updated
  */
-export async function updateDignityTenure(id, updates, userId = null) {
+export async function updateDignityTenure(id, updates, userId = null, datasetId = null) {
   try {
+    const db = getDatabase(datasetId);
     const result = await db.dignityTenures.update(id, updates);
     console.log('📜 Dignity tenure updated:', id);
     
@@ -819,8 +828,9 @@ export async function updateDignityTenure(id, updates, userId = null) {
  * @param {string} [userId] - Optional user ID for cloud sync
  * @returns {Promise<void>}
  */
-export async function deleteDignityTenure(id, userId = null) {
+export async function deleteDignityTenure(id, userId = null, datasetId = null) {
   try {
+    const db = getDatabase(datasetId);
     await db.dignityTenures.delete(id);
     console.log('📜 Dignity tenure deleted:', id);
     
@@ -843,8 +853,9 @@ export async function deleteDignityTenure(id, userId = null) {
  * @param {string} [userId] - Optional user ID for cloud sync
  * @returns {Promise<number>} The link ID
  */
-export async function linkDignityToEntity(linkData, userId = null) {
+export async function linkDignityToEntity(linkData, userId = null, datasetId = null) {
   try {
+    const db = getDatabase(datasetId);
     const link = {
       dignityId: linkData.dignityId,
       entityType: linkData.entityType, // 'house' | 'location' | 'event' | 'faction'
@@ -853,7 +864,7 @@ export async function linkDignityToEntity(linkData, userId = null) {
       notes: linkData.notes || null,
       created: new Date().toISOString()
     };
-    
+
     const id = await db.dignityLinks.add(link);
     console.log('🔗 Dignity linked to', linkData.entityType, linkData.entityId);
     
@@ -875,8 +886,9 @@ export async function linkDignityToEntity(linkData, userId = null) {
  * @param {number} dignityId - The dignity ID
  * @returns {Promise<Array>} Array of link records
  */
-export async function getDignityLinks(dignityId) {
+export async function getDignityLinks(dignityId, datasetId = null) {
   try {
+    const db = getDatabase(datasetId);
     const links = await db.dignityLinks
       .where('dignityId')
       .equals(dignityId)
@@ -895,14 +907,15 @@ export async function getDignityLinks(dignityId) {
  * @param {number} entityId - The entity's ID
  * @returns {Promise<Array>} Array of dignity records
  */
-export async function getDignitiesForEntity(entityType, entityId) {
+export async function getDignitiesForEntity(entityType, entityId, datasetId = null) {
   try {
+    const db = getDatabase(datasetId);
     const links = await db.dignityLinks
       .where('entityType')
       .equals(entityType)
       .and(link => link.entityId === entityId)
       .toArray();
-    
+
     const dignityIds = links.map(link => link.dignityId);
     const dignities = await db.dignities
       .where('id')
@@ -930,8 +943,9 @@ export async function getDignitiesForEntity(entityType, entityId) {
  * @param {string} [userId] - Optional user ID for cloud sync
  * @returns {Promise<void>}
  */
-export async function unlinkDignity(linkId, userId = null) {
+export async function unlinkDignity(linkId, userId = null, datasetId = null) {
   try {
+    const db = getDatabase(datasetId);
     await db.dignityLinks.delete(linkId);
     console.log('🔗 Dignity link removed:', linkId);
     
@@ -953,8 +967,9 @@ export async function unlinkDignity(linkId, userId = null) {
  * @param {string} dignityClass - 'driht' | 'ward' | 'sir' | 'crown' | 'other'
  * @returns {Promise<Array>} Matching dignities
  */
-export async function getDignitiesByClass(dignityClass) {
+export async function getDignitiesByClass(dignityClass, datasetId = null) {
   try {
+    const db = getDatabase(datasetId);
     const all = await db.dignities.toArray();
     return all.filter(d => d.dignityClass === dignityClass);
   } catch (error) {
@@ -969,8 +984,9 @@ export async function getDignitiesByClass(dignityClass) {
  * @param {string} dignityRank - e.g., 'drihten', 'drithen', 'wardyn'
  * @returns {Promise<Array>} Matching dignities
  */
-export async function getDignitiesByRank(dignityRank) {
+export async function getDignitiesByRank(dignityRank, datasetId = null) {
   try {
+    const db = getDatabase(datasetId);
     const all = await db.dignities.toArray();
     return all.filter(d => d.dignityRank === dignityRank);
   } catch (error) {
@@ -985,8 +1001,9 @@ export async function getDignitiesByRank(dignityRank) {
  * @param {number} houseId - The house ID
  * @returns {Promise<Array>} Dignities where currentHouseId matches
  */
-export async function getDignitiesForHouse(houseId) {
+export async function getDignitiesForHouse(houseId, datasetId = null) {
   try {
+    const db = getDatabase(datasetId);
     const all = await db.dignities.toArray();
     return all.filter(d => d.currentHouseId === houseId);
   } catch (error) {
@@ -1001,8 +1018,9 @@ export async function getDignitiesForHouse(houseId) {
  * @param {number} personId - The person ID
  * @returns {Promise<Array>} Dignities where currentHolderId matches
  */
-export async function getDignitiesForPerson(personId) {
+export async function getDignitiesForPerson(personId, datasetId = null) {
   try {
+    const db = getDatabase(datasetId);
     const all = await db.dignities.toArray();
     return all.filter(d => d.currentHolderId === personId);
   } catch (error) {
@@ -1017,8 +1035,9 @@ export async function getDignitiesForPerson(personId) {
  * @param {number} dignityId - The superior dignity ID
  * @returns {Promise<Array>} Dignities sworn to this one
  */
-export async function getSubordinateDignities(dignityId) {
+export async function getSubordinateDignities(dignityId, datasetId = null) {
   try {
+    const db = getDatabase(datasetId);
     const all = await db.dignities.toArray();
     return all.filter(d => d.swornToId === dignityId);
   } catch (error) {
@@ -1034,15 +1053,15 @@ export async function getSubordinateDignities(dignityId) {
  * @param {number} dignityId - Starting dignity
  * @returns {Promise<Array>} Chain of dignities [given, superior, superior's superior, ...]
  */
-export async function getFeudalChain(dignityId) {
+export async function getFeudalChain(dignityId, datasetId = null) {
   try {
     const chain = [];
     let currentId = dignityId;
     const visited = new Set(); // Prevent infinite loops
-    
+
     while (currentId && !visited.has(currentId)) {
       visited.add(currentId);
-      const dignity = await getDignity(currentId);
+      const dignity = await getDignity(currentId, datasetId);
       if (dignity) {
         chain.push(dignity);
         currentId = dignity.swornToId;
@@ -1064,8 +1083,9 @@ export async function getFeudalChain(dignityId) {
  * @param {string} searchTerm - The search term
  * @returns {Promise<Array>} Matching dignities
  */
-export async function searchDignities(searchTerm) {
+export async function searchDignities(searchTerm, datasetId = null) {
   try {
+    const db = getDatabase(datasetId);
     const term = searchTerm.toLowerCase();
     const all = await db.dignities.toArray();
     
@@ -1088,8 +1108,9 @@ export async function searchDignities(searchTerm) {
  * 
  * @returns {Promise<Object>} Statistics object
  */
-export async function getDignityStatistics() {
+export async function getDignityStatistics(datasetId = null) {
   try {
+    const db = getDatabase(datasetId);
     const all = await db.dignities.toArray();
     const tenures = await db.dignityTenures.toArray();
     
@@ -1136,8 +1157,9 @@ export async function getDignityStatistics() {
  * @param {number} limit - Maximum number to return
  * @returns {Promise<Array>} Recent dignities
  */
-export async function getRecentDignities(limit = 5) {
+export async function getRecentDignities(limit = 5, datasetId = null) {
   try {
+    const db = getDatabase(datasetId);
     const all = await db.dignities.toArray();
     return all
       .sort((a, b) => new Date(b.updated) - new Date(a.updated))
@@ -1255,10 +1277,11 @@ export async function calculateSuccessionLine(
   parentMap,
   childrenMap,
   spouseMap,
-  maxDepth = 10
+  maxDepth = 10,
+  datasetId = null
 ) {
   try {
-    const dignity = await getDignity(dignityId);
+    const dignity = await getDignity(dignityId, datasetId);
     if (!dignity) {
       console.warn('Dignity not found for succession calculation');
       return [];
@@ -1576,8 +1599,8 @@ export async function calculateSuccessionLine(
  * @param {Map} spouseMap - Spouse relationships
  * @returns {Promise<Object|null>} The heir or null
  */
-export async function getHeir(dignityId, allPeople, parentMap, childrenMap, spouseMap) {
-  const line = await calculateSuccessionLine(dignityId, allPeople, parentMap, childrenMap, spouseMap, 5);
+export async function getHeir(dignityId, allPeople, parentMap, childrenMap, spouseMap, datasetId = null) {
+  const line = await calculateSuccessionLine(dignityId, allPeople, parentMap, childrenMap, spouseMap, 5, datasetId);
   const eligibleHeir = line.find(c => !c.excluded);
   return eligibleHeir || null;
 }
@@ -1602,9 +1625,9 @@ export async function getHeir(dignityId, allPeople, parentMap, childrenMap, spou
  *   notes: string
  * }
  */
-export async function addDispute(dignityId, disputeData, userId = null) {
+export async function addDispute(dignityId, disputeData, userId = null, datasetId = null) {
   try {
-    const dignity = await getDignity(dignityId);
+    const dignity = await getDignity(dignityId, datasetId);
     if (!dignity) throw new Error('Dignity not found');
     
     const dispute = {
@@ -1630,8 +1653,8 @@ export async function addDispute(dignityId, disputeData, userId = null) {
       successionStatus = activeDisputes.length >= 2 ? 'crisis' : 'disputed';
     }
     
-    await updateDignity(dignityId, { disputes, successionStatus }, userId);
-    
+    await updateDignity(dignityId, { disputes, successionStatus }, userId, datasetId);
+
     console.log(`⚔️ Dispute added to ${dignity.name}:`, dispute.id);
     return { ...dignity, disputes, successionStatus };
     
@@ -1650,9 +1673,9 @@ export async function addDispute(dignityId, disputeData, userId = null) {
  * @param {string} [userId] - Optional user ID for cloud sync
  * @returns {Promise<Object>} The updated dignity
  */
-export async function updateDispute(dignityId, disputeId, updates, userId = null) {
+export async function updateDispute(dignityId, disputeId, updates, userId = null, datasetId = null) {
   try {
-    const dignity = await getDignity(dignityId);
+    const dignity = await getDignity(dignityId, datasetId);
     if (!dignity) throw new Error('Dignity not found');
     
     const disputes = (dignity.disputes || []).map(d => {
@@ -1671,8 +1694,8 @@ export async function updateDispute(dignityId, disputeId, updates, userId = null
       successionStatus = 'disputed';
     }
     
-    await updateDignity(dignityId, { disputes, successionStatus }, userId);
-    
+    await updateDignity(dignityId, { disputes, successionStatus }, userId, datasetId);
+
     console.log(`⚔️ Dispute updated: ${disputeId}`);
     return { ...dignity, disputes, successionStatus };
     
@@ -1692,11 +1715,11 @@ export async function updateDispute(dignityId, disputeId, updates, userId = null
  * @param {string} [userId] - Optional user ID for cloud sync
  * @returns {Promise<Object>} The updated dignity
  */
-export async function resolveDispute(dignityId, disputeId, resolution, resolvedDate, userId = null) {
-  return updateDispute(dignityId, disputeId, { 
-    resolution, 
-    resolvedDate 
-  }, userId);
+export async function resolveDispute(dignityId, disputeId, resolution, resolvedDate, userId = null, datasetId = null) {
+  return updateDispute(dignityId, disputeId, {
+    resolution,
+    resolvedDate
+  }, userId, datasetId);
 }
 
 /**
@@ -1707,9 +1730,9 @@ export async function resolveDispute(dignityId, disputeId, resolution, resolvedD
  * @param {string} [userId] - Optional user ID for cloud sync
  * @returns {Promise<Object>} The updated dignity
  */
-export async function removeDispute(dignityId, disputeId, userId = null) {
+export async function removeDispute(dignityId, disputeId, userId = null, datasetId = null) {
   try {
-    const dignity = await getDignity(dignityId);
+    const dignity = await getDignity(dignityId, datasetId);
     if (!dignity) throw new Error('Dignity not found');
     
     const disputes = (dignity.disputes || []).filter(d => d.id !== disputeId);
@@ -1723,8 +1746,8 @@ export async function removeDispute(dignityId, disputeId, userId = null) {
       successionStatus = 'disputed';
     }
     
-    await updateDignity(dignityId, { disputes, successionStatus }, userId);
-    
+    await updateDignity(dignityId, { disputes, successionStatus }, userId, datasetId);
+
     console.log(`⚔️ Dispute removed: ${disputeId}`);
     return { ...dignity, disputes, successionStatus };
     
@@ -1740,9 +1763,9 @@ export async function removeDispute(dignityId, disputeId, userId = null) {
  * @param {number} dignityId - The dignity ID
  * @returns {Promise<Array>} Active disputes
  */
-export async function getActiveDisputes(dignityId) {
+export async function getActiveDisputes(dignityId, datasetId = null) {
   try {
-    const dignity = await getDignity(dignityId);
+    const dignity = await getDignity(dignityId, datasetId);
     if (!dignity) return [];
     
     return (dignity.disputes || []).filter(d => d.resolution === 'ongoing');
@@ -1757,9 +1780,9 @@ export async function getActiveDisputes(dignityId) {
  * 
  * @returns {Promise<Array>} All disputes with dignity info
  */
-export async function getAllDisputes() {
+export async function getAllDisputes(datasetId = null) {
   try {
-    const allDignities = await getAllDignities();
+    const allDignities = await getAllDignities(datasetId);
     const allDisputes = [];
     
     for (const dignity of allDignities) {
@@ -1799,7 +1822,7 @@ export async function getAllDisputes() {
  *   notes: string
  * }
  */
-export async function setInterregnum(dignityId, interregnumData, userId = null) {
+export async function setInterregnum(dignityId, interregnumData, userId = null, datasetId = null) {
   try {
     const interregnum = {
       startDate: interregnumData.startDate || null,
@@ -1808,14 +1831,14 @@ export async function setInterregnum(dignityId, interregnumData, userId = null) 
       reason: interregnumData.reason || 'vacancy',
       notes: interregnumData.notes || null
     };
-    
-    await updateDignity(dignityId, { 
+
+    await updateDignity(dignityId, {
       interregnum,
       successionStatus: 'interregnum'
-    }, userId);
-    
+    }, userId, datasetId);
+
     console.log(`⏳ Interregnum set for dignity ${dignityId}`);
-    return await getDignity(dignityId);
+    return await getDignity(dignityId, datasetId);
     
   } catch (error) {
     console.error('❌ Error setting interregnum:', error);
@@ -1831,17 +1854,17 @@ export async function setInterregnum(dignityId, interregnumData, userId = null) 
  * @param {string} [userId] - Optional user ID for cloud sync
  * @returns {Promise<Object>} The updated dignity
  */
-export async function endInterregnum(dignityId, newHolderId, userId = null) {
+export async function endInterregnum(dignityId, newHolderId, userId = null, datasetId = null) {
   try {
     await updateDignity(dignityId, {
       interregnum: null,
       currentHolderId: newHolderId,
       successionStatus: 'stable',
       isVacant: false
-    }, userId);
-    
+    }, userId, datasetId);
+
     console.log(`⏳ Interregnum ended for dignity ${dignityId}, new holder: ${newHolderId}`);
-    return await getDignity(dignityId);
+    return await getDignity(dignityId, datasetId);
     
   } catch (error) {
     console.error('❌ Error ending interregnum:', error);
@@ -1854,9 +1877,9 @@ export async function endInterregnum(dignityId, newHolderId, userId = null) {
  * 
  * @returns {Promise<Array>} Dignities in interregnum
  */
-export async function getDignitiesInInterregnum() {
+export async function getDignitiesInInterregnum(datasetId = null) {
   try {
-    const all = await getAllDignities();
+    const all = await getAllDignities(datasetId);
     return all.filter(d => d.successionStatus === 'interregnum' || d.interregnum);
   } catch (error) {
     console.error('❌ Error getting dignities in interregnum:', error);
@@ -1869,9 +1892,9 @@ export async function getDignitiesInInterregnum() {
  * 
  * @returns {Promise<Array>} Dignities with succession issues
  */
-export async function getDignitiesInCrisis() {
+export async function getDignitiesInCrisis(datasetId = null) {
   try {
-    const all = await getAllDignities();
+    const all = await getAllDignities(datasetId);
     return all.filter(d => 
       d.successionStatus === 'crisis' || 
       d.successionStatus === 'disputed' ||

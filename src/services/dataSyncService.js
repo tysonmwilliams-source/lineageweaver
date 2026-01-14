@@ -55,6 +55,8 @@ import {
   addCodexEntryCloud,
   updateCodexEntryCloud,
   deleteCodexEntryCloud,
+  addCodexLinkCloud,
+  deleteCodexLinkCloud,
   addHeraldryCloud,
   updateHeraldryCloud,
   deleteHeraldryCloud,
@@ -83,8 +85,12 @@ import {
   addPerson as localAddPerson,
   addHouse as localAddHouse,
   addRelationship as localAddRelationship,
-  deleteAllData as localDeleteAllData
+  deleteAllData as localDeleteAllData,
+  getDatabase
 } from './database';
+
+// Default dataset ID for backward compatibility
+const DEFAULT_DATASET_ID = 'default';
 
 import {
   getAllEntries as getAllCodexEntries,
@@ -158,37 +164,42 @@ if (typeof window !== 'undefined') {
 /**
  * Initialize sync for a user
  * Determines whether to upload local data or download cloud data
- * 
+ *
  * SCENARIOS:
  * 1. New user, no local data, no cloud data → Do nothing
  * 2. New user with local data, no cloud data → Upload local to cloud
  * 3. Returning user, no local data, has cloud data → Download cloud to local
  * 4. Returning user, has both → Cloud takes precedence (most common case)
- * 
+ *
  * @param {string} userId - The user's Firebase UID
+ * @param {string} [datasetId='default'] - The dataset ID
  * @returns {Object} Sync result with status and data
  */
-export async function initializeSync(userId) {
+export async function initializeSync(userId, datasetId = DEFAULT_DATASET_ID) {
   if (!userId) {
     console.warn('⚠️ No userId provided to initializeSync');
     return { status: 'no-user', data: null };
   }
 
+  const dsId = datasetId || DEFAULT_DATASET_ID;
+  const localDb = getDatabase(dsId);
+
   try {
     updateSyncStatus({ isSyncing: true, error: null });
-    console.log('🔄 Initializing sync for user:', userId);
+    console.log('🔄 Initializing sync for user:', userId, 'dataset:', dsId);
 
     // Check what data exists
     const [localPeople, localHouses, localRelationships] = await Promise.all([
-      getAllPeople(),
-      getAllHouses(),
-      getAllRelationships()
+      getAllPeople(dsId),
+      getAllHouses(dsId),
+      getAllRelationships(dsId)
     ]);
 
     const hasLocalData = localPeople.length > 0 || localHouses.length > 0;
-    const userHasCloudData = await hasCloudData(userId);
+    const userHasCloudData = await hasCloudData(userId, dsId);
 
     console.log('📊 Sync check:', {
+      dataset: dsId,
       hasLocalData,
       hasCloudData: userHasCloudData,
       localPeople: localPeople.length,
@@ -205,24 +216,26 @@ export async function initializeSync(userId) {
     // Scenario 2: Local data but no cloud data → Upload
     if (hasLocalData && !userHasCloudData) {
       console.log('⬆️ Uploading local data to cloud...');
-      
+
       let codexEntries = [];
+      let codexLinks = [];
       let heraldry = [];
       let heraldryLinks = [];
-      
+
       try {
         codexEntries = await getAllCodexEntries();
+        codexLinks = await localDb.codexLinks.toArray();
       } catch (e) {
-        console.warn('Could not get codex entries:', e);
+        console.warn('Could not get codex entries/links:', e);
       }
-      
+
       try {
-        heraldry = await localGetAllHeraldry();
+        heraldry = await localGetAllHeraldry(dsId);
         heraldryLinks = await localDb.heraldryLinks.toArray();
       } catch (e) {
         console.warn('Could not get heraldry:', e);
       }
-      
+
       // Get dignities data
       let dignities = [];
       let dignityTenures = [];
@@ -239,16 +252,17 @@ export async function initializeSync(userId) {
       // Get household roles
       let householdRoles = [];
       try {
-        householdRoles = await localGetAllHouseholdRoles();
+        householdRoles = await localGetAllHouseholdRoles(dsId);
       } catch (e) {
         console.warn('Could not get household roles:', e);
       }
 
-      await syncAllToCloud(userId, {
+      await syncAllToCloud(userId, dsId, {
         people: localPeople,
         houses: localHouses,
         relationships: localRelationships,
         codexEntries,
+        codexLinks,
         heraldry,
         heraldryLinks,
         dignities,
@@ -258,39 +272,39 @@ export async function initializeSync(userId) {
       });
 
       updateSyncStatus({ isSyncing: false, lastSyncTime: new Date() });
-      return { 
-        status: 'uploaded', 
-        data: { 
-          people: localPeople, 
-          houses: localHouses, 
-          relationships: localRelationships 
-        } 
+      return {
+        status: 'uploaded',
+        data: {
+          people: localPeople,
+          houses: localHouses,
+          relationships: localRelationships
+        }
       };
     }
 
     // Scenario 3 & 4: Cloud data exists → Download (cloud is source of truth)
     console.log('⬇️ Downloading cloud data...');
-    const cloudData = await downloadAllFromCloud(userId);
+    const cloudData = await downloadAllFromCloud(userId, dsId);
 
     // Clear local and replace with cloud data
-    await localDeleteAllData();
-    
+    await localDeleteAllData(dsId);
+
     // Re-populate local DB with cloud data
     for (const house of cloudData.houses || []) {
       // Remove Firestore-specific fields before saving locally
       const { createdAt, updatedAt, syncedAt, localId, ...houseData } = house;
       // Skip Codex auto-creation during sync restore to prevent duplicates
-      await localAddHouse({ ...houseData, id: parseInt(house.id) || house.id }, { skipCodexCreation: true });
+      await localAddHouse({ ...houseData, id: parseInt(house.id) || house.id }, { skipCodexCreation: true, datasetId: dsId });
     }
 
     for (const person of cloudData.people || []) {
       const { createdAt, updatedAt, syncedAt, localId, ...personData } = person;
-      await localAddPerson({ ...personData, id: parseInt(person.id) || person.id });
+      await localAddPerson({ ...personData, id: parseInt(person.id) || person.id }, dsId);
     }
 
     for (const rel of cloudData.relationships || []) {
       const { createdAt, updatedAt, syncedAt, localId, ...relData } = rel;
-      await localAddRelationship({ ...relData, id: parseInt(rel.id) || rel.id });
+      await localAddRelationship({ ...relData, id: parseInt(rel.id) || rel.id }, dsId);
     }
 
     // Handle codex entries if they exist
@@ -304,7 +318,17 @@ export async function initializeSync(userId) {
         console.warn('Could not restore codex entry:', e);
       }
     }
-    
+
+    // Handle codex links if they exist
+    for (const link of cloudData.codexLinks || []) {
+      const { createdAt, syncedAt, localId, ...linkData } = link;
+      try {
+        await localDb.codexLinks.put({ ...linkData, id: parseInt(link.id) || link.id });
+      } catch (e) {
+        console.warn('Could not restore codex link:', e);
+      }
+    }
+
     // Handle heraldry if it exists
     for (const h of cloudData.heraldry || []) {
       const { createdAt, updatedAt, syncedAt, localId, ...heraldryData } = h;
@@ -315,7 +339,7 @@ export async function initializeSync(userId) {
         console.warn('Could not restore heraldry:', e);
       }
     }
-    
+
     // Handle heraldry links if they exist
     for (const link of cloudData.heraldryLinks || []) {
       const { createdAt, syncedAt, localId, ...linkData } = link;
@@ -325,7 +349,7 @@ export async function initializeSync(userId) {
         console.warn('Could not restore heraldry link:', e);
       }
     }
-    
+
     // Handle dignities if they exist
     for (const dignity of cloudData.dignities || []) {
       const { createdAt, updatedAt, syncedAt, localId, ...dignityData } = dignity;
@@ -335,7 +359,7 @@ export async function initializeSync(userId) {
         console.warn('Could not restore dignity:', e);
       }
     }
-    
+
     // Handle dignity tenures if they exist
     for (const tenure of cloudData.dignityTenures || []) {
       const { createdAt, syncedAt, localId, ...tenureData } = tenure;
@@ -345,7 +369,7 @@ export async function initializeSync(userId) {
         console.warn('Could not restore dignity tenure:', e);
       }
     }
-    
+
     // Handle dignity links if they exist
     for (const link of cloudData.dignityLinks || []) {
       const { createdAt, syncedAt, localId, ...linkData } = link;
@@ -376,7 +400,7 @@ export async function initializeSync(userId) {
   } catch (error) {
     console.error('❌ Sync initialization failed:', error);
     updateSyncStatus({ isSyncing: false, error: error.message });
-    
+
     // Don't throw - return error status so app can continue with local data
     return { status: 'error', error: error.message };
   }
@@ -388,14 +412,15 @@ export async function initializeSync(userId) {
 /**
  * Add a person (local + cloud)
  * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
  * @param {number} personId - The local person ID (after local add)
  * @param {Object} personData - The person data
  */
-export async function syncAddPerson(userId, personId, personData) {
+export async function syncAddPerson(userId, datasetId, personId, personData) {
   if (!userId || !isOnline) return;
-  
+
   try {
-    await addPersonCloud(userId, { ...personData, id: personId });
+    await addPersonCloud(userId, datasetId, { ...personData, id: personId });
   } catch (error) {
     console.error('☁️ Failed to sync person add:', error);
     // Don't throw - local operation already succeeded
@@ -405,11 +430,11 @@ export async function syncAddPerson(userId, personId, personData) {
 /**
  * Update a person (local + cloud)
  */
-export async function syncUpdatePerson(userId, personId, updates) {
+export async function syncUpdatePerson(userId, datasetId, personId, updates) {
   if (!userId || !isOnline) return;
-  
+
   try {
-    await updatePersonCloud(userId, personId, updates);
+    await updatePersonCloud(userId, datasetId, personId, updates);
   } catch (error) {
     console.error('☁️ Failed to sync person update:', error);
   }
@@ -418,11 +443,11 @@ export async function syncUpdatePerson(userId, personId, updates) {
 /**
  * Delete a person (local + cloud)
  */
-export async function syncDeletePerson(userId, personId) {
+export async function syncDeletePerson(userId, datasetId, personId) {
   if (!userId || !isOnline) return;
-  
+
   try {
-    await deletePersonCloud(userId, personId);
+    await deletePersonCloud(userId, datasetId, personId);
   } catch (error) {
     console.error('☁️ Failed to sync person delete:', error);
   }
@@ -431,11 +456,11 @@ export async function syncDeletePerson(userId, personId) {
 /**
  * Add a house (local + cloud)
  */
-export async function syncAddHouse(userId, houseId, houseData) {
+export async function syncAddHouse(userId, datasetId, houseId, houseData) {
   if (!userId || !isOnline) return;
-  
+
   try {
-    await addHouseCloud(userId, { ...houseData, id: houseId });
+    await addHouseCloud(userId, datasetId, { ...houseData, id: houseId });
   } catch (error) {
     console.error('☁️ Failed to sync house add:', error);
   }
@@ -444,11 +469,11 @@ export async function syncAddHouse(userId, houseId, houseData) {
 /**
  * Update a house (local + cloud)
  */
-export async function syncUpdateHouse(userId, houseId, updates) {
+export async function syncUpdateHouse(userId, datasetId, houseId, updates) {
   if (!userId || !isOnline) return;
-  
+
   try {
-    await updateHouseCloud(userId, houseId, updates);
+    await updateHouseCloud(userId, datasetId, houseId, updates);
   } catch (error) {
     console.error('☁️ Failed to sync house update:', error);
   }
@@ -457,11 +482,11 @@ export async function syncUpdateHouse(userId, houseId, updates) {
 /**
  * Delete a house (local + cloud)
  */
-export async function syncDeleteHouse(userId, houseId) {
+export async function syncDeleteHouse(userId, datasetId, houseId) {
   if (!userId || !isOnline) return;
-  
+
   try {
-    await deleteHouseCloud(userId, houseId);
+    await deleteHouseCloud(userId, datasetId, houseId);
   } catch (error) {
     console.error('☁️ Failed to sync house delete:', error);
   }
@@ -470,11 +495,11 @@ export async function syncDeleteHouse(userId, houseId) {
 /**
  * Add a relationship (local + cloud)
  */
-export async function syncAddRelationship(userId, relationshipId, relationshipData) {
+export async function syncAddRelationship(userId, datasetId, relationshipId, relationshipData) {
   if (!userId || !isOnline) return;
-  
+
   try {
-    await addRelationshipCloud(userId, { ...relationshipData, id: relationshipId });
+    await addRelationshipCloud(userId, datasetId, { ...relationshipData, id: relationshipId });
   } catch (error) {
     console.error('☁️ Failed to sync relationship add:', error);
   }
@@ -483,11 +508,11 @@ export async function syncAddRelationship(userId, relationshipId, relationshipDa
 /**
  * Update a relationship (local + cloud)
  */
-export async function syncUpdateRelationship(userId, relationshipId, updates) {
+export async function syncUpdateRelationship(userId, datasetId, relationshipId, updates) {
   if (!userId || !isOnline) return;
-  
+
   try {
-    await updateRelationshipCloud(userId, relationshipId, updates);
+    await updateRelationshipCloud(userId, datasetId, relationshipId, updates);
   } catch (error) {
     console.error('☁️ Failed to sync relationship update:', error);
   }
@@ -496,11 +521,11 @@ export async function syncUpdateRelationship(userId, relationshipId, updates) {
 /**
  * Delete a relationship (local + cloud)
  */
-export async function syncDeleteRelationship(userId, relationshipId) {
+export async function syncDeleteRelationship(userId, datasetId, relationshipId) {
   if (!userId || !isOnline) return;
-  
+
   try {
-    await deleteRelationshipCloud(userId, relationshipId);
+    await deleteRelationshipCloud(userId, datasetId, relationshipId);
   } catch (error) {
     console.error('☁️ Failed to sync relationship delete:', error);
   }
@@ -509,11 +534,11 @@ export async function syncDeleteRelationship(userId, relationshipId) {
 /**
  * Add a codex entry (local + cloud)
  */
-export async function syncAddCodexEntry(userId, entryId, entryData) {
+export async function syncAddCodexEntry(userId, datasetId, entryId, entryData) {
   if (!userId || !isOnline) return;
-  
+
   try {
-    await addCodexEntryCloud(userId, { ...entryData, id: entryId });
+    await addCodexEntryCloud(userId, datasetId, { ...entryData, id: entryId });
   } catch (error) {
     console.error('☁️ Failed to sync codex entry add:', error);
   }
@@ -522,11 +547,11 @@ export async function syncAddCodexEntry(userId, entryId, entryData) {
 /**
  * Update a codex entry (local + cloud)
  */
-export async function syncUpdateCodexEntry(userId, entryId, updates) {
+export async function syncUpdateCodexEntry(userId, datasetId, entryId, updates) {
   if (!userId || !isOnline) return;
-  
+
   try {
-    await updateCodexEntryCloud(userId, entryId, updates);
+    await updateCodexEntryCloud(userId, datasetId, entryId, updates);
   } catch (error) {
     console.error('☁️ Failed to sync codex entry update:', error);
   }
@@ -535,13 +560,45 @@ export async function syncUpdateCodexEntry(userId, entryId, updates) {
 /**
  * Delete a codex entry (local + cloud)
  */
-export async function syncDeleteCodexEntry(userId, entryId) {
+export async function syncDeleteCodexEntry(userId, datasetId, entryId) {
   if (!userId || !isOnline) return;
-  
+
   try {
-    await deleteCodexEntryCloud(userId, entryId);
+    await deleteCodexEntryCloud(userId, datasetId, entryId);
   } catch (error) {
     console.error('☁️ Failed to sync codex entry delete:', error);
+  }
+}
+
+// ==================== CODEX LINK SYNC WRAPPERS ====================
+
+/**
+ * Add codex link (local + cloud)
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ * @param {number} linkId - The local link ID (after local add)
+ * @param {Object} linkData - The link data
+ */
+export async function syncAddCodexLink(userId, datasetId, linkId, linkData) {
+  if (!userId || !isOnline) return;
+
+  try {
+    await addCodexLinkCloud(userId, datasetId, { ...linkData, id: linkId });
+  } catch (error) {
+    console.error('☁️ Failed to sync codex link add:', error);
+  }
+}
+
+/**
+ * Delete codex link (local + cloud)
+ */
+export async function syncDeleteCodexLink(userId, datasetId, linkId) {
+  if (!userId || !isOnline) return;
+
+  try {
+    await deleteCodexLinkCloud(userId, datasetId, linkId);
+  } catch (error) {
+    console.error('☁️ Failed to sync codex link delete:', error);
   }
 }
 
@@ -550,14 +607,15 @@ export async function syncDeleteCodexEntry(userId, entryId) {
 /**
  * Add heraldry (local + cloud)
  * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
  * @param {number} heraldryId - The local heraldry ID (after local add)
  * @param {Object} heraldryData - The heraldry data
  */
-export async function syncAddHeraldry(userId, heraldryId, heraldryData) {
+export async function syncAddHeraldry(userId, datasetId, heraldryId, heraldryData) {
   if (!userId || !isOnline) return;
-  
+
   try {
-    await addHeraldryCloud(userId, { ...heraldryData, id: heraldryId });
+    await addHeraldryCloud(userId, datasetId, { ...heraldryData, id: heraldryId });
   } catch (error) {
     console.error('☁️ Failed to sync heraldry add:', error);
   }
@@ -566,11 +624,11 @@ export async function syncAddHeraldry(userId, heraldryId, heraldryData) {
 /**
  * Update heraldry (local + cloud)
  */
-export async function syncUpdateHeraldry(userId, heraldryId, updates) {
+export async function syncUpdateHeraldry(userId, datasetId, heraldryId, updates) {
   if (!userId || !isOnline) return;
-  
+
   try {
-    await updateHeraldryCloud(userId, heraldryId, updates);
+    await updateHeraldryCloud(userId, datasetId, heraldryId, updates);
   } catch (error) {
     console.error('☁️ Failed to sync heraldry update:', error);
   }
@@ -579,11 +637,11 @@ export async function syncUpdateHeraldry(userId, heraldryId, updates) {
 /**
  * Delete heraldry (local + cloud)
  */
-export async function syncDeleteHeraldry(userId, heraldryId) {
+export async function syncDeleteHeraldry(userId, datasetId, heraldryId) {
   if (!userId || !isOnline) return;
-  
+
   try {
-    await deleteHeraldryCloud(userId, heraldryId);
+    await deleteHeraldryCloud(userId, datasetId, heraldryId);
   } catch (error) {
     console.error('☁️ Failed to sync heraldry delete:', error);
   }
@@ -592,11 +650,11 @@ export async function syncDeleteHeraldry(userId, heraldryId) {
 /**
  * Add heraldry link (local + cloud)
  */
-export async function syncAddHeraldryLink(userId, linkId, linkData) {
+export async function syncAddHeraldryLink(userId, datasetId, linkId, linkData) {
   if (!userId || !isOnline) return;
-  
+
   try {
-    await addHeraldryLinkCloud(userId, { ...linkData, id: linkId });
+    await addHeraldryLinkCloud(userId, datasetId, { ...linkData, id: linkId });
   } catch (error) {
     console.error('☁️ Failed to sync heraldry link add:', error);
   }
@@ -605,11 +663,11 @@ export async function syncAddHeraldryLink(userId, linkId, linkData) {
 /**
  * Delete heraldry link (local + cloud)
  */
-export async function syncDeleteHeraldryLink(userId, linkId) {
+export async function syncDeleteHeraldryLink(userId, datasetId, linkId) {
   if (!userId || !isOnline) return;
-  
+
   try {
-    await deleteHeraldryLinkCloud(userId, linkId);
+    await deleteHeraldryLinkCloud(userId, datasetId, linkId);
   } catch (error) {
     console.error('☁️ Failed to sync heraldry link delete:', error);
   }
@@ -620,14 +678,15 @@ export async function syncDeleteHeraldryLink(userId, linkId) {
 /**
  * Add dignity (local + cloud)
  * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
  * @param {number} dignityId - The local dignity ID (after local add)
  * @param {Object} dignityData - The dignity data
  */
-export async function syncAddDignity(userId, dignityId, dignityData) {
+export async function syncAddDignity(userId, datasetId, dignityId, dignityData) {
   if (!userId || !isOnline) return;
-  
+
   try {
-    await addDignityCloud(userId, { ...dignityData, id: dignityId });
+    await addDignityCloud(userId, datasetId, { ...dignityData, id: dignityId });
   } catch (error) {
     console.error('☁️ Failed to sync dignity add:', error);
   }
@@ -636,11 +695,11 @@ export async function syncAddDignity(userId, dignityId, dignityData) {
 /**
  * Update dignity (local + cloud)
  */
-export async function syncUpdateDignity(userId, dignityId, updates) {
+export async function syncUpdateDignity(userId, datasetId, dignityId, updates) {
   if (!userId || !isOnline) return;
-  
+
   try {
-    await updateDignityCloud(userId, dignityId, updates);
+    await updateDignityCloud(userId, datasetId, dignityId, updates);
   } catch (error) {
     console.error('☁️ Failed to sync dignity update:', error);
   }
@@ -649,11 +708,11 @@ export async function syncUpdateDignity(userId, dignityId, updates) {
 /**
  * Delete dignity (local + cloud)
  */
-export async function syncDeleteDignity(userId, dignityId) {
+export async function syncDeleteDignity(userId, datasetId, dignityId) {
   if (!userId || !isOnline) return;
-  
+
   try {
-    await deleteDignityCloud(userId, dignityId);
+    await deleteDignityCloud(userId, datasetId, dignityId);
   } catch (error) {
     console.error('☁️ Failed to sync dignity delete:', error);
   }
@@ -662,11 +721,11 @@ export async function syncDeleteDignity(userId, dignityId) {
 /**
  * Add dignity tenure (local + cloud)
  */
-export async function syncAddDignityTenure(userId, tenureId, tenureData) {
+export async function syncAddDignityTenure(userId, datasetId, tenureId, tenureData) {
   if (!userId || !isOnline) return;
-  
+
   try {
-    await addDignityTenureCloud(userId, { ...tenureData, id: tenureId });
+    await addDignityTenureCloud(userId, datasetId, { ...tenureData, id: tenureId });
   } catch (error) {
     console.error('☁️ Failed to sync dignity tenure add:', error);
   }
@@ -675,11 +734,11 @@ export async function syncAddDignityTenure(userId, tenureId, tenureData) {
 /**
  * Update dignity tenure (local + cloud)
  */
-export async function syncUpdateDignityTenure(userId, tenureId, updates) {
+export async function syncUpdateDignityTenure(userId, datasetId, tenureId, updates) {
   if (!userId || !isOnline) return;
-  
+
   try {
-    await updateDignityTenureCloud(userId, tenureId, updates);
+    await updateDignityTenureCloud(userId, datasetId, tenureId, updates);
   } catch (error) {
     console.error('☁️ Failed to sync dignity tenure update:', error);
   }
@@ -688,11 +747,11 @@ export async function syncUpdateDignityTenure(userId, tenureId, updates) {
 /**
  * Delete dignity tenure (local + cloud)
  */
-export async function syncDeleteDignityTenure(userId, tenureId) {
+export async function syncDeleteDignityTenure(userId, datasetId, tenureId) {
   if (!userId || !isOnline) return;
-  
+
   try {
-    await deleteDignityTenureCloud(userId, tenureId);
+    await deleteDignityTenureCloud(userId, datasetId, tenureId);
   } catch (error) {
     console.error('☁️ Failed to sync dignity tenure delete:', error);
   }
@@ -701,11 +760,11 @@ export async function syncDeleteDignityTenure(userId, tenureId) {
 /**
  * Add dignity link (local + cloud)
  */
-export async function syncAddDignityLink(userId, linkId, linkData) {
+export async function syncAddDignityLink(userId, datasetId, linkId, linkData) {
   if (!userId || !isOnline) return;
-  
+
   try {
-    await addDignityLinkCloud(userId, { ...linkData, id: linkId });
+    await addDignityLinkCloud(userId, datasetId, { ...linkData, id: linkId });
   } catch (error) {
     console.error('☁️ Failed to sync dignity link add:', error);
   }
@@ -714,11 +773,11 @@ export async function syncAddDignityLink(userId, linkId, linkData) {
 /**
  * Delete dignity link (local + cloud)
  */
-export async function syncDeleteDignityLink(userId, linkId) {
+export async function syncDeleteDignityLink(userId, datasetId, linkId) {
   if (!userId || !isOnline) return;
 
   try {
-    await deleteDignityLinkCloud(userId, linkId);
+    await deleteDignityLinkCloud(userId, datasetId, linkId);
   } catch (error) {
     console.error('☁️ Failed to sync dignity link delete:', error);
   }
@@ -729,14 +788,15 @@ export async function syncDeleteDignityLink(userId, linkId) {
 /**
  * Add household role (local + cloud)
  * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
  * @param {number} roleId - The local role ID (after local add)
  * @param {Object} roleData - The role data
  */
-export async function syncAddHouseholdRole(userId, roleId, roleData) {
+export async function syncAddHouseholdRole(userId, datasetId, roleId, roleData) {
   if (!userId || !isOnline) return;
 
   try {
-    await addHouseholdRoleCloud(userId, { ...roleData, id: roleId });
+    await addHouseholdRoleCloud(userId, datasetId, { ...roleData, id: roleId });
   } catch (error) {
     console.error('☁️ Failed to sync household role add:', error);
   }
@@ -745,11 +805,11 @@ export async function syncAddHouseholdRole(userId, roleId, roleData) {
 /**
  * Update household role (local + cloud)
  */
-export async function syncUpdateHouseholdRole(userId, roleId, updates) {
+export async function syncUpdateHouseholdRole(userId, datasetId, roleId, updates) {
   if (!userId || !isOnline) return;
 
   try {
-    await updateHouseholdRoleCloud(userId, roleId, updates);
+    await updateHouseholdRoleCloud(userId, datasetId, roleId, updates);
   } catch (error) {
     console.error('☁️ Failed to sync household role update:', error);
   }
@@ -758,11 +818,11 @@ export async function syncUpdateHouseholdRole(userId, roleId, updates) {
 /**
  * Delete household role (local + cloud)
  */
-export async function syncDeleteHouseholdRole(userId, roleId) {
+export async function syncDeleteHouseholdRole(userId, datasetId, roleId) {
   if (!userId || !isOnline) return;
 
   try {
-    await deleteHouseholdRoleCloud(userId, roleId);
+    await deleteHouseholdRoleCloud(userId, datasetId, roleId);
   } catch (error) {
     console.error('☁️ Failed to sync household role delete:', error);
   }
@@ -780,36 +840,42 @@ export function getSyncStatus() {
 /**
  * Force a full re-sync from cloud
  * Useful if user wants to restore from cloud backup
+ *
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} [datasetId='default'] - The dataset ID
  */
-export async function forceCloudSync(userId) {
+export async function forceCloudSync(userId, datasetId = DEFAULT_DATASET_ID) {
   if (!userId) return { status: 'no-user' };
-  
+
+  const dsId = datasetId || DEFAULT_DATASET_ID;
+  const localDb = getDatabase(dsId);
+
   updateSyncStatus({ isSyncing: true, error: null });
-  
+
   try {
     // Clear ALL local data (including Codex - this is now fixed in database.js)
-    await localDeleteAllData();
-    
+    await localDeleteAllData(dsId);
+
     // Download from cloud
-    const cloudData = await downloadAllFromCloud(userId);
-    
+    const cloudData = await downloadAllFromCloud(userId, dsId);
+
     // Re-populate local - houses first (people reference houses)
     for (const house of cloudData.houses || []) {
       const { createdAt, updatedAt, syncedAt, localId, ...houseData } = house;
       // Skip Codex auto-creation during sync restore to prevent duplicates
-      await localAddHouse({ ...houseData, id: parseInt(house.id) || house.id }, { skipCodexCreation: true });
+      await localAddHouse({ ...houseData, id: parseInt(house.id) || house.id }, { skipCodexCreation: true, datasetId: dsId });
     }
 
     for (const person of cloudData.people || []) {
       const { createdAt, updatedAt, syncedAt, localId, ...personData } = person;
-      await localAddPerson({ ...personData, id: parseInt(person.id) || person.id });
+      await localAddPerson({ ...personData, id: parseInt(person.id) || person.id }, dsId);
     }
 
     for (const rel of cloudData.relationships || []) {
       const { createdAt, updatedAt, syncedAt, localId, ...relData } = rel;
-      await localAddRelationship({ ...relData, id: parseInt(rel.id) || rel.id });
+      await localAddRelationship({ ...relData, id: parseInt(rel.id) || rel.id }, dsId);
     }
-    
+
     // Restore codex entries (using restoreEntry to preserve IDs)
     for (const entry of cloudData.codexEntries || []) {
       const { createdAt, updatedAt, syncedAt, localId, ...entryData } = entry;
@@ -819,7 +885,17 @@ export async function forceCloudSync(userId) {
         console.warn('Could not restore codex entry during force sync:', e);
       }
     }
-    
+
+    // Restore codex links
+    for (const link of cloudData.codexLinks || []) {
+      const { createdAt, syncedAt, localId, ...linkData } = link;
+      try {
+        await localDb.codexLinks.put({ ...linkData, id: parseInt(link.id) || link.id });
+      } catch (e) {
+        console.warn('Could not restore codex link during force sync:', e);
+      }
+    }
+
     // Restore heraldry
     for (const h of cloudData.heraldry || []) {
       const { createdAt, updatedAt, syncedAt, localId, ...heraldryData } = h;
@@ -829,7 +905,7 @@ export async function forceCloudSync(userId) {
         console.warn('Could not restore heraldry during force sync:', e);
       }
     }
-    
+
     // Restore heraldry links
     for (const link of cloudData.heraldryLinks || []) {
       const { createdAt, syncedAt, localId, ...linkData } = link;
@@ -839,7 +915,7 @@ export async function forceCloudSync(userId) {
         console.warn('Could not restore heraldry link during force sync:', e);
       }
     }
-    
+
     // Restore dignities
     for (const dignity of cloudData.dignities || []) {
       const { createdAt, updatedAt, syncedAt, localId, ...dignityData } = dignity;
@@ -849,7 +925,7 @@ export async function forceCloudSync(userId) {
         console.warn('Could not restore dignity during force sync:', e);
       }
     }
-    
+
     // Restore dignity tenures
     for (const tenure of cloudData.dignityTenures || []) {
       const { createdAt, syncedAt, localId, ...tenureData } = tenure;
@@ -859,7 +935,7 @@ export async function forceCloudSync(userId) {
         console.warn('Could not restore dignity tenure during force sync:', e);
       }
     }
-    
+
     // Restore dignity links
     for (const link of cloudData.dignityLinks || []) {
       const { createdAt, syncedAt, localId, ...linkData } = link;
@@ -909,11 +985,15 @@ export default {
   syncUpdateRelationship,
   syncDeleteRelationship,
   
-  // Sync wrappers - Codex
+  // Sync wrappers - Codex Entries
   syncAddCodexEntry,
   syncUpdateCodexEntry,
   syncDeleteCodexEntry,
-  
+
+  // Sync wrappers - Codex Links
+  syncAddCodexLink,
+  syncDeleteCodexLink,
+
   // Sync wrappers - Heraldry
   syncAddHeraldry,
   syncUpdateHeraldry,

@@ -46,27 +46,36 @@ import {
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
+// ==================== CONSTANTS ====================
+
+// Default dataset ID for backward compatibility
+const DEFAULT_DATASET_ID = 'default';
+
 // ==================== HELPER FUNCTIONS ====================
 
 /**
- * Get a reference to a user's subcollection
+ * Get a reference to a user's subcollection within a dataset
  * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID (defaults to 'default')
  * @param {string} collectionName - Name of the subcollection
  * @returns {CollectionReference} Firestore collection reference
  */
-function getUserCollection(userId, collectionName) {
-  return collection(db, 'users', userId, collectionName);
+function getUserCollection(userId, datasetId, collectionName) {
+  const dsId = datasetId || DEFAULT_DATASET_ID;
+  return collection(db, 'users', userId, 'datasets', dsId, collectionName);
 }
 
 /**
- * Get a reference to a specific document in a user's subcollection
+ * Get a reference to a specific document in a user's subcollection within a dataset
  * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID (defaults to 'default')
  * @param {string} collectionName - Name of the subcollection
  * @param {string} docId - Document ID
  * @returns {DocumentReference} Firestore document reference
  */
-function getUserDoc(userId, collectionName, docId) {
-  return doc(db, 'users', userId, collectionName, docId);
+function getUserDoc(userId, datasetId, collectionName, docId) {
+  const dsId = datasetId || DEFAULT_DATASET_ID;
+  return doc(db, 'users', userId, 'datasets', dsId, collectionName, docId);
 }
 
 /**
@@ -87,22 +96,23 @@ function docToObject(docSnap) {
 /**
  * Add a person to Firestore
  * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
  * @param {Object} personData - Person data (including local id)
  * @returns {string} The Firestore document ID
  */
-export async function addPersonCloud(userId, personData) {
+export async function addPersonCloud(userId, datasetId, personData) {
   try {
-    const peopleRef = getUserCollection(userId, 'people');
+    const peopleRef = getUserCollection(userId, datasetId, 'people');
     // Use the local ID as the Firestore document ID for easy mapping
     const docRef = doc(peopleRef, String(personData.id));
-    
+
     await setDoc(docRef, {
       ...personData,
       localId: personData.id, // Store original local ID
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
-    
+
     console.log('☁️ Person added to cloud:', personData.firstName);
     return docRef.id;
   } catch (error) {
@@ -114,12 +124,13 @@ export async function addPersonCloud(userId, personData) {
 /**
  * Get a person from Firestore
  * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
  * @param {string|number} personId - The person's ID
  * @returns {Object|null} Person data or null
  */
-export async function getPersonCloud(userId, personId) {
+export async function getPersonCloud(userId, datasetId, personId) {
   try {
-    const docRef = getUserDoc(userId, 'people', String(personId));
+    const docRef = getUserDoc(userId, datasetId, 'people', String(personId));
     const docSnap = await getDoc(docRef);
     return docToObject(docSnap);
   } catch (error) {
@@ -131,11 +142,12 @@ export async function getPersonCloud(userId, personId) {
 /**
  * Get all people from Firestore
  * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
  * @returns {Array} Array of person objects
  */
-export async function getAllPeopleCloud(userId) {
+export async function getAllPeopleCloud(userId, datasetId) {
   try {
-    const peopleRef = getUserCollection(userId, 'people');
+    const peopleRef = getUserCollection(userId, datasetId, 'people');
     const snapshot = await getDocs(peopleRef);
     return snapshot.docs.map(docToObject);
   } catch (error) {
@@ -147,12 +159,13 @@ export async function getAllPeopleCloud(userId) {
 /**
  * Update a person in Firestore
  * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
  * @param {string|number} personId - The person's ID
  * @param {Object} updates - Fields to update
  */
-export async function updatePersonCloud(userId, personId, updates) {
+export async function updatePersonCloud(userId, datasetId, personId, updates) {
   try {
-    const docRef = getUserDoc(userId, 'people', String(personId));
+    const docRef = getUserDoc(userId, datasetId, 'people', String(personId));
     await updateDoc(docRef, {
       ...updates,
       updatedAt: serverTimestamp()
@@ -167,11 +180,12 @@ export async function updatePersonCloud(userId, personId, updates) {
 /**
  * Delete a person from Firestore
  * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
  * @param {string|number} personId - The person's ID
  */
-export async function deletePersonCloud(userId, personId) {
+export async function deletePersonCloud(userId, datasetId, personId) {
   try {
-    const docRef = getUserDoc(userId, 'people', String(personId));
+    const docRef = getUserDoc(userId, datasetId, 'people', String(personId));
     await deleteDoc(docRef);
     console.log('☁️ Person deleted from cloud:', personId);
   } catch (error) {
@@ -184,19 +198,22 @@ export async function deletePersonCloud(userId, personId) {
 
 /**
  * Add a house to Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ * @param {Object} houseData - House data
  */
-export async function addHouseCloud(userId, houseData) {
+export async function addHouseCloud(userId, datasetId, houseData) {
   try {
-    const housesRef = getUserCollection(userId, 'houses');
+    const housesRef = getUserCollection(userId, datasetId, 'houses');
     const docRef = doc(housesRef, String(houseData.id));
-    
+
     await setDoc(docRef, {
       ...houseData,
       localId: houseData.id,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
-    
+
     console.log('☁️ House added to cloud:', houseData.houseName);
     return docRef.id;
   } catch (error) {
@@ -207,10 +224,13 @@ export async function addHouseCloud(userId, houseData) {
 
 /**
  * Get a house from Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ * @param {string|number} houseId - The house ID
  */
-export async function getHouseCloud(userId, houseId) {
+export async function getHouseCloud(userId, datasetId, houseId) {
   try {
-    const docRef = getUserDoc(userId, 'houses', String(houseId));
+    const docRef = getUserDoc(userId, datasetId, 'houses', String(houseId));
     const docSnap = await getDoc(docRef);
     return docToObject(docSnap);
   } catch (error) {
@@ -221,10 +241,12 @@ export async function getHouseCloud(userId, houseId) {
 
 /**
  * Get all houses from Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
  */
-export async function getAllHousesCloud(userId) {
+export async function getAllHousesCloud(userId, datasetId) {
   try {
-    const housesRef = getUserCollection(userId, 'houses');
+    const housesRef = getUserCollection(userId, datasetId, 'houses');
     const snapshot = await getDocs(housesRef);
     return snapshot.docs.map(docToObject);
   } catch (error) {
@@ -235,10 +257,14 @@ export async function getAllHousesCloud(userId) {
 
 /**
  * Update a house in Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ * @param {string|number} houseId - The house ID
+ * @param {Object} updates - Fields to update
  */
-export async function updateHouseCloud(userId, houseId, updates) {
+export async function updateHouseCloud(userId, datasetId, houseId, updates) {
   try {
-    const docRef = getUserDoc(userId, 'houses', String(houseId));
+    const docRef = getUserDoc(userId, datasetId, 'houses', String(houseId));
     await updateDoc(docRef, {
       ...updates,
       updatedAt: serverTimestamp()
@@ -252,10 +278,13 @@ export async function updateHouseCloud(userId, houseId, updates) {
 
 /**
  * Delete a house from Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ * @param {string|number} houseId - The house ID
  */
-export async function deleteHouseCloud(userId, houseId) {
+export async function deleteHouseCloud(userId, datasetId, houseId) {
   try {
-    const docRef = getUserDoc(userId, 'houses', String(houseId));
+    const docRef = getUserDoc(userId, datasetId, 'houses', String(houseId));
     await deleteDoc(docRef);
     console.log('☁️ House deleted from cloud:', houseId);
   } catch (error) {
@@ -268,19 +297,22 @@ export async function deleteHouseCloud(userId, houseId) {
 
 /**
  * Add a relationship to Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ * @param {Object} relationshipData - Relationship data
  */
-export async function addRelationshipCloud(userId, relationshipData) {
+export async function addRelationshipCloud(userId, datasetId, relationshipData) {
   try {
-    const relsRef = getUserCollection(userId, 'relationships');
+    const relsRef = getUserCollection(userId, datasetId, 'relationships');
     const docRef = doc(relsRef, String(relationshipData.id));
-    
+
     await setDoc(docRef, {
       ...relationshipData,
       localId: relationshipData.id,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
-    
+
     console.log('☁️ Relationship added to cloud:', relationshipData.relationshipType);
     return docRef.id;
   } catch (error) {
@@ -291,10 +323,12 @@ export async function addRelationshipCloud(userId, relationshipData) {
 
 /**
  * Get all relationships from Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
  */
-export async function getAllRelationshipsCloud(userId) {
+export async function getAllRelationshipsCloud(userId, datasetId) {
   try {
-    const relsRef = getUserCollection(userId, 'relationships');
+    const relsRef = getUserCollection(userId, datasetId, 'relationships');
     const snapshot = await getDocs(relsRef);
     return snapshot.docs.map(docToObject);
   } catch (error) {
@@ -305,10 +339,14 @@ export async function getAllRelationshipsCloud(userId) {
 
 /**
  * Update a relationship in Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ * @param {string|number} relationshipId - The relationship ID
+ * @param {Object} updates - Fields to update
  */
-export async function updateRelationshipCloud(userId, relationshipId, updates) {
+export async function updateRelationshipCloud(userId, datasetId, relationshipId, updates) {
   try {
-    const docRef = getUserDoc(userId, 'relationships', String(relationshipId));
+    const docRef = getUserDoc(userId, datasetId, 'relationships', String(relationshipId));
     await updateDoc(docRef, {
       ...updates,
       updatedAt: serverTimestamp()
@@ -322,10 +360,13 @@ export async function updateRelationshipCloud(userId, relationshipId, updates) {
 
 /**
  * Delete a relationship from Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ * @param {string|number} relationshipId - The relationship ID
  */
-export async function deleteRelationshipCloud(userId, relationshipId) {
+export async function deleteRelationshipCloud(userId, datasetId, relationshipId) {
   try {
-    const docRef = getUserDoc(userId, 'relationships', String(relationshipId));
+    const docRef = getUserDoc(userId, datasetId, 'relationships', String(relationshipId));
     await deleteDoc(docRef);
     console.log('☁️ Relationship deleted from cloud:', relationshipId);
   } catch (error) {
@@ -338,19 +379,22 @@ export async function deleteRelationshipCloud(userId, relationshipId) {
 
 /**
  * Add a codex entry to Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ * @param {Object} entryData - Codex entry data
  */
-export async function addCodexEntryCloud(userId, entryData) {
+export async function addCodexEntryCloud(userId, datasetId, entryData) {
   try {
-    const codexRef = getUserCollection(userId, 'codexEntries');
+    const codexRef = getUserCollection(userId, datasetId, 'codexEntries');
     const docRef = doc(codexRef, String(entryData.id));
-    
+
     await setDoc(docRef, {
       ...entryData,
       localId: entryData.id,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
-    
+
     console.log('☁️ Codex entry added to cloud:', entryData.title);
     return docRef.id;
   } catch (error) {
@@ -361,10 +405,12 @@ export async function addCodexEntryCloud(userId, entryData) {
 
 /**
  * Get all codex entries from Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
  */
-export async function getAllCodexEntriesCloud(userId) {
+export async function getAllCodexEntriesCloud(userId, datasetId) {
   try {
-    const codexRef = getUserCollection(userId, 'codexEntries');
+    const codexRef = getUserCollection(userId, datasetId, 'codexEntries');
     const snapshot = await getDocs(codexRef);
     return snapshot.docs.map(docToObject);
   } catch (error) {
@@ -375,10 +421,14 @@ export async function getAllCodexEntriesCloud(userId) {
 
 /**
  * Update a codex entry in Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ * @param {string|number} entryId - The entry ID
+ * @param {Object} updates - Fields to update
  */
-export async function updateCodexEntryCloud(userId, entryId, updates) {
+export async function updateCodexEntryCloud(userId, datasetId, entryId, updates) {
   try {
-    const docRef = getUserDoc(userId, 'codexEntries', String(entryId));
+    const docRef = getUserDoc(userId, datasetId, 'codexEntries', String(entryId));
     await updateDoc(docRef, {
       ...updates,
       updatedAt: serverTimestamp()
@@ -392,14 +442,74 @@ export async function updateCodexEntryCloud(userId, entryId, updates) {
 
 /**
  * Delete a codex entry from Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ * @param {string|number} entryId - The entry ID
  */
-export async function deleteCodexEntryCloud(userId, entryId) {
+export async function deleteCodexEntryCloud(userId, datasetId, entryId) {
   try {
-    const docRef = getUserDoc(userId, 'codexEntries', String(entryId));
+    const docRef = getUserDoc(userId, datasetId, 'codexEntries', String(entryId));
     await deleteDoc(docRef);
     console.log('☁️ Codex entry deleted from cloud:', entryId);
   } catch (error) {
     console.error('☁️ Error deleting codex entry from cloud:', error);
+    throw error;
+  }
+}
+
+// ==================== CODEX LINK OPERATIONS ====================
+
+/**
+ * Add a codex link to Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ * @param {Object} linkData - Link data (including local id)
+ */
+export async function addCodexLinkCloud(userId, datasetId, linkData) {
+  try {
+    const docRef = getUserDoc(userId, datasetId, 'codexLinks', String(linkData.id));
+    await setDoc(docRef, {
+      ...linkData,
+      localId: linkData.id,
+      syncedAt: serverTimestamp()
+    });
+    console.log('☁️ Codex link synced to cloud:', linkData.id);
+  } catch (error) {
+    console.error('☁️ Error adding codex link to cloud:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete a codex link from Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ * @param {number} linkId - The link ID
+ */
+export async function deleteCodexLinkCloud(userId, datasetId, linkId) {
+  try {
+    const docRef = getUserDoc(userId, datasetId, 'codexLinks', String(linkId));
+    await deleteDoc(docRef);
+    console.log('☁️ Codex link deleted from cloud:', linkId);
+  } catch (error) {
+    console.error('☁️ Error deleting codex link from cloud:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get all codex links from Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ * @returns {Array} Array of codex link objects
+ */
+export async function getAllCodexLinksCloud(userId, datasetId) {
+  try {
+    const linksRef = getUserCollection(userId, datasetId, 'codexLinks');
+    const snapshot = await getDocs(linksRef);
+    return snapshot.docs.map(docToObject);
+  } catch (error) {
+    console.error('☁️ Error getting codex links from cloud:', error);
     throw error;
   }
 }
@@ -409,22 +519,23 @@ export async function deleteCodexEntryCloud(userId, entryId) {
 /**
  * Sync all local data to cloud
  * Used for initial upload when user first signs in with existing local data
- * 
+ *
  * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
  * @param {Object} localData - Object containing people, houses, relationships arrays
  */
-export async function syncAllToCloud(userId, localData) {
+export async function syncAllToCloud(userId, datasetId, localData) {
   try {
-    console.log('☁️ Starting full sync to cloud...');
+    console.log('☁️ Starting full sync to cloud for dataset:', datasetId);
 
-    const { people, houses, relationships, codexEntries, heraldry, heraldryLinks, dignities, dignityTenures, dignityLinks, householdRoles } = localData;
-    
+    const { people, houses, relationships, codexEntries, codexLinks, heraldry, heraldryLinks, dignities, dignityTenures, dignityLinks, householdRoles } = localData;
+
     // Use batched writes for efficiency (max 500 operations per batch)
     // We'll create multiple batches if needed
-    
+
     let operationCount = 0;
     let batch = writeBatch(db);
-    
+
     // Helper to commit batch if getting full
     const checkBatch = async () => {
       operationCount++;
@@ -435,10 +546,10 @@ export async function syncAllToCloud(userId, localData) {
         console.log('☁️ Committed batch, starting new one...');
       }
     };
-    
+
     // Sync houses first (people reference houses)
     for (const house of houses || []) {
-      const docRef = getUserDoc(userId, 'houses', String(house.id));
+      const docRef = getUserDoc(userId, datasetId, 'houses', String(house.id));
       batch.set(docRef, {
         ...house,
         localId: house.id,
@@ -446,10 +557,10 @@ export async function syncAllToCloud(userId, localData) {
       });
       await checkBatch();
     }
-    
+
     // Sync people
     for (const person of people || []) {
-      const docRef = getUserDoc(userId, 'people', String(person.id));
+      const docRef = getUserDoc(userId, datasetId, 'people', String(person.id));
       batch.set(docRef, {
         ...person,
         localId: person.id,
@@ -457,10 +568,10 @@ export async function syncAllToCloud(userId, localData) {
       });
       await checkBatch();
     }
-    
+
     // Sync relationships
     for (const rel of relationships || []) {
-      const docRef = getUserDoc(userId, 'relationships', String(rel.id));
+      const docRef = getUserDoc(userId, datasetId, 'relationships', String(rel.id));
       batch.set(docRef, {
         ...rel,
         localId: rel.id,
@@ -468,10 +579,10 @@ export async function syncAllToCloud(userId, localData) {
       });
       await checkBatch();
     }
-    
+
     // Sync codex entries
     for (const entry of codexEntries || []) {
-      const docRef = getUserDoc(userId, 'codexEntries', String(entry.id));
+      const docRef = getUserDoc(userId, datasetId, 'codexEntries', String(entry.id));
       batch.set(docRef, {
         ...entry,
         localId: entry.id,
@@ -479,21 +590,10 @@ export async function syncAllToCloud(userId, localData) {
       });
       await checkBatch();
     }
-    
-    // Sync heraldry
-    for (const h of heraldry || []) {
-      const docRef = getUserDoc(userId, 'heraldry', String(h.id));
-      batch.set(docRef, {
-        ...h,
-        localId: h.id,
-        syncedAt: serverTimestamp()
-      });
-      await checkBatch();
-    }
-    
-    // Sync heraldry links
-    for (const link of heraldryLinks || []) {
-      const docRef = getUserDoc(userId, 'heraldryLinks', String(link.id));
+
+    // Sync codex links
+    for (const link of codexLinks || []) {
+      const docRef = getUserDoc(userId, datasetId, 'codexLinks', String(link.id));
       batch.set(docRef, {
         ...link,
         localId: link.id,
@@ -501,10 +601,32 @@ export async function syncAllToCloud(userId, localData) {
       });
       await checkBatch();
     }
-    
+
+    // Sync heraldry
+    for (const h of heraldry || []) {
+      const docRef = getUserDoc(userId, datasetId, 'heraldry', String(h.id));
+      batch.set(docRef, {
+        ...h,
+        localId: h.id,
+        syncedAt: serverTimestamp()
+      });
+      await checkBatch();
+    }
+
+    // Sync heraldry links
+    for (const link of heraldryLinks || []) {
+      const docRef = getUserDoc(userId, datasetId, 'heraldryLinks', String(link.id));
+      batch.set(docRef, {
+        ...link,
+        localId: link.id,
+        syncedAt: serverTimestamp()
+      });
+      await checkBatch();
+    }
+
     // Sync dignities
     for (const dignity of dignities || []) {
-      const docRef = getUserDoc(userId, 'dignities', String(dignity.id));
+      const docRef = getUserDoc(userId, datasetId, 'dignities', String(dignity.id));
       batch.set(docRef, {
         ...dignity,
         localId: dignity.id,
@@ -512,10 +634,10 @@ export async function syncAllToCloud(userId, localData) {
       });
       await checkBatch();
     }
-    
+
     // Sync dignity tenures
     for (const tenure of dignityTenures || []) {
-      const docRef = getUserDoc(userId, 'dignityTenures', String(tenure.id));
+      const docRef = getUserDoc(userId, datasetId, 'dignityTenures', String(tenure.id));
       batch.set(docRef, {
         ...tenure,
         localId: tenure.id,
@@ -523,10 +645,10 @@ export async function syncAllToCloud(userId, localData) {
       });
       await checkBatch();
     }
-    
+
     // Sync dignity links
     for (const link of dignityLinks || []) {
-      const docRef = getUserDoc(userId, 'dignityLinks', String(link.id));
+      const docRef = getUserDoc(userId, datasetId, 'dignityLinks', String(link.id));
       batch.set(docRef, {
         ...link,
         localId: link.id,
@@ -537,7 +659,7 @@ export async function syncAllToCloud(userId, localData) {
 
     // Sync household roles
     for (const role of householdRoles || []) {
-      const docRef = getUserDoc(userId, 'householdRoles', String(role.id));
+      const docRef = getUserDoc(userId, datasetId, 'householdRoles', String(role.id));
       batch.set(docRef, {
         ...role,
         localId: role.id,
@@ -552,10 +674,12 @@ export async function syncAllToCloud(userId, localData) {
     }
 
     console.log('☁️ Full sync to cloud complete!', {
+      dataset: datasetId,
       houses: houses?.length || 0,
       people: people?.length || 0,
       relationships: relationships?.length || 0,
       codexEntries: codexEntries?.length || 0,
+      codexLinks: codexLinks?.length || 0,
       heraldry: heraldry?.length || 0,
       heraldryLinks: heraldryLinks?.length || 0,
       dignities: dignities?.length || 0,
@@ -563,7 +687,7 @@ export async function syncAllToCloud(userId, localData) {
       dignityLinks: dignityLinks?.length || 0,
       householdRoles: householdRoles?.length || 0
     });
-    
+
     return true;
   } catch (error) {
     console.error('☁️ Error syncing to cloud:', error);
@@ -574,32 +698,36 @@ export async function syncAllToCloud(userId, localData) {
 /**
  * Download all cloud data to local
  * Used when user signs in on a new device
- * 
+ *
  * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
  * @returns {Object} Object containing people, houses, relationships, codexEntries arrays
  */
-export async function downloadAllFromCloud(userId) {
+export async function downloadAllFromCloud(userId, datasetId) {
   try {
-    console.log('☁️ Downloading all data from cloud...');
+    console.log('☁️ Downloading all data from cloud for dataset:', datasetId);
 
-    const [people, houses, relationships, codexEntries, heraldry, heraldryLinks, dignities, dignityTenures, dignityLinks, householdRoles] = await Promise.all([
-      getAllPeopleCloud(userId),
-      getAllHousesCloud(userId),
-      getAllRelationshipsCloud(userId),
-      getAllCodexEntriesCloud(userId),
-      getAllHeraldryCloud(userId),
-      getAllHeraldryLinksCloud(userId),
-      getAllDignitiesCloud(userId),
-      getAllDignityTenuresCloud(userId),
-      getAllDignityLinksCloud(userId),
-      getAllHouseholdRolesCloud(userId)
+    const [people, houses, relationships, codexEntries, codexLinks, heraldry, heraldryLinks, dignities, dignityTenures, dignityLinks, householdRoles] = await Promise.all([
+      getAllPeopleCloud(userId, datasetId),
+      getAllHousesCloud(userId, datasetId),
+      getAllRelationshipsCloud(userId, datasetId),
+      getAllCodexEntriesCloud(userId, datasetId),
+      getAllCodexLinksCloud(userId, datasetId),
+      getAllHeraldryCloud(userId, datasetId),
+      getAllHeraldryLinksCloud(userId, datasetId),
+      getAllDignitiesCloud(userId, datasetId),
+      getAllDignityTenuresCloud(userId, datasetId),
+      getAllDignityLinksCloud(userId, datasetId),
+      getAllHouseholdRolesCloud(userId, datasetId)
     ]);
 
     console.log('☁️ Download complete!', {
+      dataset: datasetId,
       houses: houses.length,
       people: people.length,
       relationships: relationships.length,
       codexEntries: codexEntries.length,
+      codexLinks: codexLinks.length,
       heraldry: heraldry.length,
       heraldryLinks: heraldryLinks.length,
       dignities: dignities.length,
@@ -608,7 +736,7 @@ export async function downloadAllFromCloud(userId) {
       householdRoles: householdRoles.length
     });
 
-    return { people, houses, relationships, codexEntries, heraldry, heraldryLinks, dignities, dignityTenures, dignityLinks, householdRoles };
+    return { people, houses, relationships, codexEntries, codexLinks, heraldry, heraldryLinks, dignities, dignityTenures, dignityLinks, householdRoles };
   } catch (error) {
     console.error('☁️ Error downloading from cloud:', error);
     throw error;
@@ -616,14 +744,15 @@ export async function downloadAllFromCloud(userId) {
 }
 
 /**
- * Check if user has any data in cloud
+ * Check if user has any data in cloud for a specific dataset
  * @param {string} userId - The user's Firebase UID
- * @returns {boolean} True if user has cloud data
+ * @param {string} datasetId - The dataset ID
+ * @returns {boolean} True if user has cloud data in this dataset
  */
-export async function hasCloudData(userId) {
+export async function hasCloudData(userId, datasetId) {
   try {
     // Just check if there are any houses (quick check)
-    const housesRef = getUserCollection(userId, 'houses');
+    const housesRef = getUserCollection(userId, datasetId, 'houses');
     const snapshot = await getDocs(query(housesRef));
     return !snapshot.empty;
   } catch (error) {
@@ -636,19 +765,22 @@ export async function hasCloudData(userId) {
 
 /**
  * Add a heraldry record to Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ * @param {Object} heraldryData - Heraldry data
  */
-export async function addHeraldryCloud(userId, heraldryData) {
+export async function addHeraldryCloud(userId, datasetId, heraldryData) {
   try {
-    const heraldryRef = getUserCollection(userId, 'heraldry');
+    const heraldryRef = getUserCollection(userId, datasetId, 'heraldry');
     const docRef = doc(heraldryRef, String(heraldryData.id));
-    
+
     await setDoc(docRef, {
       ...heraldryData,
       localId: heraldryData.id,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
-    
+
     console.log('☁️ Heraldry added to cloud:', heraldryData.name);
     return docRef.id;
   } catch (error) {
@@ -659,10 +791,13 @@ export async function addHeraldryCloud(userId, heraldryData) {
 
 /**
  * Get a heraldry record from Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ * @param {string|number} heraldryId - The heraldry ID
  */
-export async function getHeraldryCloud(userId, heraldryId) {
+export async function getHeraldryCloud(userId, datasetId, heraldryId) {
   try {
-    const docRef = getUserDoc(userId, 'heraldry', String(heraldryId));
+    const docRef = getUserDoc(userId, datasetId, 'heraldry', String(heraldryId));
     const docSnap = await getDoc(docRef);
     return docToObject(docSnap);
   } catch (error) {
@@ -673,10 +808,12 @@ export async function getHeraldryCloud(userId, heraldryId) {
 
 /**
  * Get all heraldry from Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
  */
-export async function getAllHeraldryCloud(userId) {
+export async function getAllHeraldryCloud(userId, datasetId) {
   try {
-    const heraldryRef = getUserCollection(userId, 'heraldry');
+    const heraldryRef = getUserCollection(userId, datasetId, 'heraldry');
     const snapshot = await getDocs(heraldryRef);
     return snapshot.docs.map(docToObject);
   } catch (error) {
@@ -687,10 +824,14 @@ export async function getAllHeraldryCloud(userId) {
 
 /**
  * Update a heraldry record in Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ * @param {string|number} heraldryId - The heraldry ID
+ * @param {Object} updates - Fields to update
  */
-export async function updateHeraldryCloud(userId, heraldryId, updates) {
+export async function updateHeraldryCloud(userId, datasetId, heraldryId, updates) {
   try {
-    const docRef = getUserDoc(userId, 'heraldry', String(heraldryId));
+    const docRef = getUserDoc(userId, datasetId, 'heraldry', String(heraldryId));
     await updateDoc(docRef, {
       ...updates,
       updatedAt: serverTimestamp()
@@ -704,10 +845,13 @@ export async function updateHeraldryCloud(userId, heraldryId, updates) {
 
 /**
  * Delete a heraldry record from Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ * @param {string|number} heraldryId - The heraldry ID
  */
-export async function deleteHeraldryCloud(userId, heraldryId) {
+export async function deleteHeraldryCloud(userId, datasetId, heraldryId) {
   try {
-    const docRef = getUserDoc(userId, 'heraldry', String(heraldryId));
+    const docRef = getUserDoc(userId, datasetId, 'heraldry', String(heraldryId));
     await deleteDoc(docRef);
     console.log('☁️ Heraldry deleted from cloud:', heraldryId);
   } catch (error) {
@@ -720,19 +864,22 @@ export async function deleteHeraldryCloud(userId, heraldryId) {
 
 /**
  * Add a dignity record to Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ * @param {Object} dignityData - Dignity data
  */
-export async function addDignityCloud(userId, dignityData) {
+export async function addDignityCloud(userId, datasetId, dignityData) {
   try {
-    const dignitiesRef = getUserCollection(userId, 'dignities');
+    const dignitiesRef = getUserCollection(userId, datasetId, 'dignities');
     const docRef = doc(dignitiesRef, String(dignityData.id));
-    
+
     await setDoc(docRef, {
       ...dignityData,
       localId: dignityData.id,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
-    
+
     console.log('☁️ Dignity added to cloud:', dignityData.name);
     return docRef.id;
   } catch (error) {
@@ -743,10 +890,12 @@ export async function addDignityCloud(userId, dignityData) {
 
 /**
  * Get all dignities from Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
  */
-export async function getAllDignitiesCloud(userId) {
+export async function getAllDignitiesCloud(userId, datasetId) {
   try {
-    const dignitiesRef = getUserCollection(userId, 'dignities');
+    const dignitiesRef = getUserCollection(userId, datasetId, 'dignities');
     const snapshot = await getDocs(dignitiesRef);
     return snapshot.docs.map(docToObject);
   } catch (error) {
@@ -757,10 +906,14 @@ export async function getAllDignitiesCloud(userId) {
 
 /**
  * Update a dignity record in Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ * @param {string|number} dignityId - The dignity ID
+ * @param {Object} updates - Fields to update
  */
-export async function updateDignityCloud(userId, dignityId, updates) {
+export async function updateDignityCloud(userId, datasetId, dignityId, updates) {
   try {
-    const docRef = getUserDoc(userId, 'dignities', String(dignityId));
+    const docRef = getUserDoc(userId, datasetId, 'dignities', String(dignityId));
     await updateDoc(docRef, {
       ...updates,
       updatedAt: serverTimestamp()
@@ -774,10 +927,13 @@ export async function updateDignityCloud(userId, dignityId, updates) {
 
 /**
  * Delete a dignity record from Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ * @param {string|number} dignityId - The dignity ID
  */
-export async function deleteDignityCloud(userId, dignityId) {
+export async function deleteDignityCloud(userId, datasetId, dignityId) {
   try {
-    const docRef = getUserDoc(userId, 'dignities', String(dignityId));
+    const docRef = getUserDoc(userId, datasetId, 'dignities', String(dignityId));
     await deleteDoc(docRef);
     console.log('☁️ Dignity deleted from cloud:', dignityId);
   } catch (error) {
@@ -790,18 +946,21 @@ export async function deleteDignityCloud(userId, dignityId) {
 
 /**
  * Add a dignity tenure record to Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ * @param {Object} tenureData - Tenure data
  */
-export async function addDignityTenureCloud(userId, tenureData) {
+export async function addDignityTenureCloud(userId, datasetId, tenureData) {
   try {
-    const tenuresRef = getUserCollection(userId, 'dignityTenures');
+    const tenuresRef = getUserCollection(userId, datasetId, 'dignityTenures');
     const docRef = doc(tenuresRef, String(tenureData.id));
-    
+
     await setDoc(docRef, {
       ...tenureData,
       localId: tenureData.id,
       createdAt: serverTimestamp()
     });
-    
+
     console.log('☁️ Dignity tenure added to cloud');
     return docRef.id;
   } catch (error) {
@@ -812,10 +971,12 @@ export async function addDignityTenureCloud(userId, tenureData) {
 
 /**
  * Get all dignity tenures from Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
  */
-export async function getAllDignityTenuresCloud(userId) {
+export async function getAllDignityTenuresCloud(userId, datasetId) {
   try {
-    const tenuresRef = getUserCollection(userId, 'dignityTenures');
+    const tenuresRef = getUserCollection(userId, datasetId, 'dignityTenures');
     const snapshot = await getDocs(tenuresRef);
     return snapshot.docs.map(docToObject);
   } catch (error) {
@@ -826,10 +987,14 @@ export async function getAllDignityTenuresCloud(userId) {
 
 /**
  * Update a dignity tenure in Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ * @param {string|number} tenureId - The tenure ID
+ * @param {Object} updates - Fields to update
  */
-export async function updateDignityTenureCloud(userId, tenureId, updates) {
+export async function updateDignityTenureCloud(userId, datasetId, tenureId, updates) {
   try {
-    const docRef = getUserDoc(userId, 'dignityTenures', String(tenureId));
+    const docRef = getUserDoc(userId, datasetId, 'dignityTenures', String(tenureId));
     await updateDoc(docRef, updates);
     console.log('☁️ Dignity tenure updated in cloud:', tenureId);
   } catch (error) {
@@ -840,10 +1005,13 @@ export async function updateDignityTenureCloud(userId, tenureId, updates) {
 
 /**
  * Delete a dignity tenure from Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ * @param {string|number} tenureId - The tenure ID
  */
-export async function deleteDignityTenureCloud(userId, tenureId) {
+export async function deleteDignityTenureCloud(userId, datasetId, tenureId) {
   try {
-    const docRef = getUserDoc(userId, 'dignityTenures', String(tenureId));
+    const docRef = getUserDoc(userId, datasetId, 'dignityTenures', String(tenureId));
     await deleteDoc(docRef);
     console.log('☁️ Dignity tenure deleted from cloud:', tenureId);
   } catch (error) {
@@ -856,18 +1024,21 @@ export async function deleteDignityTenureCloud(userId, tenureId) {
 
 /**
  * Add a dignity link to Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ * @param {Object} linkData - Link data
  */
-export async function addDignityLinkCloud(userId, linkData) {
+export async function addDignityLinkCloud(userId, datasetId, linkData) {
   try {
-    const linksRef = getUserCollection(userId, 'dignityLinks');
+    const linksRef = getUserCollection(userId, datasetId, 'dignityLinks');
     const docRef = doc(linksRef, String(linkData.id));
-    
+
     await setDoc(docRef, {
       ...linkData,
       localId: linkData.id,
       createdAt: serverTimestamp()
     });
-    
+
     console.log('☁️ Dignity link added to cloud');
     return docRef.id;
   } catch (error) {
@@ -878,10 +1049,12 @@ export async function addDignityLinkCloud(userId, linkData) {
 
 /**
  * Get all dignity links from Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
  */
-export async function getAllDignityLinksCloud(userId) {
+export async function getAllDignityLinksCloud(userId, datasetId) {
   try {
-    const linksRef = getUserCollection(userId, 'dignityLinks');
+    const linksRef = getUserCollection(userId, datasetId, 'dignityLinks');
     const snapshot = await getDocs(linksRef);
     return snapshot.docs.map(docToObject);
   } catch (error) {
@@ -892,10 +1065,13 @@ export async function getAllDignityLinksCloud(userId) {
 
 /**
  * Delete a dignity link from Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ * @param {string|number} linkId - The link ID
  */
-export async function deleteDignityLinkCloud(userId, linkId) {
+export async function deleteDignityLinkCloud(userId, datasetId, linkId) {
   try {
-    const docRef = getUserDoc(userId, 'dignityLinks', String(linkId));
+    const docRef = getUserDoc(userId, datasetId, 'dignityLinks', String(linkId));
     await deleteDoc(docRef);
     console.log('☁️ Dignity link deleted from cloud:', linkId);
   } catch (error) {
@@ -908,18 +1084,21 @@ export async function deleteDignityLinkCloud(userId, linkId) {
 
 /**
  * Add a heraldry link to Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ * @param {Object} linkData - Link data
  */
-export async function addHeraldryLinkCloud(userId, linkData) {
+export async function addHeraldryLinkCloud(userId, datasetId, linkData) {
   try {
-    const linksRef = getUserCollection(userId, 'heraldryLinks');
+    const linksRef = getUserCollection(userId, datasetId, 'heraldryLinks');
     const docRef = doc(linksRef, String(linkData.id));
-    
+
     await setDoc(docRef, {
       ...linkData,
       localId: linkData.id,
       createdAt: serverTimestamp()
     });
-    
+
     console.log('☁️ Heraldry link added to cloud');
     return docRef.id;
   } catch (error) {
@@ -930,10 +1109,12 @@ export async function addHeraldryLinkCloud(userId, linkData) {
 
 /**
  * Get all heraldry links from Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
  */
-export async function getAllHeraldryLinksCloud(userId) {
+export async function getAllHeraldryLinksCloud(userId, datasetId) {
   try {
-    const linksRef = getUserCollection(userId, 'heraldryLinks');
+    const linksRef = getUserCollection(userId, datasetId, 'heraldryLinks');
     const snapshot = await getDocs(linksRef);
     return snapshot.docs.map(docToObject);
   } catch (error) {
@@ -944,10 +1125,13 @@ export async function getAllHeraldryLinksCloud(userId) {
 
 /**
  * Delete a heraldry link from Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ * @param {string|number} linkId - The link ID
  */
-export async function deleteHeraldryLinkCloud(userId, linkId) {
+export async function deleteHeraldryLinkCloud(userId, datasetId, linkId) {
   try {
-    const docRef = getUserDoc(userId, 'heraldryLinks', String(linkId));
+    const docRef = getUserDoc(userId, datasetId, 'heraldryLinks', String(linkId));
     await deleteDoc(docRef);
     console.log('☁️ Heraldry link deleted from cloud:', linkId);
   } catch (error) {
@@ -960,10 +1144,13 @@ export async function deleteHeraldryLinkCloud(userId, linkId) {
 
 /**
  * Add a household role to Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ * @param {Object} roleData - Role data
  */
-export async function addHouseholdRoleCloud(userId, roleData) {
+export async function addHouseholdRoleCloud(userId, datasetId, roleData) {
   try {
-    const rolesRef = getUserCollection(userId, 'householdRoles');
+    const rolesRef = getUserCollection(userId, datasetId, 'householdRoles');
     const docRef = doc(rolesRef, String(roleData.id));
 
     await setDoc(docRef, {
@@ -982,10 +1169,12 @@ export async function addHouseholdRoleCloud(userId, roleData) {
 
 /**
  * Get all household roles from Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
  */
-export async function getAllHouseholdRolesCloud(userId) {
+export async function getAllHouseholdRolesCloud(userId, datasetId) {
   try {
-    const rolesRef = getUserCollection(userId, 'householdRoles');
+    const rolesRef = getUserCollection(userId, datasetId, 'householdRoles');
     const snapshot = await getDocs(rolesRef);
     return snapshot.docs.map(docToObject);
   } catch (error) {
@@ -996,10 +1185,14 @@ export async function getAllHouseholdRolesCloud(userId) {
 
 /**
  * Update a household role in Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ * @param {string|number} roleId - The role ID
+ * @param {Object} updates - Fields to update
  */
-export async function updateHouseholdRoleCloud(userId, roleId, updates) {
+export async function updateHouseholdRoleCloud(userId, datasetId, roleId, updates) {
   try {
-    const docRef = getUserDoc(userId, 'householdRoles', String(roleId));
+    const docRef = getUserDoc(userId, datasetId, 'householdRoles', String(roleId));
     await updateDoc(docRef, {
       ...updates,
       updatedAt: serverTimestamp()
@@ -1013,10 +1206,13 @@ export async function updateHouseholdRoleCloud(userId, roleId, updates) {
 
 /**
  * Delete a household role from Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ * @param {string|number} roleId - The role ID
  */
-export async function deleteHouseholdRoleCloud(userId, roleId) {
+export async function deleteHouseholdRoleCloud(userId, datasetId, roleId) {
   try {
-    const docRef = getUserDoc(userId, 'householdRoles', String(roleId));
+    const docRef = getUserDoc(userId, datasetId, 'householdRoles', String(roleId));
     await deleteDoc(docRef);
     console.log('☁️ Household role deleted from cloud:', roleId);
   } catch (error) {
@@ -1025,33 +1221,34 @@ export async function deleteHouseholdRoleCloud(userId, roleId) {
   }
 }
 
-// ==================== BULK OPERATIONS ====================
+// ==================== ADDITIONAL BULK OPERATIONS ====================
 
 /**
- * Delete all user data from cloud
+ * Delete all data from a specific dataset in cloud
  * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
  */
-export async function deleteAllCloudData(userId) {
+export async function deleteAllCloudData(userId, datasetId) {
   try {
-    console.log('☁️ Deleting all cloud data...');
-    
+    console.log('☁️ Deleting all cloud data for dataset:', datasetId);
+
     const collections = ['people', 'houses', 'relationships', 'codexEntries', 'codexLinks', 'acknowledgedDuplicates', 'heraldry', 'heraldryLinks', 'dignities', 'dignityTenures', 'dignityLinks', 'bugs', 'householdRoles'];
-    
+
     for (const collName of collections) {
-      const collRef = getUserCollection(userId, collName);
+      const collRef = getUserCollection(userId, datasetId, collName);
       const snapshot = await getDocs(collRef);
-      
+
       const batch = writeBatch(db);
       snapshot.docs.forEach(doc => {
         batch.delete(doc.ref);
       });
-      
+
       if (!snapshot.empty) {
         await batch.commit();
       }
     }
-    
-    console.log('☁️ All cloud data deleted');
+
+    console.log('☁️ All cloud data deleted for dataset:', datasetId);
     return true;
   } catch (error) {
     console.error('☁️ Error deleting cloud data:', error);
@@ -1080,12 +1277,17 @@ export default {
   updateRelationshipCloud,
   deleteRelationshipCloud,
   
-  // Codex
+  // Codex Entries
   addCodexEntryCloud,
   getAllCodexEntriesCloud,
   updateCodexEntryCloud,
   deleteCodexEntryCloud,
-  
+
+  // Codex Links
+  addCodexLinkCloud,
+  getAllCodexLinksCloud,
+  deleteCodexLinkCloud,
+
   // Heraldry
   addHeraldryCloud,
   getHeraldryCloud,

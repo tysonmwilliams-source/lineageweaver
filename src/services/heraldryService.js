@@ -14,7 +14,7 @@
  * - heraldryLinks: Junction table linking heraldry to other entities
  */
 
-import { db } from './database';
+import { getDatabase } from './database';
 import {
   syncAddHeraldry,
   syncUpdateHeraldry,
@@ -52,8 +52,9 @@ import {
  * - codexEntryId: Link to Codex article about this heraldry
  * @param {string} [userId] - Optional user ID for cloud sync
  */
-export async function createHeraldry(heraldryData, userId = null) {
+export async function createHeraldry(heraldryData, userId = null, datasetId = null) {
   try {
+    const db = getDatabase(datasetId);
     const now = new Date().toISOString();
 
     const record = {
@@ -114,8 +115,9 @@ export async function createHeraldry(heraldryData, userId = null) {
  * @param {number} id - The heraldry ID
  * @returns {Promise<Object|undefined>} The heraldry record or undefined
  */
-export async function getHeraldry(id) {
+export async function getHeraldry(id, datasetId = null) {
   try {
+    const db = getDatabase(datasetId);
     const heraldry = await db.heraldry.get(id);
     return heraldry;
   } catch (error) {
@@ -129,8 +131,9 @@ export async function getHeraldry(id) {
  * 
  * @returns {Promise<Array>} Array of all heraldry records
  */
-export async function getAllHeraldry() {
+export async function getAllHeraldry(datasetId = null) {
   try {
+    const db = getDatabase(datasetId);
     const heraldry = await db.heraldry.toArray();
     return heraldry;
   } catch (error) {
@@ -147,8 +150,9 @@ export async function getAllHeraldry() {
  * @param {string} [userId] - Optional user ID for cloud sync
  * @returns {Promise<number>} Number of records updated (1 or 0)
  */
-export async function updateHeraldry(id, updates, userId = null) {
+export async function updateHeraldry(id, updates, userId = null, datasetId = null) {
   try {
+    const db = getDatabase(datasetId);
     const updateData = {
       ...updates,
       updated: new Date().toISOString()
@@ -177,8 +181,9 @@ export async function updateHeraldry(id, updates, userId = null) {
  * @param {string} [userId] - Optional user ID for cloud sync
  * @returns {Promise<void>}
  */
-export async function deleteHeraldry(id, userId = null) {
+export async function deleteHeraldry(id, userId = null, datasetId = null) {
   try {
+    const db = getDatabase(datasetId);
     // First, get all links to this heraldry (for cloud sync)
     const links = await db.heraldryLinks.where('heraldryId').equals(id).toArray();
 
@@ -219,8 +224,9 @@ export async function deleteHeraldry(id, userId = null) {
  * @param {string} [userId] - Optional user ID for cloud sync
  * @returns {Promise<number>} The link ID
  */
-export async function linkHeraldryToEntity(linkData, userId = null) {
+export async function linkHeraldryToEntity(linkData, userId = null, datasetId = null) {
   try {
+    const db = getDatabase(datasetId);
     const link = {
       heraldryId: linkData.heraldryId,
       entityType: linkData.entityType,
@@ -265,8 +271,9 @@ export async function linkHeraldryToEntity(linkData, userId = null) {
  * @param {string} [userId] - Optional user ID for cloud sync
  * @returns {Promise<void>}
  */
-export async function unlinkHeraldry(linkId, userId = null) {
+export async function unlinkHeraldry(linkId, userId = null, datasetId = null) {
   try {
+    const db = getDatabase(datasetId);
     const link = await db.heraldryLinks.get(linkId);
 
     if (link) {
@@ -301,8 +308,9 @@ export async function unlinkHeraldry(linkId, userId = null) {
  * @param {number} heraldryId - The heraldry ID
  * @returns {Promise<Array>} Array of link records
  */
-export async function getHeraldryLinks(heraldryId) {
+export async function getHeraldryLinks(heraldryId, datasetId = null) {
   try {
+    const db = getDatabase(datasetId);
     const links = await db.heraldryLinks.where('heraldryId').equals(heraldryId).toArray();
     return links;
   } catch (error) {
@@ -318,8 +326,9 @@ export async function getHeraldryLinks(heraldryId) {
  * @param {number} entityId - The entity's ID
  * @returns {Promise<Array>} Array of heraldry records linked to this entity
  */
-export async function getHeraldryForEntity(entityType, entityId) {
+export async function getHeraldryForEntity(entityType, entityId, datasetId = null) {
   try {
+    const db = getDatabase(datasetId);
     // Get all links for this entity
     const links = await db.heraldryLinks
       .where('entityType').equals(entityType)
@@ -354,8 +363,9 @@ export async function getHeraldryForEntity(entityType, entityId) {
  * @param {string} category - The category to filter by
  * @returns {Promise<Array>} Array of heraldry records in that category
  */
-export async function getHeraldryByCategory(category) {
+export async function getHeraldryByCategory(category, datasetId = null) {
   try {
+    const db = getDatabase(datasetId);
     const all = await db.heraldry.toArray();
     return all.filter(h => h.category === category);
   } catch (error) {
@@ -370,8 +380,9 @@ export async function getHeraldryByCategory(category) {
  * @param {string} searchTerm - The search term
  * @returns {Promise<Array>} Matching heraldry records
  */
-export async function searchHeraldry(searchTerm) {
+export async function searchHeraldry(searchTerm, datasetId = null) {
   try {
+    const db = getDatabase(datasetId);
     const term = searchTerm.toLowerCase();
     const all = await db.heraldry.toArray();
     
@@ -401,8 +412,9 @@ export async function searchHeraldry(searchTerm) {
  * 
  * @returns {Promise<Object>} Statistics object
  */
-export async function getHeraldryStatistics() {
+export async function getHeraldryStatistics(datasetId = null) {
   try {
+    const db = getDatabase(datasetId);
     const all = await db.heraldry.toArray();
     const links = await db.heraldryLinks.toArray();
     
@@ -445,8 +457,9 @@ export async function getHeraldryStatistics() {
  * @param {number} limit - Maximum number to return
  * @returns {Promise<Array>} Recent heraldry records
  */
-export async function getRecentHeraldry(limit = 5) {
+export async function getRecentHeraldry(limit = 5, datasetId = null) {
   try {
+    const db = getDatabase(datasetId);
     const all = await db.heraldry.toArray();
     return all
       .sort((a, b) => new Date(b.updated) - new Date(a.updated))
@@ -462,8 +475,9 @@ export async function getRecentHeraldry(limit = 5) {
  * 
  * @returns {Promise<Array>} Heraldry records marked as templates
  */
-export async function getHeraldryTemplates() {
+export async function getHeraldryTemplates(datasetId = null) {
   try {
+    const db = getDatabase(datasetId);
     const all = await db.heraldry.toArray();
     return all.filter(h => h.isTemplate);
   } catch (error) {
@@ -480,17 +494,18 @@ export async function getHeraldryTemplates() {
  * @param {number} personId - The person's ID
  * @returns {Promise<Object|null>} The person's primary heraldry record or null
  */
-export async function getPersonalArms(personId) {
+export async function getPersonalArms(personId, datasetId = null) {
   try {
+    const db = getDatabase(datasetId);
     // First try quick lookup via person's heraldryId
     const person = await db.people.get(personId);
     if (person?.heraldryId) {
       const heraldry = await db.heraldry.get(person.heraldryId);
       if (heraldry) return heraldry;
     }
-    
+
     // Fallback to links table
-    const heraldryList = await getHeraldryForEntity('person', personId);
+    const heraldryList = await getHeraldryForEntity('person', personId, datasetId);
     const primary = heraldryList.find(h => h.linkType === 'primary');
     return primary || null;
   } catch (error) {
@@ -513,22 +528,23 @@ export async function getPersonalArms(personId) {
  * @param {string} [options.name] - Custom name for the arms
  * @returns {Promise<number>} The new heraldry ID
  */
-export async function createPersonalArmsFromHouse(options) {
+export async function createPersonalArmsFromHouse(options, datasetId = null) {
   try {
+    const db = getDatabase(datasetId);
     const { personId, houseHeraldryId, birthPosition, cadencyComposition, name } = options;
-    
+
     // Get the parent house's heraldry
     const houseHeraldry = await db.heraldry.get(houseHeraldryId);
     if (!houseHeraldry) {
       throw new Error('House heraldry not found');
     }
-    
+
     // Get the person for naming
     const person = await db.people.get(personId);
     if (!person) {
       throw new Error('Person not found');
     }
-    
+
     // Create the personal arms record
     const heraldryId = await createHeraldry({
       name: name || `Arms of ${person.firstName} ${person.lastName}`,
@@ -567,15 +583,15 @@ export async function createPersonalArmsFromHouse(options) {
         birthPosition,
         derivedFrom: houseHeraldry.name
       }
-    });
-    
+    }, null, datasetId);
+
     // Link the heraldry to the person
     await linkHeraldryToEntity({
       heraldryId,
       entityType: 'person',
       entityId: personId,
       linkType: 'primary'
-    });
+    }, null, datasetId);
     
     console.log('�\udee1️ Personal arms created for', person.firstName, person.lastName, 'with ID:', heraldryId);
     return heraldryId;
@@ -591,11 +607,12 @@ export async function createPersonalArmsFromHouse(options) {
  * @param {number} personId - The person's ID
  * @returns {Promise<boolean>} True if person has personal arms
  */
-export async function hasPersonalArms(personId) {
+export async function hasPersonalArms(personId, datasetId = null) {
   try {
+    const db = getDatabase(datasetId);
     const person = await db.people.get(personId);
     if (person?.heraldryId) return true;
-    
+
     // Check links table as fallback
     const links = await db.heraldryLinks
       .where('entityType').equals('person')
@@ -614,8 +631,9 @@ export async function hasPersonalArms(personId) {
  * 
  * @returns {Promise<Array>} Array of {person, heraldry} objects
  */
-export async function getPeopleWithPersonalArms() {
+export async function getPeopleWithPersonalArms(datasetId = null) {
   try {
+    const db = getDatabase(datasetId);
     // Get all person links
     const personLinks = await db.heraldryLinks
       .where('entityType').equals('person')

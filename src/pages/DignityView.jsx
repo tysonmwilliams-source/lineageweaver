@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
+import { useDataset } from '../contexts/DatasetContext';
 import {
   getDignity,
   deleteDignity,
@@ -94,6 +95,7 @@ function DignityView() {
   const navigate = useNavigate();
   const { id } = useParams();
   const { user } = useAuth();
+  const { activeDataset } = useDataset();
 
   // State
   const [dignity, setDignity] = useState(null);
@@ -254,7 +256,8 @@ function DignityView() {
         parentMap,
         childrenMap,
         spouseMap,
-        10
+        10,
+        activeDataset?.id
       );
 
       setSuccessionLine(line);
@@ -264,7 +267,7 @@ function DignityView() {
     } finally {
       setLoadingSuccession(false);
     }
-  }, []);
+  }, [activeDataset]);
 
   // Load data
   const loadData = useCallback(async () => {
@@ -273,6 +276,7 @@ function DignityView() {
       setError(null);
 
       const dignityId = parseInt(id);
+      const datasetId = activeDataset?.id;
 
       const [
         dignityData,
@@ -283,13 +287,13 @@ function DignityView() {
         peopleData,
         relationshipsData
       ] = await Promise.all([
-        getDignity(dignityId),
-        getTenuresForDignity(dignityId),
-        getSubordinateDignities(dignityId),
-        getFeudalChain(dignityId),
-        getAllHouses(),
-        getAllPeople(),
-        getAllRelationships()
+        getDignity(dignityId, datasetId),
+        getTenuresForDignity(dignityId, datasetId),
+        getSubordinateDignities(dignityId, datasetId),
+        getFeudalChain(dignityId, datasetId),
+        getAllHouses(datasetId),
+        getAllPeople(datasetId),
+        getAllRelationships(datasetId)
       ]);
 
       if (!dignityData) {
@@ -315,7 +319,7 @@ function DignityView() {
       setError('Failed to load dignity');
       setLoading(false);
     }
-  }, [id, calculateSuccession]);
+  }, [id, calculateSuccession, activeDataset]);
 
   useEffect(() => {
     loadData();
@@ -332,13 +336,13 @@ function DignityView() {
     }
 
     try {
-      await deleteDignity(parseInt(id), user?.uid);
+      await deleteDignity(parseInt(id), user?.uid, activeDataset?.id);
       navigate('/dignities');
     } catch (err) {
       console.error('Error deleting dignity:', err);
       alert('Failed to delete dignity');
     }
-  }, [dignity?.name, id, navigate, user?.uid]);
+  }, [dignity?.name, id, navigate, user?.uid, activeDataset]);
 
   const handleNavigateToDignity = useCallback((dignityId) => {
     navigate(`/dignities/view/${dignityId}`);
@@ -398,19 +402,20 @@ function DignityView() {
 
     try {
       setSavingTenure(true);
+      const datasetId = activeDataset?.id;
 
       if (tenureMode === 'end' && editingTenure) {
         await updateDignityTenure(editingTenure.id, {
           dateEnded: tenureForm.dateEnded || null,
           endType: tenureForm.endType || null,
           notes: tenureForm.notes || null
-        }, user?.uid);
+        }, user?.uid, datasetId);
 
         if (!editingTenure.dateEnded) {
           await updateDignity(parseInt(id), {
             currentHolderId: null,
             isVacant: true
-          }, user?.uid);
+          }, user?.uid, datasetId);
         }
       } else {
         await createDignityTenure({
@@ -421,7 +426,7 @@ function DignityView() {
           acquisitionType: tenureForm.acquisitionType,
           endType: tenureForm.dateEnded ? tenureForm.endType : null,
           notes: tenureForm.notes || null
-        }, user?.uid);
+        }, user?.uid, datasetId);
 
         if (!tenureForm.dateEnded) {
           const selectedPerson = people.find(p => p.id === parseInt(tenureForm.personId));
@@ -429,7 +434,7 @@ function DignityView() {
             currentHolderId: parseInt(tenureForm.personId),
             currentHouseId: selectedPerson?.houseId || dignity.currentHouseId,
             isVacant: false
-          }, user?.uid);
+          }, user?.uid, datasetId);
         }
       }
 
@@ -441,7 +446,7 @@ function DignityView() {
     } finally {
       setSavingTenure(false);
     }
-  }, [tenureMode, tenureForm, editingTenure, id, user?.uid, people, dignity?.currentHouseId, loadData, handleCloseTenureModal]);
+  }, [tenureMode, tenureForm, editingTenure, id, user?.uid, people, dignity?.currentHouseId, loadData, handleCloseTenureModal, activeDataset]);
 
   const handleDeleteTenure = useCallback(async (tenureId) => {
     if (!window.confirm('Delete this tenure record? This cannot be undone.')) {
@@ -449,13 +454,13 @@ function DignityView() {
     }
 
     try {
-      await deleteDignityTenure(tenureId, user?.uid);
+      await deleteDignityTenure(tenureId, user?.uid, activeDataset?.id);
       await loadData();
     } catch (err) {
       console.error('Error deleting tenure:', err);
       alert('Failed to delete tenure record');
     }
-  }, [user?.uid, loadData]);
+  }, [user?.uid, loadData, activeDataset]);
 
   // Succession management handlers
   const handleOpenSuccessionRules = useCallback(() => {
@@ -492,7 +497,7 @@ function DignityView() {
         designatedHeirId: successionRulesForm.designatedHeirId
           ? parseInt(successionRulesForm.designatedHeirId)
           : null
-      }, user?.uid);
+      }, user?.uid, activeDataset?.id);
 
       await loadData();
       handleCloseSuccessionRulesModal();
@@ -502,7 +507,7 @@ function DignityView() {
     } finally {
       setSavingRules(false);
     }
-  }, [successionRulesForm, id, user?.uid, loadData, handleCloseSuccessionRulesModal]);
+  }, [successionRulesForm, id, user?.uid, loadData, handleCloseSuccessionRulesModal, activeDataset]);
 
   // Dispute management handlers
   const handleOpenAddDispute = useCallback(() => {
@@ -547,6 +552,7 @@ function DignityView() {
 
     try {
       setSavingDispute(true);
+      const datasetId = activeDataset?.id;
 
       if (disputeMode === 'resolve' && editingDispute) {
         await resolveDispute(
@@ -554,7 +560,8 @@ function DignityView() {
           editingDispute.id,
           disputeForm.resolution,
           disputeForm.resolvedDate || null,
-          user?.uid
+          user?.uid,
+          datasetId
         );
       } else {
         await addDispute(parseInt(id), {
@@ -567,7 +574,7 @@ function DignityView() {
             : [],
           startDate: disputeForm.startDate || null,
           notes: disputeForm.notes || null
-        }, user?.uid);
+        }, user?.uid, datasetId);
       }
 
       await loadData();
@@ -578,7 +585,7 @@ function DignityView() {
     } finally {
       setSavingDispute(false);
     }
-  }, [disputeMode, disputeForm, editingDispute, id, user?.uid, loadData, handleCloseDisputeModal]);
+  }, [disputeMode, disputeForm, editingDispute, id, user?.uid, loadData, handleCloseDisputeModal, activeDataset]);
 
   const handleRemoveDispute = useCallback(async (disputeId) => {
     if (!window.confirm('Remove this disputed claim? This cannot be undone.')) {
@@ -586,13 +593,13 @@ function DignityView() {
     }
 
     try {
-      await removeDispute(parseInt(id), disputeId, user?.uid);
+      await removeDispute(parseInt(id), disputeId, user?.uid, activeDataset?.id);
       await loadData();
     } catch (err) {
       console.error('Error removing dispute:', err);
       alert('Failed to remove dispute');
     }
-  }, [id, user?.uid, loadData]);
+  }, [id, user?.uid, loadData, activeDataset]);
 
   // Interregnum management handlers
   const handleOpenInterregnum = useCallback(() => {
@@ -623,7 +630,7 @@ function DignityView() {
         regentTitle: interregnumForm.regentTitle || 'Regent',
         reason: interregnumForm.reason,
         notes: interregnumForm.notes || null
-      }, user?.uid);
+      }, user?.uid, activeDataset?.id);
 
       await loadData();
       handleCloseInterregnumModal();
@@ -633,7 +640,7 @@ function DignityView() {
     } finally {
       setSavingInterregnum(false);
     }
-  }, [interregnumForm, id, user?.uid, loadData, handleCloseInterregnumModal]);
+  }, [interregnumForm, id, user?.uid, loadData, handleCloseInterregnumModal, activeDataset]);
 
   const handleEndInterregnum = useCallback(async () => {
     const heir = successionLine.find(c => !c.excluded);
@@ -647,13 +654,13 @@ function DignityView() {
     }
 
     try {
-      await endInterregnum(parseInt(id), heir.personId, user?.uid);
+      await endInterregnum(parseInt(id), heir.personId, user?.uid, activeDataset?.id);
       await loadData();
     } catch (err) {
       console.error('Error ending interregnum:', err);
       alert('Failed to end interregnum');
     }
-  }, [successionLine, getPersonName, id, user?.uid, loadData]);
+  }, [successionLine, getPersonName, id, user?.uid, loadData, activeDataset]);
 
   // Derived values
   const classInfo = useMemo(() => dignity ? getClassInfo(dignity.dignityClass) : null, [dignity, getClassInfo]);

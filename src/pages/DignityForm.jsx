@@ -12,6 +12,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
+import { useDataset } from '../contexts/DatasetContext';
 import {
   createDignity,
   getDignity,
@@ -64,6 +65,7 @@ function DignityForm() {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const { activeDataset } = useDataset();
   const isEditMode = Boolean(id);
 
   // Form state
@@ -97,17 +99,18 @@ function DignityForm() {
   // Load reference data and existing dignity if editing
   useEffect(() => {
     loadData();
-  }, [id]);
+  }, [id, activeDataset]);
 
   async function loadData() {
     try {
       setLoading(true);
       setError(null);
+      const datasetId = activeDataset?.id;
 
       const [housesData, peopleData, dignitiesData] = await Promise.all([
-        getAllHouses(),
-        getAllPeople(),
-        getAllDignities()
+        getAllHouses(datasetId),
+        getAllPeople(datasetId),
+        getAllDignities(datasetId)
       ]);
 
       setHouses(housesData);
@@ -115,7 +118,7 @@ function DignityForm() {
       setDignities(dignitiesData);
 
       if (isEditMode) {
-        const dignity = await getDignity(parseInt(id));
+        const dignity = await getDignity(parseInt(id), datasetId);
         if (dignity) {
           setFormData({
             name: dignity.name || '',
@@ -333,6 +336,7 @@ function DignityForm() {
     try {
       setSaving(true);
       setError(null);
+      const datasetId = activeDataset?.id;
 
       const dignityData = {
         ...formData,
@@ -348,10 +352,10 @@ function DignityForm() {
       };
 
       if (isEditMode) {
-        await updateDignity(parseInt(id), dignityData, user?.uid);
+        await updateDignity(parseInt(id), dignityData, user?.uid, datasetId);
         navigate(`/dignities/view/${id}`);
       } else {
-        const newId = await createDignity(dignityData, user?.uid);
+        const newId = await createDignity(dignityData, user?.uid, datasetId);
         navigate(`/dignities/view/${newId}`);
       }
     } catch (err) {

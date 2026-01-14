@@ -18,9 +18,10 @@ import {
   getAllPeople,
   getAllHouses,
   getAllRelationships,
-  db
+  getDatabase
 } from '../services/database';
 import { useGenealogy } from '../contexts/GenealogyContext';
+import { useDataset } from '../contexts/DatasetContext';
 import {
   exportData,
   importData,
@@ -104,6 +105,7 @@ const ITEM_VARIANTS = {
 function ImportExportManager() {
   // Access context for data refresh after import
   const { refreshData } = useGenealogy();
+  const { activeDataset } = useDataset();
 
   // Export state
   const [exporting, setExporting] = useState(false);
@@ -126,6 +128,7 @@ function ImportExportManager() {
   // ==================== EXPORT FUNCTIONS ====================
 
   const handleExport = async () => {
+    const datasetId = activeDataset?.id;
     try {
       setExporting(true);
       setExportError(null);
@@ -134,19 +137,19 @@ function ImportExportManager() {
 
       setProgressMessage('Gathering people...');
       setProgress(20);
-      const people = await getAllPeople();
+      const people = await getAllPeople(datasetId);
 
       setProgressMessage('Gathering houses...');
       setProgress(40);
-      const houses = await getAllHouses();
+      const houses = await getAllHouses(datasetId);
 
       setProgressMessage('Gathering relationships...');
       setProgress(60);
-      const relationships = await getAllRelationships();
+      const relationships = await getAllRelationships(datasetId);
 
       setProgressMessage('Gathering Codex entries...');
       setProgress(70);
-      const codexEntries = await getAllEntries();
+      const codexEntries = await getAllEntries(datasetId);
 
       setProgressMessage('Formatting export...');
       setProgress(80);
@@ -206,10 +209,11 @@ function ImportExportManager() {
 
     try {
       const fileContent = await readFileAsText(file);
+      const datasetId = activeDataset?.id;
 
-      const existingPeople = await getAllPeople();
-      const existingHouses = await getAllHouses();
-      const existingRelationships = await getAllRelationships();
+      const existingPeople = await getAllPeople(datasetId);
+      const existingHouses = await getAllHouses(datasetId);
+      const existingRelationships = await getAllRelationships(datasetId);
 
       const result = importData(fileContent, {
         people: existingPeople,
@@ -258,6 +262,9 @@ function ImportExportManager() {
       setProgress(0);
       setImportSuccess(false);
 
+      const datasetId = activeDataset?.id;
+      const db = getDatabase(datasetId);
+
       setProgressMessage('Reading import file...');
       setProgress(10);
       const fileContent = await readFileAsText(importFile);
@@ -272,8 +279,8 @@ function ImportExportManager() {
         setProgress(20);
 
         if (conflictResolution === 'skip') {
-          const existingPeopleIds = (await getAllPeople()).map(p => p.id);
-          const existingHouseIds = (await getAllHouses()).map(h => h.id);
+          const existingPeopleIds = (await getAllPeople(datasetId)).map(p => p.id);
+          const existingHouseIds = (await getAllHouses(datasetId)).map(h => h.id);
           finalPeople = data.people.filter(p => !existingPeopleIds.includes(p.id));
           finalHouses = data.houses.filter(h => !existingHouseIds.includes(h.id));
         } else if (conflictResolution === 'overwrite') {

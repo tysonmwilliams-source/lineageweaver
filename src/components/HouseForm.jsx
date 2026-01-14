@@ -19,6 +19,7 @@ import HeraldryPickerModal from './heraldry/HeraldryPickerModal';
 import Icon from './icons/Icon';
 import ActionButton from './shared/ActionButton';
 import { HouseholdRolesPanel } from './household';
+import { useDataset } from '../contexts/DatasetContext';
 import {
   getHeraldry,
   linkHeraldryToEntity,
@@ -43,6 +44,7 @@ function HouseForm({
   onCancel
 }) {
   const navigate = useNavigate();
+  const { activeDataset } = useDataset();
 
   // Form State
   const [formData, setFormData] = useState({
@@ -70,16 +72,17 @@ function HouseForm({
     if (house?.heraldryId) {
       loadLinkedHeraldry(house.heraldryId);
     }
-  }, [house?.heraldryId]);
+  }, [house?.heraldryId, activeDataset]);
 
   const loadLinkedHeraldry = async (heraldryId) => {
+    const datasetId = activeDataset?.id;
     try {
       setLoadingHeraldry(true);
-      const heraldry = await getHeraldry(heraldryId);
+      const heraldry = await getHeraldry(heraldryId, datasetId);
       setLinkedHeraldry(heraldry);
 
       if (house?.id) {
-        const links = await getHeraldryLinks(heraldryId);
+        const links = await getHeraldryLinks(heraldryId, datasetId);
         const houseLink = links.find(l =>
           l.entityType === 'house' &&
           l.entityId === house.id
@@ -146,12 +149,13 @@ function HouseForm({
       return;
     }
 
+    const datasetId = activeDataset?.id;
     linkHeraldryToEntity({
       heraldryId: selectedHeraldry.id,
       entityType: 'house',
       entityId: house.id,
       linkType: 'primary'
-    }).then(() => {
+    }, datasetId).then(() => {
       setLinkedHeraldry(selectedHeraldry);
       setFormData(prev => ({ ...prev, heraldryId: selectedHeraldry.id }));
       setShowHeraldryPicker(false);
@@ -177,8 +181,9 @@ function HouseForm({
     if (!confirm) return;
 
     try {
+      const datasetId = activeDataset?.id;
       if (heraldryLinkId) {
-        await unlinkHeraldry(heraldryLinkId);
+        await unlinkHeraldry(heraldryLinkId, datasetId);
       }
 
       setLinkedHeraldry(null);

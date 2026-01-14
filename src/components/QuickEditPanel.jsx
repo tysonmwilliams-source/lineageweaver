@@ -18,6 +18,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGenealogy } from '../contexts/GenealogyContext';
+import { useDataset } from '../contexts/DatasetContext';
 import HouseHeraldrySection from './HouseHeraldrySection';
 import PersonalArmsSection from './PersonalArmsSection';
 import { getEntryByPersonId } from '../services/codexService';
@@ -90,6 +91,7 @@ function QuickEditPanel({
   } = useGenealogy();
 
   const navigate = useNavigate();
+  const { activeDataset } = useDataset();
 
   // Local state
   const [editedPerson, setEditedPerson] = useState(person);
@@ -127,12 +129,13 @@ function QuickEditPanel({
       setCodexEntry(null);
       setPersonDignities([]);
     }
-  }, [person]);
+  }, [person, activeDataset]);
 
   const loadCodexEntry = async (personId) => {
+    const datasetId = activeDataset?.id;
     try {
       setLoadingCodex(true);
-      const entry = await getEntryByPersonId(personId);
+      const entry = await getEntryByPersonId(personId, datasetId);
       setCodexEntry(entry);
     } catch (error) {
       console.warn('Could not load Codex entry:', error);
@@ -143,9 +146,10 @@ function QuickEditPanel({
   };
 
   const loadPersonDignities = async (personId) => {
+    const datasetId = activeDataset?.id;
     try {
       setLoadingDignities(true);
-      const dignities = await getDignitiesForPerson(personId);
+      const dignities = await getDignitiesForPerson(personId, datasetId);
       dignities.sort((a, b) => {
         if (b.displayPriority !== a.displayPriority) {
           return (b.displayPriority || 0) - (a.displayPriority || 0);

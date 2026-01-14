@@ -22,10 +22,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   getAllHeraldry,
   getHeraldryStatistics,
-  deleteHeraldry
+  deleteHeraldry,
+  getHeraldryLinks
 } from '../services/heraldryService';
-import { getAllHouses, db } from '../services/database';
+import { getAllHouses, getDatabase } from '../services/database';
 import { getAllEntries } from '../services/codexService';
+import { useDataset } from '../contexts/DatasetContext';
 import Navigation from '../components/Navigation';
 import Icon from '../components/icons';
 import { LoadingState, EmptyState, SectionHeader, Card, ActionButton } from '../components/shared';
@@ -83,6 +85,7 @@ const CATEGORY_ICONS = {
  */
 function HeraldryLanding() {
   const navigate = useNavigate();
+  const { activeDataset } = useDataset();
 
   // State
   const [heraldry, setHeraldry] = useState([]);
@@ -98,17 +101,19 @@ function HeraldryLanding() {
   // Load data
   useEffect(() => {
     let cancelled = false;
+    const datasetId = activeDataset?.id;
 
     async function loadData() {
       try {
         setLoading(true);
 
+        const db = getDatabase(datasetId);
         const [heraldryData, housesData, stats, linksData, codexData] = await Promise.all([
-          getAllHeraldry(),
-          getAllHouses(),
-          getHeraldryStatistics(),
+          getAllHeraldry(datasetId),
+          getAllHouses(datasetId),
+          getHeraldryStatistics(datasetId),
           db.heraldryLinks.toArray(),
-          getAllEntries()
+          getAllEntries(datasetId)
         ]);
 
         if (cancelled) return;
@@ -129,7 +134,7 @@ function HeraldryLanding() {
 
     loadData();
     return () => { cancelled = true; };
-  }, []);
+  }, [activeDataset]);
 
   // Get linked house for a heraldry item
   const getLinkedHouse = useCallback((heraldryId) => {

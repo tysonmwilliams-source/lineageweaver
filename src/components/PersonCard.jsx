@@ -17,6 +17,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { isFeatureEnabled } from '../config/featureFlags';
+import { useDataset } from '../contexts/DatasetContext';
 import { getEntry } from '../services/codexService';
 import { getBiographyStatus } from '../utils/biographyStatus';
 import Icon from './icons';
@@ -58,6 +59,9 @@ const LEGITIMACY_COLORS = {
 };
 
 function PersonCard({ person, house, relationships = [], allPeople = [] }) {
+  // ==================== DATASET CONTEXT ====================
+  const { activeDataset } = useDataset();
+
   // ==================== CODEX INTEGRATION ====================
   const [codexEntry, setCodexEntry] = useState(null);
   const [loadingEntry, setLoadingEntry] = useState(false);
@@ -68,12 +72,13 @@ function PersonCard({ person, house, relationships = [], allPeople = [] }) {
     } else {
       setCodexEntry(null);
     }
-  }, [person?.codexEntryId]);
+  }, [person?.codexEntryId, activeDataset]);
 
   const loadCodexEntry = async (entryId) => {
+    const datasetId = activeDataset?.id;
     try {
       setLoadingEntry(true);
-      const entry = await getEntry(entryId);
+      const entry = await getEntry(entryId, datasetId);
       setCodexEntry(entry);
     } catch (error) {
       console.warn('Could not load Codex entry:', error);

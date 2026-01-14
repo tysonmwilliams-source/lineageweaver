@@ -15,9 +15,11 @@
  */
 
 import { useState, useEffect } from 'react';
+import { useDataset } from '../contexts/DatasetContext';
 import { getAllEntries, deleteEntry } from '../services/codexService';
 
 function CodexCleanupTool({ onCleanupComplete }) {
+  const { activeDataset } = useDataset();
   const [allEntries, setAllEntries] = useState([]);
   const [duplicateGroups, setDuplicateGroups] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -29,12 +31,13 @@ function CodexCleanupTool({ onCleanupComplete }) {
   // Load and analyze entries on mount
   useEffect(() => {
     analyzeEntries();
-  }, []);
+  }, [activeDataset]);
 
   async function analyzeEntries() {
+    const datasetId = activeDataset?.id;
     setLoading(true);
     try {
-      const entries = await getAllEntries();
+      const entries = await getAllEntries(datasetId);
       setAllEntries(entries);
 
       // Group entries by title (case-insensitive)
@@ -133,6 +136,7 @@ function CodexCleanupTool({ onCleanupComplete }) {
       return;
     }
 
+    const datasetId = activeDataset?.id;
     setCleaning(true);
     const log = [];
     let deleted = 0;
@@ -141,7 +145,7 @@ function CodexCleanupTool({ onCleanupComplete }) {
     for (const entryId of selectedForDeletion) {
       const entry = allEntries.find(e => e.id === entryId);
       try {
-        await deleteEntry(entryId);
+        await deleteEntry(entryId, datasetId);
         log.push(`✅ Deleted: "${entry?.title}" (ID: ${entryId})`);
         deleted++;
       } catch (error) {

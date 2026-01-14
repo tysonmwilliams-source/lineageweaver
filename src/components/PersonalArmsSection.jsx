@@ -16,8 +16,9 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  getPersonalArms, 
+import { useDataset } from '../contexts/DatasetContext';
+import {
+  getPersonalArms,
   hasPersonalArms,
   getHeraldryForEntity,
   getHeraldry
@@ -44,8 +45,8 @@ import {
  * @param {boolean} props.isDarkTheme - Theme toggle
  * @param {Function} props.onArmsCreated - Callback when personal arms are created
  */
-function PersonalArmsSection({ 
-  person, 
+function PersonalArmsSection({
+  person,
   house,
   allPeople = [],
   allRelationships = [],
@@ -53,6 +54,7 @@ function PersonalArmsSection({
   onArmsCreated
 }) {
   const navigate = useNavigate();
+  const { activeDataset } = useDataset();
   
   // ==================== STATE ====================
   const [personalArms, setPersonalArms] = useState(null);
@@ -108,30 +110,31 @@ function PersonalArmsSection({
   }, [birthOrderResult]);
 
   // ==================== EFFECTS ====================
-  
+
   // Load personal arms and house heraldry
   useEffect(() => {
     loadArmsData();
-  }, [person?.id, house?.id]);
-  
+  }, [person?.id, house?.id, activeDataset]);
+
   async function loadArmsData() {
     if (!person?.id) {
       setLoading(false);
       return;
     }
-    
+
+    const datasetId = activeDataset?.id;
     setLoading(true);
-    
+
     try {
       // Check for existing personal arms
-      const arms = await getPersonalArms(person.id);
+      const arms = await getPersonalArms(person.id, datasetId);
       setPersonalArms(arms);
-      
+
       // Load house heraldry for preview/creation
       if (house?.heraldryId) {
-        const houseArms = await getHeraldry(house.heraldryId);
+        const houseArms = await getHeraldry(house.heraldryId, datasetId);
         setHouseHeraldry(houseArms);
-        
+
         // Generate preview with cadency if eligible and has birth position
         if (!arms && houseArms && birthOrderResult?.isEligible && birthOrderResult?.position) {
           const result = createPersonalArmsSVG(houseArms, birthOrderResult.position);

@@ -25,6 +25,7 @@ import { useTheme } from './ThemeContext';
 import { UserMenu, SyncStatusIndicator } from './auth';
 import { SuggestionsBadge } from './suggestions';
 import { useDignityAnalysis } from '../hooks';
+import { useDatasetManager } from '../App';
 import './Navigation.css';
 
 // Navigation link configuration
@@ -75,6 +76,7 @@ function Navigation({
   const location = useLocation();
   const { isDarkTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { openDatasetManager } = useDatasetManager();
 
   // Get critical suggestion count for nav badge
   const { criticalCount } = useDignityAnalysis({ autoRun: false });
@@ -172,7 +174,7 @@ function Navigation({
             <SyncStatusIndicator />
 
             {/* User Menu */}
-            <UserMenu />
+            <UserMenu onOpenDatasetManager={openDatasetManager} />
 
             {/* Mobile Menu Toggle */}
             <motion.button

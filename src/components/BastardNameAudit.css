@@ -1,0 +1,372 @@
+/**
+ * BastardNameAudit.css - Bastard Naming Audit Styles
+ *
+ * PURPOSE:
+ * Styles for the bastard naming convention audit tool.
+ * Follows medieval manuscript aesthetic with BEM naming.
+ * Uses CSS custom properties for theming.
+ */
+
+/* ============================================
+   CONTAINER
+   ============================================ */
+
+.bastard-audit {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+
+/* ============================================
+   HEADER
+   ============================================ */
+
+.bastard-audit__header {
+  margin-bottom: var(--space-5);
+}
+
+.bastard-audit__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.bastard-audit__title h3 {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.bastard-audit__title-icon--warning {
+  color: var(--color-warning);
+}
+
+.bastard-audit__title-icon--success {
+  color: var(--color-success);
+}
+
+.bastard-audit__description {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.bastard-audit__description strong {
+  color: var(--text-primary);
+}
+
+/* ============================================
+   STATS
+   ============================================ */
+
+.bastard-audit__stats {
+  display: flex;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+  padding: var(--space-4);
+  background: var(--bg-primary);
+  border-radius: var(--radius-md);
+}
+
+.bastard-audit__stat {
+  flex: 1;
+  text-align: center;
+  padding: var(--space-3);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+}
+
+.bastard-audit__stat-value {
+  display: block;
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.bastard-audit__stat-label {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  margin-top: var(--space-1);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.bastard-audit__stat--warning .bastard-audit__stat-value {
+  color: var(--color-warning);
+}
+
+.bastard-audit__stat--success .bastard-audit__stat-value {
+  color: var(--color-success);
+}
+
+/* ============================================
+   ACTIONS BAR
+   ============================================ */
+
+.bastard-audit__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--border-secondary);
+}
+
+.bastard-audit__select-all {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.bastard-audit__select-all input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.bastard-audit__select-all:hover {
+  color: var(--text-primary);
+}
+
+/* ============================================
+   RESULTS LIST
+   ============================================ */
+
+.bastard-audit__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: var(--space-2);
+}
+
+/* Custom scrollbar */
+.bastard-audit__list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.bastard-audit__list::-webkit-scrollbar-track {
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-full);
+}
+
+.bastard-audit__list::-webkit-scrollbar-thumb {
+  background: var(--border-primary);
+  border-radius: var(--radius-full);
+}
+
+.bastard-audit__list::-webkit-scrollbar-thumb:hover {
+  background: var(--border-secondary);
+}
+
+/* ============================================
+   LIST ITEM
+   ============================================ */
+
+.bastard-audit__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-md);
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.bastard-audit__item:hover {
+  border-color: var(--border-primary);
+  background: var(--bg-tertiary);
+}
+
+.bastard-audit__item--selected {
+  border-color: var(--color-warning);
+  background: rgba(245, 158, 11, 0.05);
+}
+
+.bastard-audit__item-checkbox {
+  flex-shrink: 0;
+}
+
+.bastard-audit__item-checkbox input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.bastard-audit__item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.bastard-audit__item-name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-1);
+}
+
+.bastard-audit__item-current {
+  color: var(--text-tertiary);
+  text-decoration: line-through;
+}
+
+.bastard-audit__item-arrow {
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.bastard-audit__item-suggested {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.bastard-audit__item-house {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+.bastard-audit__item-fix {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: var(--color-success);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.bastard-audit__item-fix:hover:not(:disabled) {
+  background: #059669; /* darker green */
+  transform: scale(1.05);
+}
+
+.bastard-audit__item-fix:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.bastard-audit__item-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================
+   SUCCESS STATE
+   ============================================ */
+
+.bastard-audit__success {
+  text-align: center;
+  padding: var(--space-8) var(--space-4);
+}
+
+.bastard-audit__success-icon {
+  color: var(--color-success);
+  margin-bottom: var(--space-4);
+}
+
+.bastard-audit__success-text {
+  font-size: var(--text-base);
+  color: var(--text-primary);
+  margin: 0 0 var(--space-2) 0;
+}
+
+.bastard-audit__success-subtext {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* ============================================
+   HELP TEXT
+   ============================================ */
+
+.bastard-audit__help {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  padding: var(--space-3);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+.bastard-audit__help p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.bastard-audit__help strong {
+  color: var(--text-secondary);
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 640px) {
+  .bastard-audit__stats {
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .bastard-audit__stat {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    text-align: left;
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .bastard-audit__stat-value {
+    font-size: var(--text-lg);
+  }
+
+  .bastard-audit__stat-label {
+    margin-top: 0;
+    margin-left: var(--space-2);
+  }
+
+  .bastard-audit__item-name {
+    flex-wrap: wrap;
+  }
+
+  .bastard-audit__actions {
+    flex-direction: column;
+    gap: var(--space-3);
+    align-items: stretch;
+  }
+
+  .bastard-audit__select-all {
+    justify-content: center;
+  }
+}

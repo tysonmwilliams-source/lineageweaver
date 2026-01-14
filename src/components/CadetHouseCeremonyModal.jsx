@@ -1,67 +1,83 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import Icon from './icons/Icon';
+import ActionButton from './shared/ActionButton';
+import {
+  generateCadetHouseName,
+  generateCadetNameSuggestions,
+  extractCoreHouseName,
+  CADET_SUFFIXES,
+  BASTARD_PREFIX
+} from '../utils/bastardNaming';
+import './CadetHouseCeremonyModal.css';
 
 /**
  * CadetHouseCeremonyModal Component
  * 
- * Admin tool for founding a cadet house from a bastard (age 18+).
- * Allows flexible naming based on any part of the parent house name.
+ * Two-tier cadet house founding system:
+ * 
+ * TIER 1 - Noble Cadet Branch:
+ * - Founder: Legitimate second/third son
+ * - Naming: First 4 letters of parent house + suffix
+ * - Example: Wilfrey → Wilfford, Wilfmere, Wilfholt
+ * - Status: Full noble standing
+ * 
+ * TIER 2 - Bastard Elevation Branch:
+ * - Founder: Acknowledged bastard who has proven themselves
+ * - Naming: "Dun" + first 4 letters of parent house + suffix
+ * - Example: Dunwilfrey → House Dunwilfhollow
+ * - Status: Recognized but lesser standing, bastard origins visible
  * 
  * Props:
- * - founder: The bastard person founding the house
+ * - founder: The person founding the house
  * - parentHouse: The parent house they're creating a branch of
  * - onFound: Function to call when founding is completed
  * - onCancel: Function to call when user cancels
  */
 function CadetHouseCeremonyModal({ founder, parentHouse, onFound, onCancel }) {
+  // Determine if founder is a bastard
+  const isBastardFounder = founder?.legitimacyStatus === 'bastard';
+  const founderTier = isBastardFounder ? 2 : 1;
+  
+  // Form state
   const [formData, setFormData] = useState({
-    prefix: '',
     houseName: '',
+    customSuffix: '',
     motto: '',
-    foundingYear: new Date().getFullYear().toString()
+    foundingYear: ''
   });
 
   const [errors, setErrors] = useState({});
+  const [useCustomName, setUseCustomName] = useState(false);
 
-  /**
-   * Generate name suggestions based on parent house name
-   */
-  const generateSuggestions = () => {
-    // Strip "House" prefix if present to get the actual house name
-    let name = parentHouse.houseName.toLowerCase();
-    if (name.startsWith('house ')) {
-      name = name.substring(6); // Remove "house " (6 characters)
-    }
-    
-    const suggestions = [];
-    const suffixes = ['home', 'stone', 'crest', 'forge', 'vale', 'guard', 'brook', 'mere', 'hart', 'wood'];
-    
-    // Generate suggestions from different parts of the parent name
-    // First 3-4 letters
-    if (name.length >= 3) {
-      const prefix1 = name.substring(0, 3);
-      suffixes.slice(0, 3).forEach(suffix => {
-        suggestions.push(prefix1.charAt(0).toUpperCase() + prefix1.slice(1) + suffix);
-      });
-    }
-    
-    // First 4 letters if long enough
-    if (name.length >= 5) {
-      const prefix2 = name.substring(0, 4);
-      suffixes.slice(3, 5).forEach(suffix => {
-        suggestions.push(prefix2.charAt(0).toUpperCase() + prefix2.slice(1) + suffix);
-      });
-    }
-    
-    // Last 3-4 letters
-    if (name.length >= 6) {
-      const prefix3 = name.substring(name.length - 4);
-      suffixes.slice(5, 7).forEach(suffix => {
-        suggestions.push(prefix3.charAt(0).toUpperCase() + prefix3.slice(1) + suffix);
-      });
-    }
-    
-    return suggestions;
-  };
+  // Extract core house name (strip "House " prefix and " of Location" suffix)
+  const coreHouseName = useMemo(() => {
+    return extractCoreHouseName(parentHouse?.houseName || '');
+  }, [parentHouse]);
+
+  // Get the root for cadet names (first 4 letters, or whole name if shorter)
+  const nameRoot = useMemo(() => {
+    const root = coreHouseName.substring(0, 4).toLowerCase();
+    return root.charAt(0).toUpperCase() + root.slice(1);
+  }, [coreHouseName]);
+
+  // Generate suggestions based on founder tier
+  const suggestions = useMemo(() => {
+    return generateCadetNameSuggestions(parentHouse?.houseName || '', isBastardFounder, 8);
+  }, [parentHouse, isBastardFounder]);
+
+  // Build the full house name based on custom suffix
+  const builtHouseName = useMemo(() => {
+    if (!formData.customSuffix.trim()) return '';
+    return generateCadetHouseName(
+      parentHouse?.houseName || '',
+      formData.customSuffix,
+      isBastardFounder
+    );
+  }, [parentHouse, formData.customSuffix, isBastardFounder]);
+
+  // The final house name (either selected suggestion or custom built)
+  const finalHouseName = useCustomName ? builtHouseName : formData.houseName;
 
   /**
    * Handle input changes
@@ -73,14 +89,6 @@ function CadetHouseCeremonyModal({ founder, parentHouse, onFound, onCancel }) {
       [name]: value
     }));
     
-    // Auto-update house name when prefix changes
-    if (name === 'prefix' && value) {
-      setFormData(prev => ({
-        ...prev,
-        houseName: value
-      }));
-    }
-    
     // Clear error when user types
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
@@ -88,14 +96,32 @@ function CadetHouseCeremonyModal({ founder, parentHouse, onFound, onCancel }) {
   };
 
   /**
-   * Use a suggestion
+   * Select a suggestion
    */
-  const useSuggestion = (suggestion) => {
+  const selectSuggestion = (suggestion) => {
     setFormData(prev => ({
       ...prev,
       houseName: suggestion,
-      prefix: ''
+      customSuffix: ''
     }));
+    setUseCustomName(false);
+    if (errors.houseName) {
+      setErrors(prev => ({ ...prev, houseName: '' }));
+    }
+  };
+
+  /**
+   * Toggle custom name mode
+   */
+  const toggleCustomMode = () => {
+    setUseCustomName(!useCustomName);
+    if (!useCustomName) {
+      // Switching to custom mode - clear selected suggestion
+      setFormData(prev => ({ ...prev, houseName: '' }));
+    } else {
+      // Switching to suggestion mode - clear custom suffix
+      setFormData(prev => ({ ...prev, customSuffix: '' }));
+    }
   };
 
   /**
@@ -104,16 +130,14 @@ function CadetHouseCeremonyModal({ founder, parentHouse, onFound, onCancel }) {
   const validate = () => {
     const newErrors = {};
 
-    // House name is required
-    if (!formData.houseName.trim()) {
-      newErrors.houseName = 'House name is required';
-    } 
-    // Must be at least 4 characters
-    else if (formData.houseName.length < 4) {
+    // House name validation
+    if (!finalHouseName || !finalHouseName.trim()) {
+      newErrors.houseName = 'Please select or create a house name';
+    } else if (finalHouseName.length < 4) {
       newErrors.houseName = 'House name must be at least 4 characters';
     }
 
-    // Founding year is required
+    // Founding year validation
     if (!formData.foundingYear) {
       newErrors.foundingYear = 'Founding year is required';
     } else if (!/^\d{4}$/.test(formData.foundingYear)) {
@@ -133,20 +157,23 @@ function CadetHouseCeremonyModal({ founder, parentHouse, onFound, onCancel }) {
     if (validate()) {
       onFound({
         founderId: founder.id,
-        houseName: formData.houseName,
+        houseName: finalHouseName,
         parentHouseId: parentHouse.id,
-        ceremonyDate: `${formData.foundingYear}-01-01`, // Use year as full date
+        cadetTier: founderTier,
+        foundingType: isBastardFounder ? 'bastard-elevation' : 'noble',
+        ceremonyDate: `${formData.foundingYear}-01-01`,
         motto: formData.motto || null,
-        // Use a lighter shade of parent house color
-        colorCode: adjustColorBrightness(parentHouse.colorCode, 40)
+        colorCode: adjustColorBrightness(parentHouse.colorCode, isBastardFounder ? 30 : 40)
       });
     }
   };
 
   /**
    * Adjust color brightness for cadet house
+   * Bastard houses get a slightly different shade
    */
   const adjustColorBrightness = (hex, percent) => {
+    if (!hex) return '#666666';
     hex = hex.replace('#', '');
     const r = parseInt(hex.substring(0, 2), 16);
     const g = parseInt(hex.substring(2, 4), 16);
@@ -162,82 +189,173 @@ function CadetHouseCeremonyModal({ founder, parentHouse, onFound, onCancel }) {
       newB.toString(16).padStart(2, '0');
   };
 
-  const suggestions = generateSuggestions();
-
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-        <h3 className="text-lg font-bold text-gray-900 mb-1">Found Cadet House</h3>
-        <p className="text-sm text-gray-600">
-          Create a cadet branch of <strong>{parentHouse.houseName}</strong> for {founder.firstName} {founder.lastName}
-        </p>
-      </div>
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Founder Info */}
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <p className="text-xs text-gray-500 uppercase font-semibold">Founder</p>
-            <p className="text-gray-900">{founder.firstName} {founder.lastName}</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-500 uppercase font-semibold">Parent House</p>
-            <p className="text-gray-900">{parentHouse.houseName}</p>
-          </div>
+    <div className="cadet-ceremony">
+      {/* Header with Tier Indicator */}
+      <div className={`cadet-ceremony__header cadet-ceremony__header--tier-${founderTier}`}>
+        <div className="cadet-ceremony__header-icon">
+          <Icon name={isBastardFounder ? 'shield-alert' : 'shield'} size={24} />
         </div>
-
-        {/* Naming Help */}
-        <div className="bg-blue-50 border border-blue-200 rounded p-3">
-          <p className="text-xs font-semibold text-blue-900 mb-1">Naming Convention</p>
-          <p className="text-sm text-blue-800">
-            Use any part of "{parentHouse.houseName.replace(/^House /i, '')}" as the basis for the new house name (e.g., "Bran" or "Ford" from "Branford")
+        <div className="cadet-ceremony__header-content">
+          <h3 className="cadet-ceremony__title">
+            {isBastardFounder ? 'Bastard Elevation' : 'Noble Cadet Branch'}
+          </h3>
+          <p className="cadet-ceremony__subtitle">
+            {isBastardFounder 
+              ? `Elevating ${founder.firstName} to found a recognized house`
+              : `Establishing a cadet branch for ${founder.firstName}`
+            }
           </p>
         </div>
+        <div className="cadet-ceremony__tier-badge">
+          Tier {founderTier}
+        </div>
+      </div>
 
-        {/* Suggestions */}
-        {suggestions.length > 0 && (
-          <div>
-            <p className="text-xs text-gray-600 mb-2">Suggested Names:</p>
-            <div className="flex flex-wrap gap-2">
-              {suggestions.map((suggestion, idx) => (
+      <form onSubmit={handleSubmit} className="cadet-ceremony__form">
+        {/* Founder & Parent Info */}
+        <div className="cadet-ceremony__info-grid">
+          <div className="cadet-ceremony__info-item">
+            <span className="cadet-ceremony__info-label">Founder</span>
+            <span className="cadet-ceremony__info-value">
+              {founder.firstName} {founder.lastName}
+              {isBastardFounder && (
+                <span className="cadet-ceremony__bastard-tag">Bastard</span>
+              )}
+            </span>
+          </div>
+          <div className="cadet-ceremony__info-item">
+            <span className="cadet-ceremony__info-label">Parent House</span>
+            <span className="cadet-ceremony__info-value">{parentHouse.houseName}</span>
+          </div>
+        </div>
+
+        {/* Naming Convention Explanation */}
+        <div className={`cadet-ceremony__naming-info cadet-ceremony__naming-info--tier-${founderTier}`}>
+          <div className="cadet-ceremony__naming-header">
+            <Icon name="info" size={16} />
+            <span>Naming Convention</span>
+          </div>
+          {isBastardFounder ? (
+            <div className="cadet-ceremony__naming-content">
+              <p>
+                Bastard-founded houses retain the "<strong>{BASTARD_PREFIX}</strong>" prefix permanently, 
+                marking their origins. Your house name will begin with:
+              </p>
+              <div className="cadet-ceremony__name-preview">
+                <strong>{BASTARD_PREFIX}{nameRoot.toLowerCase()}</strong>-
+              </div>
+              <p className="cadet-ceremony__naming-note">
+                This mark of origin will follow the house through generations, even as its 
+                members become legitimate within the new house.
+              </p>
+            </div>
+          ) : (
+            <div className="cadet-ceremony__naming-content">
+              <p>
+                Noble cadet branches use the first four letters of the parent house 
+                combined with a meaningful suffix. Your house name will begin with:
+              </p>
+              <div className="cadet-ceremony__name-preview">
+                <strong>{nameRoot}</strong>-
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Name Selection */}
+        <div className="cadet-ceremony__section">
+          <div className="cadet-ceremony__section-header">
+            <label className="cadet-ceremony__label">
+              Choose House Name *
+            </label>
+            <button
+              type="button"
+              className="cadet-ceremony__toggle-custom"
+              onClick={toggleCustomMode}
+            >
+              {useCustomName ? 'Use Suggestions' : 'Create Custom'}
+            </button>
+          </div>
+
+          <AnimatePresence mode="wait">
+            {!useCustomName ? (
+              <motion.div
+                key="suggestions"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                className="cadet-ceremony__suggestions"
+              >
+                {suggestions.map((suggestion, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => selectSuggestion(suggestion)}
+                    className={`cadet-ceremony__suggestion ${
+                      formData.houseName === suggestion ? 'cadet-ceremony__suggestion--selected' : ''
+                    }`}
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </motion.div>
+            ) : (
+              <motion.div
+                key="custom"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                className="cadet-ceremony__custom-input"
+              >
+                <div className="cadet-ceremony__custom-prefix">
+                  {isBastardFounder ? `${BASTARD_PREFIX}${nameRoot.toLowerCase()}` : nameRoot}
+                </div>
+                <input
+                  type="text"
+                  name="customSuffix"
+                  value={formData.customSuffix}
+                  onChange={handleChange}
+                  placeholder="Enter suffix..."
+                  className="cadet-ceremony__input"
+                />
+                {builtHouseName && (
+                  <div className="cadet-ceremony__custom-result">
+                    = <strong>{builtHouseName}</strong>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Suffix Suggestions */}
+          {useCustomName && (
+            <div className="cadet-ceremony__suffix-hints">
+              <span className="cadet-ceremony__suffix-label">Common suffixes:</span>
+              {CADET_SUFFIXES.slice(0, 8).map((suffix, idx) => (
                 <button
                   key={idx}
                   type="button"
-                  onClick={() => useSuggestion(suggestion)}
-                  className="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition"
+                  className="cadet-ceremony__suffix-btn"
+                  onClick={() => setFormData(prev => ({ ...prev, customSuffix: suffix }))}
                 >
-                  {suggestion}
+                  -{suffix}
                 </button>
               ))}
             </div>
-          </div>
-        )}
+          )}
 
-        {/* House Name */}
-        <div>
-          <label htmlFor="houseName" className="block text-sm font-medium text-gray-700 mb-1">
-            Cadet House Name *
-          </label>
-          <input
-            type="text"
-            id="houseName"
-            name="houseName"
-            value={formData.houseName}
-            onChange={handleChange}
-            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-              errors.houseName ? 'border-red-500' : 'border-gray-300'
-            }`}
-            placeholder="Enter house name"
-          />
           {errors.houseName && (
-            <p className="mt-1 text-sm text-red-600">{errors.houseName}</p>
+            <span className="cadet-ceremony__error">
+              <Icon name="alert-circle" size={12} />
+              {errors.houseName}
+            </span>
           )}
         </div>
 
         {/* Founding Year */}
-        <div>
-          <label htmlFor="foundingYear" className="block text-sm font-medium text-gray-700 mb-1">
+        <div className="cadet-ceremony__section">
+          <label htmlFor="foundingYear" className="cadet-ceremony__label">
             Founding Year *
           </label>
           <input
@@ -246,20 +364,23 @@ function CadetHouseCeremonyModal({ founder, parentHouse, onFound, onCancel }) {
             name="foundingYear"
             value={formData.foundingYear}
             onChange={handleChange}
-            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-              errors.foundingYear ? 'border-red-500' : 'border-gray-300'
-            }`}
             placeholder="e.g., 1245"
+            className={`cadet-ceremony__input cadet-ceremony__input--full ${
+              errors.foundingYear ? 'cadet-ceremony__input--error' : ''
+            }`}
           />
           {errors.foundingYear && (
-            <p className="mt-1 text-sm text-red-600">{errors.foundingYear}</p>
+            <span className="cadet-ceremony__error">
+              <Icon name="alert-circle" size={12} />
+              {errors.foundingYear}
+            </span>
           )}
         </div>
 
-        {/* House Motto (Optional) */}
-        <div>
-          <label htmlFor="motto" className="block text-sm font-medium text-gray-700 mb-1">
-            House Motto (Optional)
+        {/* Motto */}
+        <div className="cadet-ceremony__section">
+          <label htmlFor="motto" className="cadet-ceremony__label">
+            House Motto <span className="cadet-ceremony__optional">(optional)</span>
           </label>
           <input
             type="text"
@@ -267,46 +388,73 @@ function CadetHouseCeremonyModal({ founder, parentHouse, onFound, onCancel }) {
             name="motto"
             value={formData.motto}
             onChange={handleChange}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="e.g., Honor Above All"
+            placeholder="e.g., Through Adversity, Strength"
+            className="cadet-ceremony__input cadet-ceremony__input--full"
           />
         </div>
 
         {/* Preview */}
-        {formData.houseName && (
-          <div className="bg-gray-50 border border-gray-200 rounded p-3">
-            <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Preview</p>
-            <div className="flex items-center space-x-3">
-              <div 
-                className="w-8 h-8 rounded"
-                style={{ backgroundColor: adjustColorBrightness(parentHouse.colorCode, 40) }}
-              />
-              <div>
-                <p className="text-sm font-bold text-gray-900">House {formData.houseName}</p>
-                <p className="text-xs text-gray-600">Cadet branch of {parentHouse.houseName}</p>
-                {formData.foundingYear && (
-                  <p className="text-xs text-gray-500">Founded {formData.foundingYear}</p>
-                )}
+        <AnimatePresence>
+          {finalHouseName && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="cadet-ceremony__preview"
+            >
+              <div className="cadet-ceremony__preview-header">
+                <Icon name="eye" size={14} />
+                Preview
               </div>
-            </div>
-          </div>
-        )}
+              <div className="cadet-ceremony__preview-content">
+                <div 
+                  className="cadet-ceremony__preview-color"
+                  style={{ 
+                    backgroundColor: adjustColorBrightness(
+                      parentHouse.colorCode, 
+                      isBastardFounder ? 30 : 40
+                    ) 
+                  }}
+                />
+                <div className="cadet-ceremony__preview-details">
+                  <div className="cadet-ceremony__preview-name">
+                    House {finalHouseName}
+                  </div>
+                  <div className="cadet-ceremony__preview-meta">
+                    <span>
+                      {isBastardFounder ? 'Bastard elevation' : 'Cadet branch'} of {parentHouse.houseName}
+                    </span>
+                    {formData.foundingYear && (
+                      <span> • Founded {formData.foundingYear}</span>
+                    )}
+                  </div>
+                  {formData.motto && (
+                    <div className="cadet-ceremony__preview-motto">
+                      "{formData.motto}"
+                    </div>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        {/* Form Actions */}
-        <div className="flex justify-end space-x-3 pt-4 border-t">
-          <button
+        {/* Actions */}
+        <div className="cadet-ceremony__actions">
+          <ActionButton
             type="button"
+            variant="ghost"
             onClick={onCancel}
-            className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition"
           >
             Cancel
-          </button>
-          <button
+          </ActionButton>
+          <ActionButton
             type="submit"
-            className="px-4 py-2 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition font-semibold"
+            variant="primary"
+            icon="flag"
           >
-            Found Cadet House
-          </button>
+            Found House
+          </ActionButton>
         </div>
       </form>
     </div>

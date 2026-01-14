@@ -21,6 +21,7 @@ import ExternalChargeRenderer, {
   generateExternalChargeSVGAsync
 } from '../components/heraldry/ExternalChargeRenderer';
 import { useAuth } from '../contexts/AuthContext';
+import { useDataset } from '../contexts/DatasetContext';
 import {
   syncAddHeraldry,
   syncUpdateHeraldry,
@@ -1443,10 +1444,11 @@ function HeraldryCreator() {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
   const presetHouseId = searchParams.get('houseId');
-  
+
   // ☁️ Get user for cloud sync
   const { user } = useAuth();
-  
+  const { activeDataset } = useDataset();
+
   const isEditMode = !!id;
   
   // Identity state
@@ -1621,16 +1623,17 @@ function HeraldryCreator() {
   // Load initial data
   useEffect(() => {
     loadInitialData();
-  }, [id]);
-  
+  }, [id, activeDataset]);
+
   async function loadInitialData() {
     setLoading(true);
+    const datasetId = activeDataset?.id;
     try {
-      const housesData = await getAllHouses();
+      const housesData = await getAllHouses(datasetId);
       setHouses(housesData);
-      
+
       if (isEditMode) {
-        const heraldry = await getHeraldry(parseInt(id));
+        const heraldry = await getHeraldry(parseInt(id), datasetId);
         if (heraldry) {
           setExistingHeraldry(heraldry);
           setName(heraldry.name || '');
@@ -1691,7 +1694,7 @@ function HeraldryCreator() {
           // PHASE 5 Batch 3: Load linked codex entry if exists
           if (heraldry.codexEntryId) {
             try {
-              const codexEntry = await getEntryByHeraldryId(heraldry.id);
+              const codexEntry = await getEntryByHeraldryId(heraldry.id, datasetId);
               if (codexEntry) {
                 setLinkedCodexEntry(codexEntry);
               }
@@ -1701,9 +1704,9 @@ function HeraldryCreator() {
           }
         }
       }
-      
+
       if (presetHouseId && !isEditMode) {
-        const house = await getHouse(parseInt(presetHouseId));
+        const house = await getHouse(parseInt(presetHouseId), datasetId);
         if (house) {
           setName(`Arms of ${house.houseName}`);
           setLinkedHouseId(presetHouseId);
@@ -1812,14 +1815,15 @@ function HeraldryCreator() {
       alert('Please enter a name for this heraldry.');
       return;
     }
-    
+
     if (!previewSVG) {
       alert('Please generate a preview first.');
       return;
     }
-    
+
     setSaving(true);
-    
+    const datasetId = activeDataset?.id;
+
     try {
       const pngVersions = await convertSVGtoPNG(previewSVG);
       
@@ -1847,21 +1851,21 @@ function HeraldryCreator() {
       };
       
       let heraldryId;
-      
+
       if (isEditMode) {
-        await updateHeraldry(parseInt(id), heraldryData);
+        await updateHeraldry(parseInt(id), heraldryData, user?.uid, datasetId);
         heraldryId = parseInt(id);
-        
+
         // ☁️ Sync update to cloud
         if (user?.uid) {
-          syncUpdateHeraldry(user.uid, heraldryId, heraldryData);
+          syncUpdateHeraldry(user.uid, heraldryId, heraldryData, datasetId);
         }
       } else {
-        heraldryId = await createHeraldry(heraldryData);
-        
+        heraldryId = await createHeraldry(heraldryData, user?.uid, datasetId);
+
         // ☁️ Sync new heraldry to cloud
         if (user?.uid) {
-          syncAddHeraldry(user.uid, heraldryId, { ...heraldryData, id: heraldryId });
+          syncAddHeraldry(user.uid, heraldryId, { ...heraldryData, id: heraldryId }, datasetId);
         }
       }
       
@@ -1879,15 +1883,15 @@ function HeraldryCreator() {
             tags: ['heraldry', 'coat of arms', ...tags.split(',').map(t => t.trim()).filter(t => t)]
           };
           
-          const codexEntryId = await createEntry(codexEntryData);
-          
+          const codexEntryId = await createEntry(codexEntryData, datasetId);
+
           // Update heraldry with codex link (bidirectional)
-          await updateHeraldry(heraldryId, { codexEntryId: codexEntryId });
-          
+          await updateHeraldry(heraldryId, { codexEntryId: codexEntryId }, user?.uid, datasetId);
+
           // ☁️ Sync to cloud
           if (user?.uid) {
-            syncAddCodexEntry(user.uid, codexEntryId, { ...codexEntryData, id: codexEntryId });
-            syncUpdateHeraldryForCodex(user.uid, heraldryId, { codexEntryId: codexEntryId });
+            syncAddCodexEntry(user.uid, codexEntryId, { ...codexEntryData, id: codexEntryId }, datasetId);
+            syncUpdateHeraldryForCodex(user.uid, heraldryId, { codexEntryId: codexEntryId }, datasetId);
           }
           
           console.log(`✅ Auto-created Codex entry ${codexEntryId} for heraldry "${name.trim()}"`);
@@ -1903,8 +1907,8 @@ function HeraldryCreator() {
           entityType: 'house',
           entityId: parseInt(linkedHouseId),
           linkType: 'primary'
-        });
-        
+        }, user?.uid, datasetId);
+
         // ☁️ Sync link to cloud
         if (user?.uid) {
           syncAddHeraldryLink(user.uid, linkId, {
@@ -1913,9 +1917,9 @@ function HeraldryCreator() {
             entityType: 'house',
             entityId: parseInt(linkedHouseId),
             linkType: 'primary'
-          });
+          }, datasetId);
         }
-        
+
         const houseUpdates = {
           heraldrySVG: previewSVG,
           heraldrySourceSVG: rawSVG,
@@ -1927,12 +1931,12 @@ function HeraldryCreator() {
           heraldryType: 'svg',
           heraldryId: heraldryId
         };
-        
-        await updateHouse(parseInt(linkedHouseId), houseUpdates);
-        
+
+        await updateHouse(parseInt(linkedHouseId), houseUpdates, datasetId);
+
         // ☁️ Sync house update to cloud
         if (user?.uid) {
-          syncUpdateHouse(user.uid, parseInt(linkedHouseId), houseUpdates);
+          syncUpdateHouse(user.uid, parseInt(linkedHouseId), houseUpdates, datasetId);
         }
       }
       

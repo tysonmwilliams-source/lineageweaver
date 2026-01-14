@@ -24,6 +24,7 @@ import {
 } from '../services/codexService';
 import { importSeedData, getImportPreview } from '../utils/import-seed-data';
 import { useGenealogy } from '../contexts/GenealogyContext';
+import { useDataset } from '../contexts/DatasetContext';
 import Navigation from '../components/Navigation';
 import Icon from '../components/icons';
 import { LoadingState, EmptyState, SectionHeader, Card, ActionButton } from '../components/shared';
@@ -87,6 +88,7 @@ const TYPE_ICONS = {
 function CodexLanding() {
   const navigate = useNavigate();
   const { people } = useGenealogy();
+  const { activeDataset } = useDataset();
 
   // State
   const [statistics, setStatistics] = useState(null);
@@ -104,16 +106,17 @@ function CodexLanding() {
   // Load data
   useEffect(() => {
     let cancelled = false;
+    const datasetId = activeDataset?.id;
 
     async function loadCodexData() {
       try {
         setLoading(true);
 
-        const stats = await getCodexStatistics();
+        const stats = await getCodexStatistics(datasetId);
         if (cancelled) return;
         setStatistics(stats);
 
-        const allEntries = await getAllEntries();
+        const allEntries = await getAllEntries(datasetId);
         if (cancelled) return;
 
         // Get recent entries
@@ -156,7 +159,7 @@ function CodexLanding() {
 
     loadCodexData();
     return () => { cancelled = true; };
-  }, []);
+  }, [activeDataset]);
 
   // Handlers
   const handleImportSeedData = useCallback(async () => {

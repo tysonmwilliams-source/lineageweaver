@@ -17,6 +17,7 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useDataset } from '../contexts/DatasetContext';
 import { runFullAnalysis, analyzeEntity } from '../services/dignityAnalysisService';
 import {
   createDignity,
@@ -37,6 +38,7 @@ import {
 export function useDignityAnalysis(options = {}) {
   const { scope = 'all', entityId = null } = options;
   const { user } = useAuth();
+  const { activeDataset } = useDataset();
 
   // ==================== CORE STATE ====================
 
@@ -138,14 +140,15 @@ export function useDignityAnalysis(options = {}) {
   const runAnalysis = useCallback(async (analysisOptions = {}) => {
     setLoading(true);
     setError(null);
+    const datasetId = activeDataset?.id;
 
     try {
       let result;
 
       if (scope === 'all') {
-        result = await runFullAnalysis(analysisOptions);
+        result = await runFullAnalysis({ ...analysisOptions, datasetId });
       } else {
-        const entitySuggestions = await analyzeEntity(scope, entityId);
+        const entitySuggestions = await analyzeEntity(scope, entityId, datasetId);
         result = {
           suggestions: entitySuggestions,
           stats: {
@@ -172,7 +175,7 @@ export function useDignityAnalysis(options = {}) {
     } finally {
       setLoading(false);
     }
-  }, [scope, entityId]);
+  }, [scope, entityId, activeDataset]);
 
   /**
    * Apply a suggestion (execute its action)
@@ -188,24 +191,25 @@ export function useDignityAnalysis(options = {}) {
 
     const action = suggestion.suggestedAction;
     const data = { ...action.data, ...overrideData };
+    const datasetId = activeDataset?.id;
 
     try {
       // Execute action based on type
       switch (action.type) {
         case 'create-dignity':
-          await createDignity(data, user?.uid);
+          await createDignity(data, user?.uid, datasetId);
           break;
 
         case 'update-dignity':
-          await updateDignity(data.dignityId, data, user?.uid);
+          await updateDignity(data.dignityId, data, user?.uid, datasetId);
           break;
 
         case 'transfer-dignity':
           // End current tenure
           if (data.endCurrentTenure) {
-            const currentTenure = await getCurrentTenure(data.dignityId);
+            const currentTenure = await getCurrentTenure(data.dignityId, datasetId);
             if (currentTenure) {
-              await updateDignityTenure(currentTenure.id, data.endCurrentTenure, user?.uid);
+              await updateDignityTenure(currentTenure.id, data.endCurrentTenure, user?.uid, datasetId);
             }
           }
           // Calculate and assign heir if requested
@@ -214,12 +218,12 @@ export function useDignityAnalysis(options = {}) {
             await updateDignity(data.dignityId, {
               currentHolderId: null,
               isVacant: true
-            }, user?.uid);
+            }, user?.uid, datasetId);
           }
           break;
 
         case 'create-tenure':
-          await createDignityTenure(data, user?.uid);
+          await createDignityTenure(data, user?.uid, datasetId);
           break;
 
         case 'create-tenure-chain':
@@ -231,7 +235,7 @@ export function useDignityAnalysis(options = {}) {
               dateEnded: tenureData.dateEnded,
               endType: tenureData.endType,
               acquisitionType: 'inheritance'
-            }, user?.uid);
+            }, user?.uid, datasetId);
           }
           break;
 
@@ -239,13 +243,13 @@ export function useDignityAnalysis(options = {}) {
           await updateDignity(data.dignityId, {
             currentHolderId: null,
             isVacant: true
-          }, user?.uid);
+          }, user?.uid, datasetId);
           break;
 
         case 'fix-feudal-chain':
           await updateDignity(data.dignityId, {
             swornToId: null
-          }, user?.uid);
+          }, user?.uid, datasetId);
           break;
 
         case 'link-to-house':
@@ -255,13 +259,13 @@ export function useDignityAnalysis(options = {}) {
           }
           await updateDignity(data.dignityId, {
             currentHouseId: data.houseId
-          }, user?.uid);
+          }, user?.uid, datasetId);
           break;
 
         case 'delete-dignity':
           // Import dynamically to avoid circular dependency
           const { deleteDignity } = await import('../services/dignityService');
-          await deleteDignity(data.dignityId, user?.uid);
+          await deleteDignity(data.dignityId, user?.uid, datasetId);
           break;
 
         case 'update-tenure':
@@ -269,7 +273,7 @@ export function useDignityAnalysis(options = {}) {
           if (data.promptForCorrection) {
             throw new Error('This action requires manual date correction');
           }
-          await updateDignityTenure(data.tenureId, data, user?.uid);
+          await updateDignityTenure(data.tenureId, data, user?.uid, datasetId);
           break;
 
         case 'review':
@@ -292,7 +296,7 @@ export function useDignityAnalysis(options = {}) {
       console.error('Failed to apply suggestion:', err);
       throw err;
     }
-  }, [suggestionMap, user?.uid]);
+  }, [suggestionMap, user?.uid, activeDataset]);
 
   /**
    * Apply an alternative action from a suggestion
@@ -313,28 +317,29 @@ export function useDignityAnalysis(options = {}) {
     }
 
     const data = { ...altAction.data, ...overrideData };
+    const datasetId = activeDataset?.id;
 
     try {
       // Execute based on action type (same as applySuggestion)
       switch (altAction.type) {
         case 'create-dignity':
-          await createDignity(data, user?.uid);
+          await createDignity(data, user?.uid, datasetId);
           break;
 
         case 'update-dignity':
-          await updateDignity(data.dignityId, data, user?.uid);
+          await updateDignity(data.dignityId, data, user?.uid, datasetId);
           break;
 
         case 'mark-vacant':
           await updateDignity(data.dignityId, {
             currentHolderId: null,
             isVacant: true
-          }, user?.uid);
+          }, user?.uid, datasetId);
           break;
 
         case 'delete-dignity':
           const { deleteDignity } = await import('../services/dignityService');
-          await deleteDignity(data.dignityId, user?.uid);
+          await deleteDignity(data.dignityId, user?.uid, datasetId);
           break;
 
         default:
@@ -353,7 +358,7 @@ export function useDignityAnalysis(options = {}) {
       console.error('Failed to apply alternative action:', err);
       throw err;
     }
-  }, [suggestionMap, user?.uid]);
+  }, [suggestionMap, user?.uid, activeDataset]);
 
   /**
    * Dismiss a suggestion

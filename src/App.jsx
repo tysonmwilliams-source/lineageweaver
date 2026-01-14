@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { useEffect, useState, lazy, Suspense } from 'react';
+import { useEffect, useState, lazy, Suspense, createContext, useContext } from 'react';
 import Home from './pages/Home';
 import { initializeSampleData } from './services/sampleData';
 
@@ -61,9 +61,23 @@ import { ThemeProvider } from './components/ThemeContext';
 import { GenealogyProvider } from './contexts/GenealogyContext';
 import { BugTrackerProvider } from './contexts/BugContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { DatasetProvider, useDataset } from './contexts/DatasetContext';
 import { ProtectedRoute } from './components/auth';
 import BugReporterButton from './components/bugs/BugReporterButton';
 import ErrorBoundary from './components/ErrorBoundary';
+import { DatasetManager } from './components/datasets';
+import { runDatasetMigration } from './services/migrationService';
+
+// Context for opening the Dataset Manager modal from anywhere in the app
+export const DatasetManagerContext = createContext({ openDatasetManager: () => {} });
+
+/**
+ * Hook to access the Dataset Manager opener
+ * Use this to open the Dataset Manager modal from any component
+ */
+export function useDatasetManager() {
+  return useContext(DatasetManagerContext);
+}
 
 /**
  * Main App Component
@@ -100,12 +114,24 @@ import ErrorBoundary from './components/ErrorBoundary';
 function AppContent() {
   const [dbInitialized, setDbInitialized] = useState(false);
   const [initError, setInitError] = useState(null);
+  const [datasetManagerOpen, setDatasetManagerOpen] = useState(false);
   const { user } = useAuth();
+  const { activeDataset, isLoading: datasetLoading, isInitialized: datasetInitialized } = useDataset();
 
   useEffect(() => {
     async function setupDatabase() {
       try {
         console.log('Initializing database...');
+
+        // Run dataset migration check for existing users
+        if (user) {
+          console.log('📂 Checking dataset migration...');
+          const migrationResult = await runDatasetMigration(user.uid);
+          if (migrationResult.firestore?.documentsMovedTotal > 0) {
+            console.log('📂 Dataset migration completed, moved', migrationResult.firestore.documentsMovedTotal, 'documents');
+          }
+        }
+
         await initializeSampleData();
         setDbInitialized(true);
         console.log('Database ready!');
@@ -115,8 +141,62 @@ function AppContent() {
       }
     }
 
-    setupDatabase();
-  }, []);
+    // Only setup database after dataset context is initialized
+    if (datasetInitialized || !user) {
+      setupDatabase();
+    }
+  }, [user, datasetInitialized]);
+
+  // Dataset context loading
+  if (user && datasetLoading && !datasetInitialized) {
+    return (
+      <div className="init-screen">
+        <div className="init-content">
+          <div className="init-icon">📂</div>
+          <h2 className="init-title">Loading Datasets...</h2>
+          <p className="init-text">Preparing your genealogy projects</p>
+          {user && (
+            <p className="init-user">Signed in as {user.displayName}</p>
+          )}
+        </div>
+
+        <style>{`
+          .init-screen {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-primary);
+          }
+          .init-content {
+            text-align: center;
+          }
+          .init-icon {
+            font-size: 48px;
+            margin-bottom: var(--space-4);
+          }
+          .init-title {
+            font-family: var(--font-display);
+            font-size: var(--text-2xl);
+            color: var(--text-primary);
+            margin: 0 0 var(--space-2) 0;
+          }
+          .init-text {
+            font-family: var(--font-body);
+            font-size: var(--text-base);
+            color: var(--text-secondary);
+            margin: 0;
+          }
+          .init-user {
+            font-family: var(--font-body);
+            font-size: var(--text-sm);
+            color: var(--text-tertiary);
+            margin-top: var(--space-4);
+          }
+        `}</style>
+      </div>
+    );
+  }
 
   // Database initializing
   if (!dbInitialized && !initError) {
@@ -239,35 +319,42 @@ function AppContent() {
   return (
     <GenealogyProvider>
       <BugTrackerProvider>
-        <Router>
-          <ErrorBoundary>
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/tree" element={<FamilyTree />} />
-              <Route path="/manage" element={<ManageData />} />
-              <Route path="/codex" element={<CodexLanding />} />
-              <Route path="/codex/create" element={<CodexEntryForm />} />
-              <Route path="/codex/edit/:id" element={<CodexEntryForm />} />
-              <Route path="/codex/entry/:id" element={<CodexEntryView />} />
-              <Route path="/codex/browse/:type" element={<CodexBrowse />} />
-              <Route path="/codex/import" element={<CodexImport />} />
-              <Route path="/heraldry" element={<HeraldryLanding />} />
-              <Route path="/heraldry/create" element={<HeraldryCreator />} />
-              <Route path="/heraldry/edit/:id" element={<HeraldryCreator />} />
-              <Route path="/heraldry/charges" element={<ChargesLibrary />} />
-              <Route path="/dignities" element={<DignitiesLanding />} />
-              <Route path="/dignities/create" element={<DignityForm />} />
-              <Route path="/dignities/edit/:id" element={<DignityForm />} />
-              <Route path="/dignities/view/:id" element={<DignityView />} />
-              <Route path="/dignities/analysis" element={<DignityAnalysis />} />
-              <Route path="/bugs" element={<BugTracker />} />
-              </Routes>
-            </Suspense>
-            {/* Floating bug reporter button - visible on all pages */}
-            <BugReporterButton />
-          </ErrorBoundary>
-        </Router>
+        <DatasetManagerContext.Provider value={{ openDatasetManager: () => setDatasetManagerOpen(true) }}>
+          <Router>
+            <ErrorBoundary>
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/tree" element={<FamilyTree />} />
+                <Route path="/manage" element={<ManageData />} />
+                <Route path="/codex" element={<CodexLanding />} />
+                <Route path="/codex/create" element={<CodexEntryForm />} />
+                <Route path="/codex/edit/:id" element={<CodexEntryForm />} />
+                <Route path="/codex/entry/:id" element={<CodexEntryView />} />
+                <Route path="/codex/browse/:type" element={<CodexBrowse />} />
+                <Route path="/codex/import" element={<CodexImport />} />
+                <Route path="/heraldry" element={<HeraldryLanding />} />
+                <Route path="/heraldry/create" element={<HeraldryCreator />} />
+                <Route path="/heraldry/edit/:id" element={<HeraldryCreator />} />
+                <Route path="/heraldry/charges" element={<ChargesLibrary />} />
+                <Route path="/dignities" element={<DignitiesLanding />} />
+                <Route path="/dignities/create" element={<DignityForm />} />
+                <Route path="/dignities/edit/:id" element={<DignityForm />} />
+                <Route path="/dignities/view/:id" element={<DignityView />} />
+                <Route path="/dignities/analysis" element={<DignityAnalysis />} />
+                <Route path="/bugs" element={<BugTracker />} />
+                </Routes>
+              </Suspense>
+              {/* Floating bug reporter button - visible on all pages */}
+              <BugReporterButton />
+            </ErrorBoundary>
+          </Router>
+          {/* Dataset Manager Modal */}
+          <DatasetManager
+            isOpen={datasetManagerOpen}
+            onClose={() => setDatasetManagerOpen(false)}
+          />
+        </DatasetManagerContext.Provider>
       </BugTrackerProvider>
     </GenealogyProvider>
   );
@@ -275,15 +362,24 @@ function AppContent() {
 
 /**
  * Main App Component
- * 
+ *
  * Sets up the provider hierarchy and authentication wrapper.
+ *
+ * PROVIDER HIERARCHY (updated):
+ * AuthProvider (authentication) ← MUST be outermost
+ *   └─ ThemeProvider (theming)
+ *        └─ ProtectedRoute (auth gate)
+ *             └─ DatasetProvider (dataset management - needs user)
+ *                  └─ AppContent (database init + GenealogyProvider)
  */
 function App() {
   return (
     <AuthProvider>
       <ThemeProvider defaultTheme="royal-parchment">
         <ProtectedRoute>
-          <AppContent />
+          <DatasetProvider>
+            <AppContent />
+          </DatasetProvider>
         </ProtectedRoute>
       </ThemeProvider>
     </AuthProvider>

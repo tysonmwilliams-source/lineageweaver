@@ -27,23 +27,27 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { useDataset } from '../contexts/DatasetContext';
 import { getHeraldry } from '../services/heraldryService';
 
 // Shield aspect ratio - most heraldic shields are taller than wide
 // Common ratios: heater ~5:6, french ~4:5, etc.
 const SHIELD_ASPECT_RATIO = 1.2; // height = width * 1.2
 
-function HeraldryThumbnail({ 
-  house, 
+function HeraldryThumbnail({
+  house,
   heraldryRecord = null,  // Optional: pre-fetched heraldry data
-  size = 'small', 
-  onClick = null, 
+  size = 'small',
+  onClick = null,
   showBorder = true,
   isDarkTheme = true,
   loading: externalLoading = false,
   preserveAspectRatio = true  // New prop to maintain shield proportions
 }) {
-  
+
+  // ==================== CONTEXT ====================
+  const { activeDataset } = useDataset();
+
   // ==================== STATE ====================
   const [fetchedHeraldry, setFetchedHeraldry] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -90,14 +94,15 @@ function HeraldryThumbnail({
       // Clear fetched data if house no longer has heraldryId
       setFetchedHeraldry(null);
     }
-  }, [house?.heraldryId, heraldryRecord]);
+  }, [house?.heraldryId, heraldryRecord, activeDataset]);
 
   const fetchHeraldryData = async (heraldryId) => {
+    const datasetId = activeDataset?.id;
     setIsLoading(true);
     setFetchError(false);
-    
+
     try {
-      const data = await getHeraldry(heraldryId);
+      const data = await getHeraldry(heraldryId, datasetId);
       setFetchedHeraldry(data);
     } catch (error) {
       console.error('❌ Failed to fetch heraldry:', error);

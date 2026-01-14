@@ -895,7 +895,8 @@ export async function runFullAnalysis(options = {}) {
   const {
     analyzers = 'all',
     severities = ['critical', 'warning', 'info'],
-    minConfidence = 0
+    minConfidence = 0,
+    datasetId = null
   } = options;
 
   if (import.meta.env.DEV) {
@@ -906,16 +907,16 @@ export async function runFullAnalysis(options = {}) {
   try {
     // 1. Fetch all data
     const [people, houses, dignities, relationships] = await Promise.all([
-      getAllPeople(),
-      getAllHouses(),
-      getAllDignities(),
-      getAllRelationships()
+      getAllPeople(datasetId),
+      getAllHouses(datasetId),
+      getAllDignities(datasetId),
+      getAllRelationships(datasetId)
     ]);
 
     // Fetch all tenures
     const tenuresByDignity = new Map();
     for (const dignity of dignities) {
-      const tenures = await getTenuresForDignity(dignity.id);
+      const tenures = await getTenuresForDignity(dignity.id, datasetId);
       tenuresByDignity.set(dignity.id, tenures);
     }
 
@@ -1017,8 +1018,8 @@ export async function runFullAnalysis(options = {}) {
  * @param {number} entityId - Entity ID
  * @returns {Promise<Suggestion[]>} Relevant suggestions
  */
-export async function analyzeEntity(entityType, entityId) {
-  const result = await runFullAnalysis();
+export async function analyzeEntity(entityType, entityId, datasetId = null) {
+  const result = await runFullAnalysis({ datasetId });
 
   return result.suggestions.filter(suggestion =>
     suggestion.affectedEntities.some(e =>

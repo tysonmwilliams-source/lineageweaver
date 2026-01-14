@@ -27,8 +27,9 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useDataset } from '../../contexts/DatasetContext';
 import { getAllHeraldry } from '../../services/heraldryService';
-import { db } from '../../services/database';
+import { getDatabase } from '../../services/database';
 import Icon from '../icons';
 import ActionButton from '../shared/ActionButton';
 import LoadingState from '../shared/LoadingState';
@@ -126,6 +127,9 @@ function HeraldryPickerModal({
   entityName = '',
   excludeHeraldryId = null
 }) {
+  // ==================== CONTEXT ====================
+  const { activeDataset } = useDataset();
+
   // ==================== STATE ====================
   const [allHeraldry, setAllHeraldry] = useState([]);
   const [heraldryLinks, setHeraldryLinks] = useState([]);
@@ -145,14 +149,17 @@ function HeraldryPickerModal({
       setSearchTerm('');
       setCategoryFilter('all');
     }
-  }, [isOpen]);
+  }, [isOpen, activeDataset]);
 
   const loadData = async () => {
+    const datasetId = activeDataset?.id;
+    const db = getDatabase(datasetId);
+
     try {
       setLoading(true);
 
       // Load all heraldry
-      const heraldryData = await getAllHeraldry();
+      const heraldryData = await getAllHeraldry(datasetId);
       setAllHeraldry(heraldryData);
 
       // Load all links to show which entities use which heraldry

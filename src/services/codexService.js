@@ -5,49 +5,52 @@
  * Manages codex entries (character bios, locations, events, etc.) and their links.
  */
 
-import { db } from './database.js';
+import { getDatabase } from './database.js';
 
 // ==================== CODEX ENTRY OPERATIONS ====================
 
 /**
  * Create a new codex entry
  * @param {Object} entryData - Entry data with required fields
+ * @param {string} [datasetId] - Dataset ID (optional)
  * @returns {Promise<number>} - ID of created entry
  */
-export async function createEntry(entryData) {
+export async function createEntry(entryData, datasetId) {
   try {
+    const db = getDatabase(datasetId);
+
     // Ensure required fields
     const entry = {
       // Core identity
       type: entryData.type, // Required: 'personage', 'house', 'location', 'event', 'mysteria', 'custom'
       title: entryData.title, // Required
       subtitle: entryData.subtitle || null,
-      
+
       // Content
       content: entryData.content || '', // Markdown text with [[wiki-links]]
       sections: entryData.sections || [], // Array of section objects
-      
+
       // Organization
       category: entryData.category || null,
       tags: entryData.tags || [], // Array of strings
       era: entryData.era || null, // Time period
-      
+
       // Links (for external references - personId, houseId, heraldryId, dignityId, etc.)
       personId: entryData.personId || null, // Link to Person entity
       houseId: entryData.houseId || null, // Link to House entity
       heraldryId: entryData.heraldryId || null, // Link to Heraldry entity (Phase 5)
       dignityId: entryData.dignityId || null, // Link to Dignity entity
-      
+
       // Metadata
       created: new Date().toISOString(),
       updated: new Date().toISOString(),
       wordCount: calculateWordCount(entryData.content || ''),
-      
+
       // Version control (future)
       version: 1,
       changelog: []
     };
-    
+
     const id = await db.codexEntries.add(entry);
     console.log('Codex entry created with ID:', id);
     return id;
@@ -68,26 +71,28 @@ export async function createEntry(entryData) {
  * @param {Object} entryData - Entry data including the original ID
  * @returns {Promise<number>} - The ID of the restored entry
  */
-export async function restoreEntry(entryData) {
+export async function restoreEntry(entryData, datasetId) {
   try {
+    const db = getDatabase(datasetId);
+
     // Build the entry object, preserving the original ID
     const entry = {
       id: parseInt(entryData.id) || entryData.id, // CRITICAL: preserve original ID
-      
+
       // Core identity
       type: entryData.type,
       title: entryData.title,
       subtitle: entryData.subtitle || null,
-      
+
       // Content
       content: entryData.content || '',
       sections: entryData.sections || [],
-      
+
       // Organization
       category: entryData.category || null,
       tags: entryData.tags || [],
       era: entryData.era || null,
-      
+
       // Links
       personId: entryData.personId || null,
       houseId: entryData.houseId || null,
@@ -98,12 +103,12 @@ export async function restoreEntry(entryData) {
       created: entryData.created || new Date().toISOString(),
       updated: entryData.updated || new Date().toISOString(),
       wordCount: entryData.wordCount || calculateWordCount(entryData.content || ''),
-      
+
       // Version control
       version: entryData.version || 1,
       changelog: entryData.changelog || []
     };
-    
+
     // Use .put() which creates OR updates based on the key
     // This prevents duplicates by using the original ID
     const id = await db.codexEntries.put(entry);
@@ -118,8 +123,9 @@ export async function restoreEntry(entryData) {
 /**
  * Get a single codex entry by ID
  */
-export async function getEntry(id) {
+export async function getEntry(id, datasetId) {
   try {
+    const db = getDatabase(datasetId);
     const entry = await db.codexEntries.get(id);
     return entry;
   } catch (error) {
@@ -130,19 +136,21 @@ export async function getEntry(id) {
 
 /**
  * Get a codex entry by personId
- * 
+ *
  * TREE-CODEX INTEGRATION: Used to find the Codex entry for a person
  * when navigating from the Family Tree or Data Management.
- * 
+ *
  * @param {number} personId - The person's database ID
+ * @param {string} [datasetId] - Dataset ID (optional)
  * @returns {Object|null} The codex entry or null if not found
  */
-export async function getEntryByPersonId(personId) {
+export async function getEntryByPersonId(personId, datasetId) {
   try {
+    const db = getDatabase(datasetId);
     const entries = await db.codexEntries
       .filter(entry => entry.personId === personId)
       .toArray();
-    
+
     // Return the first match (should only be one per person)
     return entries.length > 0 ? entries[0] : null;
   } catch (error) {
@@ -158,10 +166,12 @@ export async function getEntryByPersonId(personId) {
  * when navigating from Data Management or for cascade delete.
  *
  * @param {number} houseId - The house's database ID
+ * @param {string} [datasetId] - Dataset ID (optional)
  * @returns {Object|null} The codex entry or null if not found
  */
-export async function getEntryByHouseId(houseId) {
+export async function getEntryByHouseId(houseId, datasetId) {
   try {
+    const db = getDatabase(datasetId);
     const entries = await db.codexEntries
       .filter(entry => entry.houseId === houseId)
       .toArray();
@@ -181,10 +191,12 @@ export async function getEntryByHouseId(houseId) {
  * when navigating from the Dignities system or for cascade delete.
  *
  * @param {number} dignityId - The dignity's database ID
+ * @param {string} [datasetId] - Dataset ID (optional)
  * @returns {Object|null} The codex entry or null if not found
  */
-export async function getEntryByDignityId(dignityId) {
+export async function getEntryByDignityId(dignityId, datasetId) {
   try {
+    const db = getDatabase(datasetId);
     const entries = await db.codexEntries
       .filter(entry => entry.dignityId === dignityId)
       .toArray();
@@ -204,10 +216,12 @@ export async function getEntryByDignityId(dignityId) {
  * for a heraldry record when navigating from The Armory.
  *
  * @param {number} heraldryId - The heraldry record's database ID
+ * @param {string} [datasetId] - Dataset ID (optional)
  * @returns {Object|null} The codex entry or null if not found
  */
-export async function getEntryByHeraldryId(heraldryId) {
+export async function getEntryByHeraldryId(heraldryId, datasetId) {
   try {
+    const db = getDatabase(datasetId);
     const entries = await db.codexEntries
       .filter(entry => entry.heraldryId === heraldryId)
       .toArray();
@@ -223,8 +237,9 @@ export async function getEntryByHeraldryId(heraldryId) {
 /**
  * Get all codex entries
  */
-export async function getAllEntries() {
+export async function getAllEntries(datasetId) {
   try {
+    const db = getDatabase(datasetId);
     const entries = await db.codexEntries.toArray();
     return entries;
   } catch (error) {
@@ -236,9 +251,11 @@ export async function getAllEntries() {
 /**
  * Get entries by type
  * @param {string} type - Entry type (personage, house, location, event, mysteria, custom)
+ * @param {string} [datasetId] - Dataset ID (optional)
  */
-export async function getEntriesByType(type) {
+export async function getEntriesByType(type, datasetId) {
   try {
+    const db = getDatabase(datasetId);
     const entries = await db.codexEntries.where('type').equals(type).toArray();
     return entries;
   } catch (error) {
@@ -250,8 +267,9 @@ export async function getEntriesByType(type) {
 /**
  * Get entries by category
  */
-export async function getEntriesByCategory(category) {
+export async function getEntriesByCategory(category, datasetId) {
   try {
+    const db = getDatabase(datasetId);
     const entries = await db.codexEntries.where('category').equals(category).toArray();
     return entries;
   } catch (error) {
@@ -263,8 +281,9 @@ export async function getEntriesByCategory(category) {
 /**
  * Get entries by era
  */
-export async function getEntriesByEra(era) {
+export async function getEntriesByEra(era, datasetId) {
   try {
+    const db = getDatabase(datasetId);
     const entries = await db.codexEntries.where('era').equals(era).toArray();
     return entries;
   } catch (error) {
@@ -276,8 +295,9 @@ export async function getEntriesByEra(era) {
 /**
  * Get entries by tag
  */
-export async function getEntriesByTag(tag) {
+export async function getEntriesByTag(tag, datasetId) {
   try {
+    const db = getDatabase(datasetId);
     // Dexie's multi-entry index (the * prefix) allows this
     const entries = await db.codexEntries.where('tags').equals(tag).toArray();
     return entries;
@@ -290,12 +310,13 @@ export async function getEntriesByTag(tag) {
 /**
  * Search entries by title (case-insensitive)
  */
-export async function searchEntriesByTitle(searchTerm) {
+export async function searchEntriesByTitle(searchTerm, datasetId) {
   try {
+    const db = getDatabase(datasetId);
     const allEntries = await db.codexEntries.toArray();
     const searchLower = searchTerm.toLowerCase();
-    
-    return allEntries.filter(entry => 
+
+    return allEntries.filter(entry =>
       entry.title.toLowerCase().includes(searchLower)
     );
   } catch (error) {
@@ -307,16 +328,17 @@ export async function searchEntriesByTitle(searchTerm) {
 /**
  * Full-text search across all entry content
  */
-export async function searchEntriesFullText(searchTerm) {
+export async function searchEntriesFullText(searchTerm, datasetId) {
   try {
+    const db = getDatabase(datasetId);
     const allEntries = await db.codexEntries.toArray();
     const searchLower = searchTerm.toLowerCase();
-    
+
     return allEntries.filter(entry => {
       const titleMatch = entry.title.toLowerCase().includes(searchLower);
       const subtitleMatch = entry.subtitle?.toLowerCase().includes(searchLower);
       const contentMatch = entry.content.toLowerCase().includes(searchLower);
-      
+
       return titleMatch || subtitleMatch || contentMatch;
     });
   } catch (error) {
@@ -328,18 +350,19 @@ export async function searchEntriesFullText(searchTerm) {
 /**
  * Update an existing codex entry
  */
-export async function updateEntry(id, updates) {
+export async function updateEntry(id, updates, datasetId) {
   try {
+    const db = getDatabase(datasetId);
     // Always update the 'updated' timestamp and recalculate word count
     const modifiedUpdates = {
       ...updates,
       updated: new Date().toISOString()
     };
-    
+
     if (updates.content !== undefined) {
       modifiedUpdates.wordCount = calculateWordCount(updates.content);
     }
-    
+
     const result = await db.codexEntries.update(id, modifiedUpdates);
     console.log('Codex entry updated:', result);
     return result;
@@ -352,14 +375,15 @@ export async function updateEntry(id, updates) {
 /**
  * Delete a codex entry
  */
-export async function deleteEntry(id) {
+export async function deleteEntry(id, datasetId) {
   try {
+    const db = getDatabase(datasetId);
     // Delete the entry
     await db.codexEntries.delete(id);
-    
+
     // Delete all links associated with this entry
-    await deleteLinksForEntry(id);
-    
+    await deleteLinksForEntry(id, datasetId);
+
     console.log('Codex entry deleted:', id);
   } catch (error) {
     console.error('Error deleting codex entry:', error);
@@ -372,9 +396,11 @@ export async function deleteEntry(id) {
 /**
  * Create a link between two entries
  * @param {Object} linkData - Link data
+ * @param {string} [datasetId] - Dataset ID (optional)
  */
-export async function createLink(linkData) {
+export async function createLink(linkData, datasetId) {
   try {
+    const db = getDatabase(datasetId);
     const link = {
       sourceId: linkData.sourceId, // Entry ID that contains the link
       targetId: linkData.targetId, // Entry ID being linked to
@@ -382,7 +408,7 @@ export async function createLink(linkData) {
       label: linkData.label || null, // Optional label for the link
       bidirectional: linkData.bidirectional !== undefined ? linkData.bidirectional : true
     };
-    
+
     const id = await db.codexLinks.add(link);
     console.log('Codex link created with ID:', id);
     return id;
@@ -395,8 +421,9 @@ export async function createLink(linkData) {
 /**
  * Get all outgoing links from an entry (links this entry makes to others)
  */
-export async function getOutgoingLinks(entryId) {
+export async function getOutgoingLinks(entryId, datasetId) {
   try {
+    const db = getDatabase(datasetId);
     const links = await db.codexLinks.where('sourceId').equals(entryId).toArray();
     return links;
   } catch (error) {
@@ -408,8 +435,9 @@ export async function getOutgoingLinks(entryId) {
 /**
  * Get all incoming links to an entry (backlinks - other entries that mention this one)
  */
-export async function getIncomingLinks(entryId) {
+export async function getIncomingLinks(entryId, datasetId) {
   try {
+    const db = getDatabase(datasetId);
     const links = await db.codexLinks.where('targetId').equals(entryId).toArray();
     return links;
   } catch (error) {
@@ -421,13 +449,13 @@ export async function getIncomingLinks(entryId) {
 /**
  * Get all links for an entry (both incoming and outgoing)
  */
-export async function getAllLinksForEntry(entryId) {
+export async function getAllLinksForEntry(entryId, datasetId) {
   try {
     const [outgoing, incoming] = await Promise.all([
-      getOutgoingLinks(entryId),
-      getIncomingLinks(entryId)
+      getOutgoingLinks(entryId, datasetId),
+      getIncomingLinks(entryId, datasetId)
     ]);
-    
+
     return {
       outgoing,
       incoming
@@ -441,14 +469,15 @@ export async function getAllLinksForEntry(entryId) {
 /**
  * Delete all links associated with an entry
  */
-export async function deleteLinksForEntry(entryId) {
+export async function deleteLinksForEntry(entryId, datasetId) {
   try {
+    const db = getDatabase(datasetId);
     // Delete where this entry is the source
     await db.codexLinks.where('sourceId').equals(entryId).delete();
-    
+
     // Delete where this entry is the target
     await db.codexLinks.where('targetId').equals(entryId).delete();
-    
+
     console.log('All links deleted for entry:', entryId);
   } catch (error) {
     console.error('Error deleting links for entry:', error);
@@ -459,8 +488,9 @@ export async function deleteLinksForEntry(entryId) {
 /**
  * Delete a specific link
  */
-export async function deleteLink(linkId) {
+export async function deleteLink(linkId, datasetId) {
   try {
+    const db = getDatabase(datasetId);
     await db.codexLinks.delete(linkId);
     console.log('Codex link deleted:', linkId);
   } catch (error) {
@@ -490,29 +520,29 @@ function calculateWordCount(content) {
 /**
  * Get entry statistics
  */
-export async function getCodexStatistics() {
+export async function getCodexStatistics(datasetId) {
   try {
-    const allEntries = await getAllEntries();
-    
+    const allEntries = await getAllEntries(datasetId);
+
     const stats = {
       total: allEntries.length,
       byType: {},
       totalWords: 0,
       recentlyUpdated: []
     };
-    
+
     // Count by type
     allEntries.forEach(entry => {
       stats.byType[entry.type] = (stats.byType[entry.type] || 0) + 1;
       stats.totalWords += entry.wordCount || 0;
     });
-    
+
     // Get 5 most recently updated
     stats.recentlyUpdated = allEntries
       .sort((a, b) => new Date(b.updated) - new Date(a.updated))
       .slice(0, 5)
       .map(e => ({ id: e.id, title: e.title, updated: e.updated }));
-    
+
     return stats;
   } catch (error) {
     console.error('Error getting codex statistics:', error);

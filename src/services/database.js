@@ -2,51 +2,138 @@ import Dexie from 'dexie';
 
 /**
  * Database Service for Lineageweaver
- * 
+ *
  * This file sets up IndexedDB (the browser's built-in database) using Dexie,
  * which is a wrapper that makes IndexedDB easier to work with.
- * 
- * Think of this as creating the "blueprint" for our database - defining what
- * tables we'll have and what fields each table contains.
+ *
+ * MULTI-DATASET SUPPORT:
+ * Each dataset gets its own IndexedDB database named 'LineageweaverDB_{datasetId}'.
+ * This ensures complete data isolation between datasets.
+ *
+ * Database instances are cached in a Map for performance.
  */
 
-// Create a new database instance called 'LineageweaverDB'
-export const db = new Dexie('LineageweaverDB');
+// Default dataset ID
+export const DEFAULT_DATASET_ID = 'default';
 
-// Version 1: Original schema
-db.version(1).stores({
-  people: '++id, firstName, lastName, houseId, dateOfBirth, dateOfDeath',
-  houses: '++id, houseName',
-  relationships: '++id, person1Id, person2Id, relationshipType'
-});
+// Cache for database instances (one per dataset)
+const dbInstances = new Map();
 
-// Version 2: Add cadet house system fields
-db.version(2).stores({
-  // Add indexes for new cadet house fields
-  people: '++id, firstName, lastName, houseId, dateOfBirth, dateOfDeath, bastardStatus',
-  houses: '++id, houseName, parentHouseId, houseType',
-  relationships: '++id, person1Id, person2Id, relationshipType'
-}).upgrade(tx => {
-  // Upgrade existing houses to have new fields with default values
-  return tx.table('houses').toCollection().modify(house => {
-    house.parentHouseId = house.parentHouseId || null;
-    house.houseType = house.houseType || 'main';
-    house.foundedBy = house.foundedBy || null;
-    house.foundedDate = house.foundedDate || null;
-    house.swornTo = house.swornTo || null;
-    house.namePrefix = house.namePrefix || null;
+/**
+ * Create and configure a new Dexie database instance
+ * @param {string} datasetId - The dataset ID
+ * @returns {Dexie} Configured database instance
+ */
+function createDatabaseInstance(datasetId) {
+  const dbName = datasetId === DEFAULT_DATASET_ID
+    ? 'LineageweaverDB'  // Backward compatible name for default dataset
+    : `LineageweaverDB_${datasetId}`;
+
+  const db = new Dexie(dbName);
+
+  // Apply all schema versions to this database instance
+  applySchema(db);
+
+  return db;
+}
+
+/**
+ * Get a database instance for a specific dataset
+ * Creates a new instance if one doesn't exist, otherwise returns cached instance.
+ *
+ * @param {string} [datasetId='default'] - The dataset ID
+ * @returns {Dexie} Database instance for the dataset
+ */
+export function getDatabase(datasetId = DEFAULT_DATASET_ID) {
+  const id = datasetId || DEFAULT_DATASET_ID;
+
+  if (!dbInstances.has(id)) {
+    const instance = createDatabaseInstance(id);
+    dbInstances.set(id, instance);
+    console.log('📦 Created database instance for dataset:', id);
+  }
+
+  return dbInstances.get(id);
+}
+
+/**
+ * Close and remove a database instance from the cache
+ * @param {string} datasetId - The dataset ID
+ */
+export async function closeDatabaseInstance(datasetId) {
+  const id = datasetId || DEFAULT_DATASET_ID;
+  const instance = dbInstances.get(id);
+
+  if (instance) {
+    await instance.close();
+    dbInstances.delete(id);
+    console.log('📦 Closed database instance for dataset:', id);
+  }
+}
+
+/**
+ * Delete an entire database for a dataset
+ * WARNING: This permanently deletes all data!
+ * @param {string} datasetId - The dataset ID
+ */
+export async function deleteDatabaseForDataset(datasetId) {
+  const id = datasetId || DEFAULT_DATASET_ID;
+  const dbName = id === DEFAULT_DATASET_ID
+    ? 'LineageweaverDB'
+    : `LineageweaverDB_${id}`;
+
+  // Close instance first if it exists
+  await closeDatabaseInstance(id);
+
+  // Delete the database
+  await Dexie.delete(dbName);
+  console.log('📦 Deleted database for dataset:', id);
+}
+
+// Legacy export for backward compatibility
+// This returns the default dataset's database
+export const db = getDatabase(DEFAULT_DATASET_ID);
+
+/**
+ * Apply schema versions to a database instance
+ * @param {Dexie} db - The database instance
+ */
+function applySchema(db) {
+
+  // Version 1: Original schema
+  db.version(1).stores({
+    people: '++id, firstName, lastName, houseId, dateOfBirth, dateOfDeath',
+    houses: '++id, houseName',
+    relationships: '++id, person1Id, person2Id, relationshipType'
   });
-}).upgrade(tx => {
-  // Upgrade existing people to have new bastardStatus field
-  return tx.table('people').toCollection().modify(person => {
-    // If they're a bastard but don't have bastardStatus, set to 'active'
-    if (person.legitimacyStatus === 'bastard' && !person.bastardStatus) {
-      person.bastardStatus = 'active';
-    } else {
-      person.bastardStatus = person.bastardStatus || null;
-    }
+
+  // Version 2: Add cadet house system fields
+  db.version(2).stores({
+    // Add indexes for new cadet house fields
+    people: '++id, firstName, lastName, houseId, dateOfBirth, dateOfDeath, bastardStatus',
+    houses: '++id, houseName, parentHouseId, houseType',
+    relationships: '++id, person1Id, person2Id, relationshipType'
+  }).upgrade(tx => {
+    // Upgrade existing houses to have new fields with default values
+    return tx.table('houses').toCollection().modify(house => {
+      house.parentHouseId = house.parentHouseId || null;
+      house.houseType = house.houseType || 'main';
+      house.foundedBy = house.foundedBy || null;
+      house.foundedDate = house.foundedDate || null;
+      house.swornTo = house.swornTo || null;
+      house.namePrefix = house.namePrefix || null;
+    });
+  }).upgrade(tx => {
+    // Upgrade existing people to have new bastardStatus field
+    return tx.table('people').toCollection().modify(person => {
+      // If they're a bastard but don't have bastardStatus, set to 'active'
+      if (person.legitimacyStatus === 'bastard' && !person.bastardStatus) {
+        person.bastardStatus = 'active';
+      } else {
+        person.bastardStatus = person.bastardStatus || null;
+      }
+    });
   });
-});
 
 // Version 4: Add SVG support for infinite zoom quality
 db.version(4).stores({
@@ -265,17 +352,22 @@ db.version(3).stores({
     house.heraldryHighRes = house.heraldryHighRes || null;
   });
 });
+} // End of applySchema function
 
 /**
  * Database Helper Functions
  * These are the CRUD operations (Create, Read, Update, Delete) for each entity
+ *
+ * All functions accept an optional datasetId parameter. If not provided,
+ * they default to the 'default' dataset for backward compatibility.
  */
 
 // ==================== PEOPLE OPERATIONS ====================
 
-export async function addPerson(personData) {
+export async function addPerson(personData, datasetId) {
   try {
-    const id = await db.people.add(personData);
+    const database = getDatabase(datasetId);
+    const id = await database.people.add(personData);
     console.log('Person added with ID:', id);
     return id;
   } catch (error) {
@@ -284,9 +376,10 @@ export async function addPerson(personData) {
   }
 }
 
-export async function getPerson(id) {
+export async function getPerson(id, datasetId) {
   try {
-    const person = await db.people.get(id);
+    const database = getDatabase(datasetId);
+    const person = await database.people.get(id);
     return person;
   } catch (error) {
     console.error('Error getting person:', error);
@@ -294,9 +387,10 @@ export async function getPerson(id) {
   }
 }
 
-export async function getAllPeople() {
+export async function getAllPeople(datasetId) {
   try {
-    const people = await db.people.toArray();
+    const database = getDatabase(datasetId);
+    const people = await database.people.toArray();
     return people;
   } catch (error) {
     console.error('Error getting all people:', error);
@@ -304,9 +398,10 @@ export async function getAllPeople() {
   }
 }
 
-export async function getPeopleByHouse(houseId) {
+export async function getPeopleByHouse(houseId, datasetId) {
   try {
-    const people = await db.people.where('houseId').equals(houseId).toArray();
+    const database = getDatabase(datasetId);
+    const people = await database.people.where('houseId').equals(houseId).toArray();
     return people;
   } catch (error) {
     console.error('Error getting people by house:', error);
@@ -314,9 +409,10 @@ export async function getPeopleByHouse(houseId) {
   }
 }
 
-export async function updatePerson(id, updates) {
+export async function updatePerson(id, updates, datasetId) {
   try {
-    const result = await db.people.update(id, updates);
+    const database = getDatabase(datasetId);
+    const result = await database.people.update(id, updates);
     console.log('Person updated:', result);
     return result;
   } catch (error) {
@@ -325,9 +421,10 @@ export async function updatePerson(id, updates) {
   }
 }
 
-export async function deletePerson(id) {
+export async function deletePerson(id, datasetId) {
   try {
-    await db.people.delete(id);
+    const database = getDatabase(datasetId);
+    await database.people.delete(id);
     console.log('Person deleted:', id);
   } catch (error) {
     console.error('Error deleting person:', error);
@@ -343,11 +440,13 @@ export async function deletePerson(id) {
  * @param {Object} houseData - House data to add
  * @param {Object} [options] - Options for house creation
  * @param {boolean} [options.skipCodexCreation=false] - Skip auto-creation of Codex entry
+ * @param {string} [options.datasetId] - Dataset ID (optional, defaults to 'default')
  * @returns {Promise<number>} The new house ID
  */
 export async function addHouse(houseData, options = {}) {
   try {
-    const id = await db.houses.add(houseData);
+    const database = getDatabase(options.datasetId);
+    const id = await database.houses.add(houseData);
     console.log('House added with ID:', id);
 
     // Auto-create Codex entry for the house (unless explicitly skipped)
@@ -366,10 +465,10 @@ export async function addHouse(houseData, options = {}) {
           category: houseData.houseType || 'main',
           tags: ['house', houseData.houseType || 'main'].filter(Boolean),
           houseId: id
-        });
+        }, options.datasetId);
 
         // Update the house with the codexEntryId
-        await db.houses.update(id, { codexEntryId });
+        await database.houses.update(id, { codexEntryId });
         console.log('📚 Auto-created Codex entry for house:', codexEntryId);
       } catch (codexError) {
         // Log but don't fail the house creation if Codex creation fails
@@ -384,9 +483,10 @@ export async function addHouse(houseData, options = {}) {
   }
 }
 
-export async function getHouse(id) {
+export async function getHouse(id, datasetId) {
   try {
-    const house = await db.houses.get(id);
+    const database = getDatabase(datasetId);
+    const house = await database.houses.get(id);
     return house;
   } catch (error) {
     console.error('Error getting house:', error);
@@ -394,9 +494,10 @@ export async function getHouse(id) {
   }
 }
 
-export async function getAllHouses() {
+export async function getAllHouses(datasetId) {
   try {
-    const houses = await db.houses.toArray();
+    const database = getDatabase(datasetId);
+    const houses = await database.houses.toArray();
     return houses;
   } catch (error) {
     console.error('Error getting all houses:', error);
@@ -404,9 +505,10 @@ export async function getAllHouses() {
   }
 }
 
-export async function getCadetHouses(parentHouseId) {
+export async function getCadetHouses(parentHouseId, datasetId) {
   try {
-    const cadetHouses = await db.houses
+    const database = getDatabase(datasetId);
+    const cadetHouses = await database.houses
       .where('parentHouseId')
       .equals(parentHouseId)
       .toArray();
@@ -417,9 +519,10 @@ export async function getCadetHouses(parentHouseId) {
   }
 }
 
-export async function updateHouse(id, updates) {
+export async function updateHouse(id, updates, datasetId) {
   try {
-    const result = await db.houses.update(id, updates);
+    const database = getDatabase(datasetId);
+    const result = await database.houses.update(id, updates);
     console.log('House updated:', result);
     return result;
   } catch (error) {
@@ -434,10 +537,13 @@ export async function updateHouse(id, updates) {
  * @param {number} id - House ID to delete
  * @param {Object} [options] - Options for deletion
  * @param {boolean} [options.skipCodexDeletion=false] - Skip cascade deletion of Codex entry
+ * @param {string} [options.datasetId] - Dataset ID (optional, defaults to 'default')
  * @returns {Promise<void>}
  */
 export async function deleteHouse(id, options = {}) {
   try {
+    const database = getDatabase(options.datasetId);
+
     // Cascade delete Codex entry if it exists (unless explicitly skipped)
     if (!options.skipCodexDeletion) {
       try {
@@ -445,9 +551,9 @@ export async function deleteHouse(id, options = {}) {
         const { getEntryByHouseId, deleteEntry } = await import('./codexService.js');
 
         // Find and delete the associated Codex entry
-        const codexEntry = await getEntryByHouseId(id);
+        const codexEntry = await getEntryByHouseId(id, options.datasetId);
         if (codexEntry) {
-          await deleteEntry(codexEntry.id);
+          await deleteEntry(codexEntry.id, options.datasetId);
           console.log('📚 Cascade deleted Codex entry for house:', codexEntry.id);
         }
       } catch (codexError) {
@@ -456,7 +562,7 @@ export async function deleteHouse(id, options = {}) {
       }
     }
 
-    await db.houses.delete(id);
+    await database.houses.delete(id);
     console.log('House deleted:', id);
   } catch (error) {
     console.error('Error deleting house:', error);
@@ -466,9 +572,10 @@ export async function deleteHouse(id, options = {}) {
 
 // ==================== RELATIONSHIP OPERATIONS ====================
 
-export async function addRelationship(relationshipData) {
+export async function addRelationship(relationshipData, datasetId) {
   try {
-    const id = await db.relationships.add(relationshipData);
+    const database = getDatabase(datasetId);
+    const id = await database.relationships.add(relationshipData);
     console.log('Relationship added with ID:', id);
     return id;
   } catch (error) {
@@ -477,9 +584,10 @@ export async function addRelationship(relationshipData) {
   }
 }
 
-export async function getRelationshipsForPerson(personId) {
+export async function getRelationshipsForPerson(personId, datasetId) {
   try {
-    const relationships = await db.relationships
+    const database = getDatabase(datasetId);
+    const relationships = await database.relationships
       .where('person1Id').equals(personId)
       .or('person2Id').equals(personId)
       .toArray();
@@ -490,9 +598,10 @@ export async function getRelationshipsForPerson(personId) {
   }
 }
 
-export async function getAllRelationships() {
+export async function getAllRelationships(datasetId) {
   try {
-    const relationships = await db.relationships.toArray();
+    const database = getDatabase(datasetId);
+    const relationships = await database.relationships.toArray();
     return relationships;
   } catch (error) {
     console.error('Error getting all relationships:', error);
@@ -500,9 +609,10 @@ export async function getAllRelationships() {
   }
 }
 
-export async function updateRelationship(id, updates) {
+export async function updateRelationship(id, updates, datasetId) {
   try {
-    const result = await db.relationships.update(id, updates);
+    const database = getDatabase(datasetId);
+    const result = await database.relationships.update(id, updates);
     console.log('Relationship updated:', result);
     return result;
   } catch (error) {
@@ -511,9 +621,10 @@ export async function updateRelationship(id, updates) {
   }
 }
 
-export async function deleteRelationship(id) {
+export async function deleteRelationship(id, datasetId) {
   try {
-    await db.relationships.delete(id);
+    const database = getDatabase(datasetId);
+    await database.relationships.delete(id);
     console.log('Relationship deleted:', id);
   } catch (error) {
     console.error('Error deleting relationship:', error);
@@ -535,61 +646,164 @@ export function calculateAge(dateOfBirth) {
   return age;
 }
 
+/**
+ * Check if a person is eligible to found a cadet house
+ * 
+ * TIER 1 (Noble Cadet) eligibility:
+ * - Must be legitimate
+ * - Must be at least 18
+ * - Must not have already founded a house
+ * - Typically second/third sons (not enforced here)
+ * 
+ * TIER 2 (Bastard Elevation) eligibility:
+ * - Must be a bastard
+ * - Must be at least 18
+ * - Must not have already founded a house (bastardStatus !== 'founded')
+ * - Must not have been legitimized (bastardStatus !== 'legitimized')
+ * 
+ * @param {Object} person - Person object
+ * @param {string} person.dateOfBirth - Date of birth
+ * @param {string} person.legitimacyStatus - Legitimacy status
+ * @param {string} [person.bastardStatus] - Bastard status if applicable
+ * @returns {{eligible: boolean, tier: number|null, reason: string|null}}
+ */
 export function isEligibleForCeremony(person) {
-  if (!person.dateOfBirth) return false;
-  if (person.legitimacyStatus !== 'bastard') return false;
-  if (person.bastardStatus === 'founded') return false;
-  if (person.bastardStatus === 'legitimized') return false;
+  // Must have a birth date
+  if (!person.dateOfBirth) {
+    return { eligible: false, tier: null, reason: 'No birth date recorded' };
+  }
   
+  // Must be at least 18
   const age = calculateAge(person.dateOfBirth);
-  return age >= 18;
+  if (age < 18) {
+    return { eligible: false, tier: null, reason: `Must be at least 18 (currently ${age})` };
+  }
+  
+  // Check for bastards (Tier 2)
+  if (person.legitimacyStatus === 'bastard') {
+    // Already founded a house
+    if (person.bastardStatus === 'founded') {
+      return { eligible: false, tier: null, reason: 'Already founded a cadet house' };
+    }
+    // Already legitimized (no longer a bastard)
+    if (person.bastardStatus === 'legitimized') {
+      return { eligible: false, tier: null, reason: 'Has been legitimized' };
+    }
+    // Eligible for Tier 2
+    return { eligible: true, tier: 2, reason: null };
+  }
+  
+  // Check for legitimate nobles (Tier 1)
+  if (person.legitimacyStatus === 'legitimate') {
+    // Must belong to a house
+    if (!person.houseId) {
+      return { eligible: false, tier: null, reason: 'Must belong to a noble house' };
+    }
+    // Eligible for Tier 1
+    return { eligible: true, tier: 1, reason: null };
+  }
+  
+  // Other statuses (adopted, commoner, unknown) are not eligible
+  return { eligible: false, tier: null, reason: `Cannot found house with status: ${person.legitimacyStatus}` };
 }
 
-export async function foundCadetHouse(ceremonyData) {
-  const { 
-    founderId, 
-    houseName, 
-    parentHouseId, 
+/**
+ * Legacy function for backward compatibility
+ * Returns boolean instead of object
+ * @deprecated Use isEligibleForCeremony(person).eligible instead
+ */
+export function canFoundCadetHouse(person) {
+  return isEligibleForCeremony(person).eligible;
+}
+
+/**
+ * Found a cadet house - supports two-tier system
+ * 
+ * TIER 1 - Noble Cadet Branch:
+ * - Founder: Legitimate second/third son
+ * - Naming: First 4 letters of parent house + suffix (e.g., Wilfford)
+ * - Status: Full noble standing
+ * 
+ * TIER 2 - Bastard Elevation Branch:
+ * - Founder: Acknowledged bastard who has proven themselves
+ * - Naming: "Dun" + first 4 letters + suffix (e.g., Dunwilfhollow)
+ * - Status: Recognized but lesser standing, bastard origins visible
+ * 
+ * @param {Object} ceremonyData - Ceremony details
+ * @param {number} ceremonyData.founderId - ID of the person founding the house
+ * @param {string} ceremonyData.houseName - Name of the new house
+ * @param {number} ceremonyData.parentHouseId - ID of the parent house
+ * @param {number} [ceremonyData.cadetTier] - 1 for noble cadet, 2 for bastard elevation
+ * @param {string} [ceremonyData.foundingType] - 'noble' or 'bastard-elevation'
+ * @param {string} [ceremonyData.ceremonyDate] - Date of founding (ISO format)
+ * @param {string} [ceremonyData.motto] - House motto
+ * @param {string} [ceremonyData.colorCode] - House color (hex)
+ * @param {string} [datasetId] - Dataset ID
+ * @returns {Promise<{house: Object, founder: Object}>}
+ */
+export async function foundCadetHouse(ceremonyData, datasetId) {
+  const {
+    founderId,
+    houseName,
+    parentHouseId,
+    cadetTier = 1,
+    foundingType = 'noble',
     ceremonyDate,
     motto = null,
-    colorCode = null 
+    colorCode = null
   } = ceremonyData;
-  
+
   try {
-    const founder = await getPerson(founderId);
+    const founder = await getPerson(founderId, datasetId);
     if (!founder) {
       throw new Error('Founder not found');
     }
-    
-    const parentHouse = await getHouse(parentHouseId);
+
+    const parentHouse = await getHouse(parentHouseId, datasetId);
     if (!parentHouse) {
       throw new Error('Parent house not found');
     }
-    
+
+    // Determine if this is a bastard-founded house
+    const isBastardFounded = cadetTier === 2 || foundingType === 'bastard-elevation' || founder.legitimacyStatus === 'bastard';
+    const actualTier = isBastardFounded ? 2 : 1;
+    const actualFoundingType = isBastardFounded ? 'bastard-elevation' : 'noble';
+
+    // Build notes based on tier
+    const tierDescription = actualTier === 2 
+      ? `Bastard-elevated branch of ${parentHouse.houseName}` 
+      : `Cadet branch of ${parentHouse.houseName}`;
+
     const newHouseId = await addHouse({
       houseName: houseName,
       parentHouseId: parentHouseId,
       houseType: 'cadet',
+      cadetTier: actualTier,
+      foundingType: actualFoundingType,
       foundedBy: founderId,
       foundedDate: ceremonyDate,
       swornTo: parentHouseId,
-      namePrefix: parentHouse.namePrefix || parentHouse.houseName.substring(0, 3),
+      namePrefix: parentHouse.namePrefix || parentHouse.houseName.substring(0, 4),
       sigil: null,
       motto: motto,
       colorCode: colorCode || parentHouse.colorCode,
-      notes: `Cadet branch of ${parentHouse.houseName}, founded by ${founder.firstName} ${founder.lastName}`
-    });
-    
+      notes: `${tierDescription}, founded by ${founder.firstName} ${founder.lastName}`
+    }, { datasetId });
+
+    // Update founder - for bastard elevation, they become legitimate within their new house
+    // but the Dun- prefix in the house name marks their origins
     await updatePerson(founderId, {
       houseId: newHouseId,
       lastName: houseName,
-      bastardStatus: 'founded',
-      legitimacyStatus: 'legitimate'
-    });
-    
-    const newHouse = await getHouse(newHouseId);
-    const updatedFounder = await getPerson(founderId);
-    
+      bastardStatus: isBastardFounded ? 'founded' : null,
+      legitimacyStatus: 'legitimate' // Now legitimate as head of their own house
+    }, datasetId);
+
+    const newHouse = await getHouse(newHouseId, datasetId);
+    const updatedFounder = await getPerson(founderId, datasetId);
+
+    console.log(`🏰 Founded ${actualTier === 2 ? 'Tier 2 (Bastard Elevation)' : 'Tier 1 (Noble Cadet)'} house: ${houseName}`);
+
     return {
       house: newHouse,
       founder: updatedFounder
@@ -604,38 +818,42 @@ export async function foundCadetHouse(ceremonyData) {
 
 /**
  * Delete all data from all tables
- * 
+ *
  * IMPORTANT: This clears ALL tables including Codex data.
  * Used primarily during cloud sync when downloading fresh data.
+ *
+ * @param {string} [datasetId] - Dataset ID (optional, defaults to 'default')
  */
-export async function deleteAllData() {
+export async function deleteAllData(datasetId) {
   try {
+    const database = getDatabase(datasetId);
+
     // Clear all core tables
-    await db.people.clear();
-    await db.houses.clear();
-    await db.relationships.clear();
-    
+    await database.people.clear();
+    await database.houses.clear();
+    await database.relationships.clear();
+
     // Clear Codex tables (CRITICAL - prevents duplicates during sync)
-    await db.codexEntries.clear();
-    await db.codexLinks.clear();
-    
+    await database.codexEntries.clear();
+    await database.codexLinks.clear();
+
     // Clear other tables
-    await db.acknowledgedDuplicates.clear();
-    
+    await database.acknowledgedDuplicates.clear();
+
     // Clear heraldry tables if they exist
-    if (db.heraldry) await db.heraldry.clear();
-    if (db.heraldryLinks) await db.heraldryLinks.clear();
-    
+    if (database.heraldry) await database.heraldry.clear();
+    if (database.heraldryLinks) await database.heraldryLinks.clear();
+
     // Clear dignities tables if they exist
-    if (db.dignities) await db.dignities.clear();
-    if (db.dignityTenures) await db.dignityTenures.clear();
-    if (db.dignityLinks) await db.dignityLinks.clear();
-    
+    if (database.dignities) await database.dignities.clear();
+    if (database.dignityTenures) await database.dignityTenures.clear();
+    if (database.dignityLinks) await database.dignityLinks.clear();
+
     // Clear bugs table if it exists
-    if (db.bugs) await db.bugs.clear();
+    if (database.bugs) await database.bugs.clear();
 
     // Clear household roles table if it exists
-    if (db.householdRoles) await db.householdRoles.clear();
+    if (database.householdRoles) await database.householdRoles.clear();
 
     console.log('✅ All data deleted successfully (including Codex, Dignities, Household Roles, and Bugs)');
     return true;
@@ -648,14 +866,17 @@ export async function deleteAllData() {
 /**
  * Delete only genealogy data (people, houses, relationships)
  * Preserves Codex entries - useful for some operations
+ *
+ * @param {string} [datasetId] - Dataset ID (optional, defaults to 'default')
  */
-export async function deleteGenealogyData() {
+export async function deleteGenealogyData(datasetId) {
   try {
-    await db.people.clear();
-    await db.houses.clear();
-    await db.relationships.clear();
-    await db.acknowledgedDuplicates.clear();
-    
+    const database = getDatabase(datasetId);
+    await database.people.clear();
+    await database.houses.clear();
+    await database.relationships.clear();
+    await database.acknowledgedDuplicates.clear();
+
     console.log('✅ Genealogy data deleted (Codex preserved)');
     return true;
   } catch (error) {
@@ -669,22 +890,27 @@ export async function deleteGenealogyData() {
 /**
  * Check if two people have been acknowledged as not-duplicates
  * Returns true if they've been acknowledged (in either direction)
+ *
+ * @param {number} person1Id - First person ID
+ * @param {number} person2Id - Second person ID
+ * @param {string} [datasetId] - Dataset ID (optional, defaults to 'default')
  */
-export async function isAcknowledgedDuplicate(person1Id, person2Id) {
+export async function isAcknowledgedDuplicate(person1Id, person2Id, datasetId) {
   try {
-    const found = await db.acknowledgedDuplicates
+    const database = getDatabase(datasetId);
+    const found = await database.acknowledgedDuplicates
       .where('person1Id').equals(person1Id)
       .and(item => item.person2Id === person2Id)
       .first();
-    
+
     if (found) return true;
-    
+
     // Check reverse direction
-    const foundReverse = await db.acknowledgedDuplicates
+    const foundReverse = await database.acknowledgedDuplicates
       .where('person1Id').equals(person2Id)
       .and(item => item.person2Id === person1Id)
       .first();
-    
+
     return !!foundReverse;
   } catch (error) {
     console.error('Error checking acknowledged duplicate:', error);
@@ -694,10 +920,13 @@ export async function isAcknowledgedDuplicate(person1Id, person2Id) {
 
 /**
  * Get all acknowledged duplicate pairs
+ *
+ * @param {string} [datasetId] - Dataset ID (optional, defaults to 'default')
  */
-export async function getAllAcknowledgedDuplicates() {
+export async function getAllAcknowledgedDuplicates(datasetId) {
   try {
-    return await db.acknowledgedDuplicates.toArray();
+    const database = getDatabase(datasetId);
+    return await database.acknowledgedDuplicates.toArray();
   } catch (error) {
     console.error('Error getting acknowledged duplicates:', error);
     return [];
@@ -707,22 +936,28 @@ export async function getAllAcknowledgedDuplicates() {
 /**
  * Acknowledge that two people are NOT duplicates (they're namesakes)
  * This prevents future duplicate warnings for this pair
+ *
+ * @param {number} person1Id - First person ID
+ * @param {number} person2Id - Second person ID
+ * @param {string} [datasetId] - Dataset ID (optional, defaults to 'default')
  */
-export async function acknowledgeDuplicate(person1Id, person2Id) {
+export async function acknowledgeDuplicate(person1Id, person2Id, datasetId) {
   try {
+    const database = getDatabase(datasetId);
+
     // Check if already acknowledged
-    const exists = await isAcknowledgedDuplicate(person1Id, person2Id);
+    const exists = await isAcknowledgedDuplicate(person1Id, person2Id, datasetId);
     if (exists) {
       console.log('Duplicate already acknowledged');
       return null;
     }
-    
-    const id = await db.acknowledgedDuplicates.add({
+
+    const id = await database.acknowledgedDuplicates.add({
       person1Id: parseInt(person1Id),
       person2Id: parseInt(person2Id),
       acknowledgedAt: new Date().toISOString()
     });
-    
+
     console.log('Duplicate acknowledged with ID:', id);
     return id;
   } catch (error) {
@@ -733,20 +968,26 @@ export async function acknowledgeDuplicate(person1Id, person2Id) {
 
 /**
  * Remove an acknowledged duplicate (if you want warnings again)
+ *
+ * @param {number} person1Id - First person ID
+ * @param {number} person2Id - Second person ID
+ * @param {string} [datasetId] - Dataset ID (optional, defaults to 'default')
  */
-export async function removeAcknowledgedDuplicate(person1Id, person2Id) {
+export async function removeAcknowledgedDuplicate(person1Id, person2Id, datasetId) {
   try {
+    const database = getDatabase(datasetId);
+
     // Delete in both directions
-    await db.acknowledgedDuplicates
+    await database.acknowledgedDuplicates
       .where('person1Id').equals(person1Id)
       .and(item => item.person2Id === person2Id)
       .delete();
-    
-    await db.acknowledgedDuplicates
+
+    await database.acknowledgedDuplicates
       .where('person1Id').equals(person2Id)
       .and(item => item.person2Id === person1Id)
       .delete();
-    
+
     console.log('Acknowledged duplicate removed');
     return true;
   } catch (error) {
@@ -758,20 +999,24 @@ export async function removeAcknowledgedDuplicate(person1Id, person2Id) {
 /**
  * Get all "named-after" relationships for a person
  * These are relationships where relationshipType === 'named-after'
+ *
+ * @param {number} personId - Person ID
+ * @param {string} [datasetId] - Dataset ID (optional, defaults to 'default')
  */
-export async function getNamedAfterRelationships(personId) {
+export async function getNamedAfterRelationships(personId, datasetId) {
   try {
-    const relationships = await db.relationships
+    const database = getDatabase(datasetId);
+    const relationships = await database.relationships
       .where('person1Id').equals(personId)
       .and(item => item.relationshipType === 'named-after')
       .toArray();
-    
+
     // Also check reverse (person is the one someone was named after)
-    const reverseRelationships = await db.relationships
+    const reverseRelationships = await database.relationships
       .where('person2Id').equals(personId)
       .and(item => item.relationshipType === 'named-after')
       .toArray();
-    
+
     return {
       namedAfter: relationships,      // People this person was named after
       namesakes: reverseRelationships  // People named after this person
