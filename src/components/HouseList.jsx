@@ -253,7 +253,7 @@ function HouseList({
       return (
         <div
           className="house-list__heraldry house-list__heraldry--loading"
-          style={{ border: `2px solid ${house.colorCode || 'var(--border-primary)'}` }}
+          style={{ borderColor: house.colorCode || 'var(--border-primary)' }}
           title="Loading heraldry..."
         >
           <Icon name="loader" size={20} className="house-list__heraldry-loader" />
@@ -262,26 +262,28 @@ function HouseList({
     }
 
     if (heraldry || legacyImage) {
-      const image = heraldry?.heraldryThumbnail ||
-                   heraldry?.heraldryDisplay ||
-                   legacyImage;
+      // Prefer SVG (scales infinitely, transparent background) over PNG thumbnails
+      const hasSVG = heraldry?.heraldrySVG;
+      const fallbackImage = heraldry?.heraldryThumbnail ||
+                           heraldry?.heraldryDisplay ||
+                           legacyImage;
 
       return (
         <motion.div
           className="house-list__heraldry"
-          style={{ border: `2px solid ${house.colorCode || 'var(--border-primary)'}` }}
+          style={{ borderColor: house.colorCode || 'var(--border-primary)' }}
           onClick={() => handleHeraldryClick(house)}
           title={`View heraldry for ${house.houseName}`}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
-          {image ? (
-            <img src={image} alt={`${house.houseName} heraldry`} />
-          ) : heraldry?.heraldrySVG ? (
+          {hasSVG ? (
             <div
               className="house-list__heraldry-svg"
               dangerouslySetInnerHTML={{ __html: heraldry.heraldrySVG }}
             />
+          ) : fallbackImage ? (
+            <img src={fallbackImage} alt={`${house.houseName} heraldry`} />
           ) : (
             <Icon name="shield" size={24} />
           )}

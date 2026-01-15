@@ -133,16 +133,18 @@
 .dignity-view-header__title-icon {
   color: var(--accent-primary);
   opacity: 0.7;
+  flex-shrink: 0;
+}
+
+.dignity-view-header__title-text {
+  display: inline;
 }
 
 .dignity-view-header__initial {
-  font-size: 1.3em;
   color: var(--accent-primary);
   text-shadow:
     0 0 20px var(--accent-glow, rgba(212, 175, 55, 0.3)),
-    2px 2px 0 var(--bg-secondary);
-  margin-right: -0.05em;
-  display: inline-block;
+    1px 1px 0 var(--bg-secondary);
   animation: dignity-glow 4s ease-in-out infinite;
 }
 

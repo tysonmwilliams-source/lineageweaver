@@ -734,8 +734,10 @@ function DignityView() {
 
               <h1 className="dignity-view-header__title">
                 <Icon name={classIcon} size={32} className="dignity-view-header__title-icon" />
-                <span className="dignity-view-header__initial">{dignity.name.charAt(0)}</span>
-                {dignity.name.slice(1)}
+                <span className="dignity-view-header__title-text">
+                  <span className="dignity-view-header__initial">{dignity.name.charAt(0)}</span>
+                  {dignity.name.slice(1)}
+                </span>
               </h1>
 
               {rankInfo && (

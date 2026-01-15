@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { useParams } from 'react-router-dom';
 import * as d3 from 'd3';
 import { useGenealogy } from '../contexts/GenealogyContext';
 import Navigation from '../components/Navigation';
@@ -11,6 +12,10 @@ import { getPrimaryEpithet } from '../utils/epithetUtils';
 import { getAllDignities, getDignityIcon } from '../services/dignityService';
 
 function FamilyTree() {
+  // ==================== URL PARAMETERS ====================
+  // Handle deep linking to specific people from Codex or other pages
+  const { personId: urlPersonId } = useParams();
+  
   // Use the global theme system
   const { theme, isDarkTheme } = useTheme();
   
@@ -50,9 +55,16 @@ function FamilyTree() {
   // Vertical spacing control for testing
   const [verticalSpacing, setVerticalSpacing] = useState(50);
   
+  // Fragment gap control - space between disconnected family tree fragments
+  const [fragmentGap, setFragmentGap] = useState(0);
+  
   // 👑 DIGNITIES: Store dignities for displaying icons on person cards
   const [dignities, setDignities] = useState([]);
   const [dignitiesByPerson, setDignitiesByPerson] = useState(new Map());
+  
+  // 🎯 HIGHLIGHTED PERSON: Person to highlight (from URL navigation)
+  // This creates a persistent highlight effect on a specific person's card
+  const [highlightedPersonId, setHighlightedPersonId] = useState(null);
 
 
 
@@ -77,7 +89,7 @@ function FamilyTree() {
   
   // Fragment gap - extra space between disconnected fragments
   // This creates visual breathing room between unconnected family trees
-  const FRAGMENT_GAP = 200;
+  // Now controlled by state variable fragmentGap
 
   // Helper function to harmonize house colors with current theme
   const harmonizeColor = (hexColor) => {
@@ -113,6 +125,93 @@ function FamilyTree() {
       return hex.length === 1 ? '0' + hex : hex;
     };
     return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+  };
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // TEXT TRUNCATION HELPERS
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Handles long names that overflow card boundaries using a hybrid approach:
+  // 1. Try to fit full text
+  // 2. Truncate with ellipsis if too long
+  // 3. Return info for tooltip when truncated
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Estimate text width based on character count and font metrics.
+   * Uses average character widths for serif fonts at different sizes.
+   * @param {string} text - The text to measure
+   * @param {number} fontSize - Font size in pixels
+   * @param {boolean} isBold - Whether text is bold (wider characters)
+   * @returns {number} Estimated width in pixels
+   */
+  const estimateTextWidth = (text, fontSize, isBold = false) => {
+    // Average character width as ratio of font size (serif fonts)
+    // Bold text is ~10% wider on average
+    const avgCharRatio = isBold ? 0.58 : 0.52;
+    // Narrow characters (i, l, t, f, j, etc.) and wide ones (m, w, etc.) average out
+    return text.length * fontSize * avgCharRatio;
+  };
+
+  /**
+   * Truncate text to fit within a maximum width, adding ellipsis if needed.
+   * Uses a hybrid approach: tries full text first, then progressively truncates.
+   * @param {string} text - The text to potentially truncate
+   * @param {number} maxWidth - Maximum width in pixels
+   * @param {number} fontSize - Font size in pixels
+   * @param {boolean} isBold - Whether text is bold
+   * @returns {{ text: string, truncated: boolean, fullText: string }}
+   */
+  const truncateText = (text, maxWidth, fontSize, isBold = false) => {
+    if (!text) return { text: '', truncated: false, fullText: '' };
+
+    const fullText = text;
+    const estimatedWidth = estimateTextWidth(text, fontSize, isBold);
+
+    // If it fits, return as-is
+    if (estimatedWidth <= maxWidth) {
+      return { text, truncated: false, fullText };
+    }
+
+    // Calculate how many characters can fit (leaving room for ellipsis)
+    const ellipsis = '…';
+    const ellipsisWidth = estimateTextWidth(ellipsis, fontSize, isBold);
+    const availableWidth = maxWidth - ellipsisWidth;
+    const avgCharWidth = fontSize * (isBold ? 0.58 : 0.52);
+    const maxChars = Math.floor(availableWidth / avgCharWidth);
+
+    // Truncate and add ellipsis
+    const truncated = text.slice(0, Math.max(maxChars, 3)) + ellipsis;
+    return { text: truncated, truncated: true, fullText };
+  };
+
+  /**
+   * Smart name truncation that prioritizes first name visibility.
+   * For very long names, shows "FirstName L..." format.
+   * @param {string} firstName - First name
+   * @param {string} lastName - Last name
+   * @param {number} maxWidth - Maximum width in pixels
+   * @param {number} fontSize - Font size in pixels
+   * @returns {{ text: string, truncated: boolean, fullText: string }}
+   */
+  const truncateName = (firstName, lastName, maxWidth, fontSize) => {
+    const fullName = `${firstName} ${lastName}`;
+    const fullWidth = estimateTextWidth(fullName, fontSize, true);
+
+    // If full name fits, use it
+    if (fullWidth <= maxWidth) {
+      return { text: fullName, truncated: false, fullText: fullName };
+    }
+
+    // Try "FirstName LastInitial..." format
+    const abbreviated = `${firstName} ${lastName.charAt(0)}…`;
+    const abbrevWidth = estimateTextWidth(abbreviated, fontSize, true);
+
+    if (abbrevWidth <= maxWidth) {
+      return { text: abbreviated, truncated: true, fullText: fullName };
+    }
+
+    // Last resort: truncate first name too
+    return truncateText(fullName, maxWidth, fontSize, true);
   };
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -568,6 +667,41 @@ function FamilyTree() {
 
   // ==================== EFFECTS ====================
   
+  // 🎯 URL PARAMETER NAVIGATION: Navigate to specific person from Codex
+  // When navigating from /tree/:personId, we:
+  // 1. Find the person and their house
+  // 2. Switch to that house's tree
+  // 3. Highlight the person's card
+  // 4. Center view on the person at 150% zoom
+  useEffect(() => {
+    if (!urlPersonId || people.length === 0 || houses.length === 0) return;
+    
+    const personId = parseInt(urlPersonId);
+    const person = people.find(p => p.id === personId);
+    
+    if (!person) {
+      console.warn(`🎯 Person with ID ${personId} not found`);
+      return;
+    }
+    
+    console.log(`🎯 Navigating to ${person.firstName} ${person.lastName} (ID: ${personId})`);
+    
+    // Switch to the person's house
+    if (person.houseId && person.houseId !== selectedHouseId) {
+      setSelectedHouseId(person.houseId);
+    }
+    
+    // Set the person as highlighted
+    setHighlightedPersonId(personId);
+    
+    // Clear highlight after 8 seconds (longer to give time to see it)
+    const timer = setTimeout(() => {
+      setHighlightedPersonId(null);
+    }, 8000);
+    
+    return () => clearTimeout(timer);
+  }, [urlPersonId, people, houses]);
+  
   // Select first house when houses become available
   useEffect(() => {
     if (houses.length > 0 && !selectedHouseId) {
@@ -618,7 +752,7 @@ function FamilyTree() {
   // which triggers this effect and redraws the tree
   useEffect(() => {
     if (selectedHouseId && people.length > 0) drawTree();
-  }, [selectedHouseId, people, houses, relationships, showCadetHouses, theme, searchResults, relationshipMap, verticalSpacing, dataVersion, centreOnPersonId, fragmentSeparatorStyle, dignitiesByPerson]);
+  }, [selectedHouseId, people, houses, relationships, showCadetHouses, theme, searchResults, relationshipMap, verticalSpacing, dataVersion, centreOnPersonId, fragmentSeparatorStyle, dignitiesByPerson, fragmentGap, highlightedPersonId]);
 
   const handleSearchResults = (results) => {
     setSearchResults(results);
@@ -754,44 +888,74 @@ function FamilyTree() {
       .attr('width', CARD_WIDTH - 2).attr('height', CARD_HEIGHT - 2)
       .attr('fill', 'none').attr('stroke', glowColor).attr('stroke-width', 1).attr('rx', 5);
     
+    // Text truncation settings - leave padding for margins
+    const textMaxWidth = CARD_WIDTH - 16;
+    const nameFontSize = 13;
+    const secondaryFontSize = 10;
+
+    // Truncate name if needed
+    const nameResult = truncateName(person.firstName, person.lastName, textMaxWidth, nameFontSize);
+
     card.append('text')
       .attr('x', CARD_WIDTH / 2).attr('y', 22)
       .attr('text-anchor', 'middle').attr('class', 'person-name')
       .attr('fill', '#e9dcc9')
-      .text(`${person.firstName} ${person.lastName}`);
-    
+      .text(nameResult.text);
+
     let currentY = 22;
-    
+
     // ✨ EPITHETS: Show primary epithet below name
     const primaryEpithet = getPrimaryEpithet(person.epithets);
+    let epithetResult = null;
     if (primaryEpithet) {
       currentY += 13;
+      epithetResult = truncateText(primaryEpithet.text, textMaxWidth, secondaryFontSize);
       card.append('text')
         .attr('x', CARD_WIDTH / 2).attr('y', currentY)
         .attr('text-anchor', 'middle').attr('class', 'person-epithet')
         .attr('fill', '#d4a574')  // Accent color for epithets
         .attr('font-style', 'italic')
         .attr('font-size', '10px')
-        .text(primaryEpithet.text);
+        .text(epithetResult.text);
     }
-    
+
+    let maidenResult = null;
     if (person.maidenName) {
       currentY += 13;
+      const maidenText = `(née ${person.maidenName})`;
+      maidenResult = truncateText(maidenText, textMaxWidth, secondaryFontSize);
       card.append('text')
         .attr('x', CARD_WIDTH / 2).attr('y', currentY)
         .attr('text-anchor', 'middle').attr('class', 'person-maiden')
         .attr('fill', '#b8a891')
-        .text(`(née ${person.maidenName})`);
+        .text(maidenResult.text);
     }
     currentY += 16;
     const dates = `b. ${person.dateOfBirth}${person.dateOfDeath ? ` - d. ${person.dateOfDeath}` : ''}`;
+    const datesResult = truncateText(dates, textMaxWidth, secondaryFontSize);
     card.append('text')
       .attr('x', CARD_WIDTH / 2).attr('y', currentY)
       .attr('text-anchor', 'middle').attr('class', 'person-dates')
       .attr('fill', '#b8a891')
-      .text(dates);
+      .text(datesResult.text);
+
+    // Add tooltip with full text if any field was truncated
+    const anyTruncated = nameResult.truncated ||
+                         epithetResult?.truncated ||
+                         maidenResult?.truncated ||
+                         datesResult.truncated;
+    if (anyTruncated) {
+      let tooltipParts = [nameResult.fullText];
+      if (epithetResult?.fullText) tooltipParts.push(epithetResult.fullText);
+      if (maidenResult?.fullText) tooltipParts.push(maidenResult.fullText);
+      if (datesResult.truncated) tooltipParts.push(datesResult.fullText);
+
+      card.append('title').text(tooltipParts.join('\n'));
+    }
 
     const isHighlighted = searchResults.some(p => p.id === person.id);
+    const isUrlHighlighted = highlightedPersonId === person.id;
+    
     if (isHighlighted) {
       card.append('rect')
         .attr('width', CARD_WIDTH)
@@ -801,6 +965,33 @@ function FamilyTree() {
         .attr('stroke-width', 3)
         .attr('rx', 6)
         .attr('class', 'search-highlight');
+    }
+    
+    // 🎯 URL Navigation Highlight: Gold pulsing glow for person navigated from Codex
+    if (isUrlHighlighted) {
+      // Outer glow ring
+      card.append('rect')
+        .attr('width', CARD_WIDTH + 16)
+        .attr('height', CARD_HEIGHT + 16)
+        .attr('x', -8)
+        .attr('y', -8)
+        .attr('fill', 'none')
+        .attr('stroke', 'rgba(212, 175, 55, 0.4)')
+        .attr('stroke-width', 8)
+        .attr('rx', 14)
+        .attr('class', 'url-highlight-glow');
+      
+      // Inner highlight border
+      card.append('rect')
+        .attr('width', CARD_WIDTH + 6)
+        .attr('height', CARD_HEIGHT + 6)
+        .attr('x', -3)
+        .attr('y', -3)
+        .attr('fill', 'none')
+        .attr('stroke', '#d4af37')  // Gold
+        .attr('stroke-width', 3)
+        .attr('rx', 9)
+        .attr('class', 'url-highlight');
     }
     
     if (showRelationships && relationshipMap.has(person.id)) {
@@ -1107,10 +1298,10 @@ function FamilyTree() {
     // ════════════════════════════════════════════════════════════════════════
     
     fragmentsToDraw.forEach((fragment, fragmentIndex) => {
-      // Add FRAGMENT_GAP before drawing subsequent fragments
+      // Add fragmentGap before drawing subsequent fragments
       if (fragmentIndex > 0) {
-        currentGenPos += FRAGMENT_GAP;
-        console.log(`📏 Added ${FRAGMENT_GAP}px gap before fragment ${fragmentIndex + 1}`);
+        currentGenPos += fragmentGap;
+        console.log(`📏 Added ${fragmentGap}px gap before fragment ${fragmentIndex + 1}`);
       }
       
       // Build a scoped peopleById for this fragment
@@ -1142,6 +1333,7 @@ function FamilyTree() {
       console.log(`🌳 Drawing fragment ${fragmentIndex + 1}/${fragmentsToDraw.length}: ${fragment.rootPerson?.firstName} ${fragment.rootPerson?.lastName} (${generations.length} generations)`);
     
     generations.forEach((genIds, genIndex) => {
+      const isLastGeneration = genIndex === generations.length - 1;
       console.log(`Drawing generation ${genIndex} with ${genIds.length} people`);
       
       // Special handling for Gen 0 (single root person + spouse if exists)
@@ -1181,7 +1373,10 @@ function FamilyTree() {
           marriageLinesToDraw.push([rootPos, spousePos]);
         }
         
-        currentGenPos += genSize + genSpacing;
+        // Only add spacing if this is NOT the last generation of the fragment
+        if (!isLastGeneration) {
+          currentGenPos += genSize + genSpacing;
+        }
         return; // Skip to next generation
       }
       
@@ -1451,7 +1646,10 @@ function FamilyTree() {
         }
       });
       
-      currentGenPos += genSize + genSpacing;
+      // Only add spacing if this is NOT the last generation of the fragment
+      if (!isLastGeneration) {
+        currentGenPos += genSize + genSpacing;
+      }
     });
     
     }); // End of fragment loop
@@ -1615,7 +1813,31 @@ function FamilyTree() {
       const viewportWidth = svgElement?.clientWidth || window.innerWidth;
       const viewportHeight = svgElement?.clientHeight || window.innerHeight;
       
-      if (savedTransform) {
+      // 🎯 SPECIAL CASE: If we have a highlighted person from URL navigation,
+      // center directly on their card at 150% zoom
+      if (highlightedPersonId && positionMap.has(highlightedPersonId)) {
+        const highlightedPos = positionMap.get(highlightedPersonId);
+        const personCenterX = highlightedPos.x + highlightedPos.width / 2;
+        const personCenterY = highlightedPos.y + highlightedPos.height / 2;
+        const targetScale = 1.5; // 150% zoom
+        
+        // Calculate translation to center the highlighted person in viewport
+        const translateX = (viewportWidth / 2) - (personCenterX * targetScale);
+        const translateY = (viewportHeight / 2) - (personCenterY * targetScale);
+        
+        const highlightTransform = d3.zoomIdentity
+          .translate(translateX, translateY)
+          .scale(targetScale);
+        
+        svg.call(zoom.transform, highlightTransform);
+        setZoomLevel(targetScale);
+        
+        console.log('🎯 Centered on highlighted person:', {
+          personId: highlightedPersonId,
+          position: { x: personCenterX, y: personCenterY },
+          scale: targetScale
+        });
+      } else if (savedTransform) {
         // If we have a saved transform (from redraw), use it
         svg.call(zoom.transform, savedTransform);
       } else {
@@ -1963,6 +2185,37 @@ function FamilyTree() {
             </select>
           </div>
           
+          {/* Fragment Gap Control */}
+          <div className="mt-3 pt-3" style={{ borderTopWidth: '1px', borderColor: 'var(--border-primary)' }}>
+            <label className="block mb-2 text-xs font-medium" style={{ color: 'var(--text-primary)' }}>
+              Fragment Gap:
+            </label>
+            <select
+              value={fragmentGap}
+              onChange={(e) => setFragmentGap(Number(e.target.value))}
+              className="w-full p-1.5 text-xs rounded transition"
+              style={{
+                backgroundColor: 'var(--bg-tertiary)',
+                color: 'var(--text-primary)',
+                borderWidth: '1px',
+                borderColor: 'var(--border-primary)',
+                borderRadius: 'var(--radius-md)'
+              }}
+            >
+              <option value={70}>70px</option>
+              <option value={60}>60px</option>
+              <option value={50}>50px</option>
+              <option value={40}>40px</option>
+              <option value={30}>30px</option>
+              <option value={20}>20px</option>
+              <option value={10}>10px</option>
+              <option value={0}>None</option>
+            </select>
+            <p className="mt-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
+              Vertical space between disconnected fragments
+            </p>
+          </div>
+          
           {/* Help text */}
           <div className="mt-3 pt-3 text-xs" style={{ borderTopWidth: '1px', borderColor: 'var(--border-primary)', color: 'var(--text-secondary)' }}>
             <strong>Tip:</strong> Click a fragment to centre the tree on it. 
@@ -2049,9 +2302,37 @@ function FamilyTree() {
         .search-highlight {
           animation: pulse 1.5s infinite;
         }
+        .url-highlight {
+          animation: urlHighlightPulse 1.2s ease-in-out infinite;
+        }
+        .url-highlight-glow {
+          animation: urlGlowPulse 1.2s ease-in-out infinite;
+        }
         @keyframes pulse {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.5; }
+        }
+        @keyframes urlHighlightPulse {
+          0%, 100% { 
+            stroke: #d4af37;
+            stroke-width: 3;
+            filter: drop-shadow(0 0 4px rgba(212, 175, 55, 0.6));
+          }
+          50% { 
+            stroke: #ffd700;
+            stroke-width: 4;
+            filter: drop-shadow(0 0 12px rgba(255, 215, 0, 0.8));
+          }
+        }
+        @keyframes urlGlowPulse {
+          0%, 100% { 
+            stroke: rgba(212, 175, 55, 0.3);
+            stroke-width: 8;
+          }
+          50% { 
+            stroke: rgba(255, 215, 0, 0.5);
+            stroke-width: 12;
+          }
         }
       `}</style>
     </div>

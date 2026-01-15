@@ -319,15 +319,15 @@ function HouseForm({
                 className="house-form__heraldry-thumbnail"
                 style={{ borderColor: formData.colorCode || 'var(--border-primary)' }}
               >
-                {linkedHeraldry.heraldryDisplay || linkedHeraldry.heraldryThumbnail ? (
-                  <img
-                    src={linkedHeraldry.heraldryDisplay || linkedHeraldry.heraldryThumbnail}
-                    alt={linkedHeraldry.name}
-                  />
-                ) : linkedHeraldry.heraldrySVG ? (
+                {linkedHeraldry.heraldrySVG ? (
                   <div
                     className="house-form__heraldry-svg"
                     dangerouslySetInnerHTML={{ __html: linkedHeraldry.heraldrySVG }}
+                  />
+                ) : linkedHeraldry.heraldryDisplay || linkedHeraldry.heraldryThumbnail ? (
+                  <img
+                    src={linkedHeraldry.heraldryDisplay || linkedHeraldry.heraldryThumbnail}
+                    alt={linkedHeraldry.name}
                   />
                 ) : (
                   <Icon name="shield" size={40} className="house-form__heraldry-placeholder" />

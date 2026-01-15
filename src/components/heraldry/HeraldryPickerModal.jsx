@@ -238,8 +238,8 @@ function HeraldryPickerModal({
     });
   };
 
-  // Get display image for heraldry
-  const getHeraldryImage = (heraldry) => {
+  // Get fallback image for heraldry (used when SVG not available)
+  const getHeraldryFallbackImage = (heraldry) => {
     return heraldry.heraldryDisplay ||
            heraldry.heraldryThumbnail ||
            heraldry.heraldryImageData ||
@@ -382,7 +382,7 @@ function HeraldryPickerModal({
                     {filteredHeraldry.map(heraldry => {
                       const isSelected = selectedHeraldry?.id === heraldry.id;
                       const linkedEntities = getLinkedEntities(heraldry.id);
-                      const image = getHeraldryImage(heraldry);
+                      const fallbackImage = getHeraldryFallbackImage(heraldry);
 
                       return (
                         <motion.div
@@ -393,10 +393,15 @@ function HeraldryPickerModal({
                           whileHover={{ y: -2, scale: 1.02 }}
                           whileTap={{ scale: 0.98 }}
                         >
-                          {/* Thumbnail */}
+                          {/* Thumbnail - prefer SVG */}
                           <div className="heraldry-picker__item-thumb">
-                            {image ? (
-                              <img src={image} alt={heraldry.name} />
+                            {heraldry.heraldrySVG ? (
+                              <div
+                                className="heraldry-picker__item-svg"
+                                dangerouslySetInnerHTML={{ __html: heraldry.heraldrySVG }}
+                              />
+                            ) : fallbackImage ? (
+                              <img src={fallbackImage} alt={heraldry.name} />
                             ) : (
                               <Icon name="shield" size={32} className="heraldry-picker__item-placeholder" />
                             )}
@@ -444,17 +449,17 @@ function HeraldryPickerModal({
                       <span>Preview</span>
                     </h3>
 
-                    {/* Large preview image */}
+                    {/* Large preview image - prefer SVG */}
                     <div className="heraldry-picker__preview-image">
-                      {selectedHeraldry.heraldryHighRes || selectedHeraldry.heraldryDisplay ? (
-                        <img
-                          src={selectedHeraldry.heraldryHighRes || selectedHeraldry.heraldryDisplay}
-                          alt={selectedHeraldry.name}
-                        />
-                      ) : selectedHeraldry.heraldrySVG ? (
+                      {selectedHeraldry.heraldrySVG ? (
                         <div
                           className="heraldry-picker__preview-svg"
                           dangerouslySetInnerHTML={{ __html: selectedHeraldry.heraldrySVG }}
+                        />
+                      ) : selectedHeraldry.heraldryHighRes || selectedHeraldry.heraldryDisplay ? (
+                        <img
+                          src={selectedHeraldry.heraldryHighRes || selectedHeraldry.heraldryDisplay}
+                          alt={selectedHeraldry.name}
                         />
                       ) : (
                         <Icon name="shield" size={64} className="heraldry-picker__preview-placeholder" />

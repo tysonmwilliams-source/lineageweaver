@@ -86,7 +86,14 @@ import {
   addHouse as localAddHouse,
   addRelationship as localAddRelationship,
   deleteAllData as localDeleteAllData,
-  getDatabase
+  getDatabase,
+  // Sync queue functions for data loss prevention
+  addToSyncQueue,
+  markEntitySynced,
+  hasPendingChanges,
+  getPendingChangeCount,
+  clearSyncQueue,
+  clearSyncedItems
 } from './database';
 
 // Default dataset ID for backward compatibility
@@ -284,10 +291,30 @@ export async function initializeSync(userId, datasetId = DEFAULT_DATASET_ID) {
 
     // Scenario 3 & 4: Cloud data exists → Download (cloud is source of truth)
     console.log('⬇️ Downloading cloud data...');
+
+    // CRITICAL: Check for pending changes before wiping local data
+    // This prevents data loss when local changes haven't synced yet
+    const pendingCount = await getPendingChangeCount(dsId);
+    if (pendingCount > 0) {
+      console.warn(`⚠️ BLOCKING SYNC: ${pendingCount} pending changes not yet synced to cloud`);
+      console.warn('⚠️ Local data will be preserved to prevent data loss');
+      updateSyncStatus({
+        isSyncing: false,
+        error: `${pendingCount} pending changes - sync blocked to prevent data loss`,
+        pendingChanges: pendingCount
+      });
+      return {
+        status: 'blocked',
+        reason: 'pending-changes',
+        pendingCount,
+        data: { people: localPeople, houses: localHouses, relationships: localRelationships }
+      };
+    }
+
     const cloudData = await downloadAllFromCloud(userId, dsId);
 
-    // Clear local and replace with cloud data
-    await localDeleteAllData(dsId);
+    // Clear local and replace with cloud data (safe - no pending changes)
+    await localDeleteAllData(dsId, { clearSyncQueue: true });
 
     // Re-populate local DB with cloud data
     for (const house of cloudData.houses || []) {
@@ -417,13 +444,19 @@ export async function initializeSync(userId, datasetId = DEFAULT_DATASET_ID) {
  * @param {Object} personData - The person data
  */
 export async function syncAddPerson(userId, datasetId, personId, personData) {
+  // Track in sync queue immediately (even if offline)
+  await addToSyncQueue({ entityType: 'person', entityId: personId, operation: 'add', data: personData }, datasetId);
+
   if (!userId || !isOnline) return;
 
   try {
     await addPersonCloud(userId, datasetId, { ...personData, id: personId });
+    // Mark as synced on success
+    await markEntitySynced('person', personId, datasetId);
   } catch (error) {
     console.error('☁️ Failed to sync person add:', error);
     // Don't throw - local operation already succeeded
+    // Entry remains in queue as pending
   }
 }
 
@@ -431,10 +464,13 @@ export async function syncAddPerson(userId, datasetId, personId, personData) {
  * Update a person (local + cloud)
  */
 export async function syncUpdatePerson(userId, datasetId, personId, updates) {
+  await addToSyncQueue({ entityType: 'person', entityId: personId, operation: 'update', data: updates }, datasetId);
+
   if (!userId || !isOnline) return;
 
   try {
     await updatePersonCloud(userId, datasetId, personId, updates);
+    await markEntitySynced('person', personId, datasetId);
   } catch (error) {
     console.error('☁️ Failed to sync person update:', error);
   }
@@ -444,10 +480,13 @@ export async function syncUpdatePerson(userId, datasetId, personId, updates) {
  * Delete a person (local + cloud)
  */
 export async function syncDeletePerson(userId, datasetId, personId) {
+  await addToSyncQueue({ entityType: 'person', entityId: personId, operation: 'delete' }, datasetId);
+
   if (!userId || !isOnline) return;
 
   try {
     await deletePersonCloud(userId, datasetId, personId);
+    await markEntitySynced('person', personId, datasetId);
   } catch (error) {
     console.error('☁️ Failed to sync person delete:', error);
   }
@@ -457,10 +496,13 @@ export async function syncDeletePerson(userId, datasetId, personId) {
  * Add a house (local + cloud)
  */
 export async function syncAddHouse(userId, datasetId, houseId, houseData) {
+  await addToSyncQueue({ entityType: 'house', entityId: houseId, operation: 'add', data: houseData }, datasetId);
+
   if (!userId || !isOnline) return;
 
   try {
     await addHouseCloud(userId, datasetId, { ...houseData, id: houseId });
+    await markEntitySynced('house', houseId, datasetId);
   } catch (error) {
     console.error('☁️ Failed to sync house add:', error);
   }
@@ -470,10 +512,13 @@ export async function syncAddHouse(userId, datasetId, houseId, houseData) {
  * Update a house (local + cloud)
  */
 export async function syncUpdateHouse(userId, datasetId, houseId, updates) {
+  await addToSyncQueue({ entityType: 'house', entityId: houseId, operation: 'update', data: updates }, datasetId);
+
   if (!userId || !isOnline) return;
 
   try {
     await updateHouseCloud(userId, datasetId, houseId, updates);
+    await markEntitySynced('house', houseId, datasetId);
   } catch (error) {
     console.error('☁️ Failed to sync house update:', error);
   }
@@ -483,10 +528,13 @@ export async function syncUpdateHouse(userId, datasetId, houseId, updates) {
  * Delete a house (local + cloud)
  */
 export async function syncDeleteHouse(userId, datasetId, houseId) {
+  await addToSyncQueue({ entityType: 'house', entityId: houseId, operation: 'delete' }, datasetId);
+
   if (!userId || !isOnline) return;
 
   try {
     await deleteHouseCloud(userId, datasetId, houseId);
+    await markEntitySynced('house', houseId, datasetId);
   } catch (error) {
     console.error('☁️ Failed to sync house delete:', error);
   }
@@ -496,10 +544,13 @@ export async function syncDeleteHouse(userId, datasetId, houseId) {
  * Add a relationship (local + cloud)
  */
 export async function syncAddRelationship(userId, datasetId, relationshipId, relationshipData) {
+  await addToSyncQueue({ entityType: 'relationship', entityId: relationshipId, operation: 'add', data: relationshipData }, datasetId);
+
   if (!userId || !isOnline) return;
 
   try {
     await addRelationshipCloud(userId, datasetId, { ...relationshipData, id: relationshipId });
+    await markEntitySynced('relationship', relationshipId, datasetId);
   } catch (error) {
     console.error('☁️ Failed to sync relationship add:', error);
   }
@@ -509,10 +560,13 @@ export async function syncAddRelationship(userId, datasetId, relationshipId, rel
  * Update a relationship (local + cloud)
  */
 export async function syncUpdateRelationship(userId, datasetId, relationshipId, updates) {
+  await addToSyncQueue({ entityType: 'relationship', entityId: relationshipId, operation: 'update', data: updates }, datasetId);
+
   if (!userId || !isOnline) return;
 
   try {
     await updateRelationshipCloud(userId, datasetId, relationshipId, updates);
+    await markEntitySynced('relationship', relationshipId, datasetId);
   } catch (error) {
     console.error('☁️ Failed to sync relationship update:', error);
   }
@@ -522,10 +576,13 @@ export async function syncUpdateRelationship(userId, datasetId, relationshipId, 
  * Delete a relationship (local + cloud)
  */
 export async function syncDeleteRelationship(userId, datasetId, relationshipId) {
+  await addToSyncQueue({ entityType: 'relationship', entityId: relationshipId, operation: 'delete' }, datasetId);
+
   if (!userId || !isOnline) return;
 
   try {
     await deleteRelationshipCloud(userId, datasetId, relationshipId);
+    await markEntitySynced('relationship', relationshipId, datasetId);
   } catch (error) {
     console.error('☁️ Failed to sync relationship delete:', error);
   }
@@ -535,10 +592,13 @@ export async function syncDeleteRelationship(userId, datasetId, relationshipId) 
  * Add a codex entry (local + cloud)
  */
 export async function syncAddCodexEntry(userId, datasetId, entryId, entryData) {
+  await addToSyncQueue({ entityType: 'codexEntry', entityId: entryId, operation: 'add', data: entryData }, datasetId);
+
   if (!userId || !isOnline) return;
 
   try {
     await addCodexEntryCloud(userId, datasetId, { ...entryData, id: entryId });
+    await markEntitySynced('codexEntry', entryId, datasetId);
   } catch (error) {
     console.error('☁️ Failed to sync codex entry add:', error);
   }
@@ -548,10 +608,13 @@ export async function syncAddCodexEntry(userId, datasetId, entryId, entryData) {
  * Update a codex entry (local + cloud)
  */
 export async function syncUpdateCodexEntry(userId, datasetId, entryId, updates) {
+  await addToSyncQueue({ entityType: 'codexEntry', entityId: entryId, operation: 'update', data: updates }, datasetId);
+
   if (!userId || !isOnline) return;
 
   try {
     await updateCodexEntryCloud(userId, datasetId, entryId, updates);
+    await markEntitySynced('codexEntry', entryId, datasetId);
   } catch (error) {
     console.error('☁️ Failed to sync codex entry update:', error);
   }
@@ -561,10 +624,13 @@ export async function syncUpdateCodexEntry(userId, datasetId, entryId, updates) 
  * Delete a codex entry (local + cloud)
  */
 export async function syncDeleteCodexEntry(userId, datasetId, entryId) {
+  await addToSyncQueue({ entityType: 'codexEntry', entityId: entryId, operation: 'delete' }, datasetId);
+
   if (!userId || !isOnline) return;
 
   try {
     await deleteCodexEntryCloud(userId, datasetId, entryId);
+    await markEntitySynced('codexEntry', entryId, datasetId);
   } catch (error) {
     console.error('☁️ Failed to sync codex entry delete:', error);
   }
@@ -580,10 +646,13 @@ export async function syncDeleteCodexEntry(userId, datasetId, entryId) {
  * @param {Object} linkData - The link data
  */
 export async function syncAddCodexLink(userId, datasetId, linkId, linkData) {
+  await addToSyncQueue({ entityType: 'codexLink', entityId: linkId, operation: 'add', data: linkData }, datasetId);
+
   if (!userId || !isOnline) return;
 
   try {
     await addCodexLinkCloud(userId, datasetId, { ...linkData, id: linkId });
+    await markEntitySynced('codexLink', linkId, datasetId);
   } catch (error) {
     console.error('☁️ Failed to sync codex link add:', error);
   }
@@ -593,10 +662,13 @@ export async function syncAddCodexLink(userId, datasetId, linkId, linkData) {
  * Delete codex link (local + cloud)
  */
 export async function syncDeleteCodexLink(userId, datasetId, linkId) {
+  await addToSyncQueue({ entityType: 'codexLink', entityId: linkId, operation: 'delete' }, datasetId);
+
   if (!userId || !isOnline) return;
 
   try {
     await deleteCodexLinkCloud(userId, datasetId, linkId);
+    await markEntitySynced('codexLink', linkId, datasetId);
   } catch (error) {
     console.error('☁️ Failed to sync codex link delete:', error);
   }
@@ -612,10 +684,13 @@ export async function syncDeleteCodexLink(userId, datasetId, linkId) {
  * @param {Object} heraldryData - The heraldry data
  */
 export async function syncAddHeraldry(userId, datasetId, heraldryId, heraldryData) {
+  await addToSyncQueue({ entityType: 'heraldry', entityId: heraldryId, operation: 'add', data: heraldryData }, datasetId);
+
   if (!userId || !isOnline) return;
 
   try {
     await addHeraldryCloud(userId, datasetId, { ...heraldryData, id: heraldryId });
+    await markEntitySynced('heraldry', heraldryId, datasetId);
   } catch (error) {
     console.error('☁️ Failed to sync heraldry add:', error);
   }
@@ -625,10 +700,13 @@ export async function syncAddHeraldry(userId, datasetId, heraldryId, heraldryDat
  * Update heraldry (local + cloud)
  */
 export async function syncUpdateHeraldry(userId, datasetId, heraldryId, updates) {
+  await addToSyncQueue({ entityType: 'heraldry', entityId: heraldryId, operation: 'update', data: updates }, datasetId);
+
   if (!userId || !isOnline) return;
 
   try {
     await updateHeraldryCloud(userId, datasetId, heraldryId, updates);
+    await markEntitySynced('heraldry', heraldryId, datasetId);
   } catch (error) {
     console.error('☁️ Failed to sync heraldry update:', error);
   }
@@ -638,10 +716,13 @@ export async function syncUpdateHeraldry(userId, datasetId, heraldryId, updates)
  * Delete heraldry (local + cloud)
  */
 export async function syncDeleteHeraldry(userId, datasetId, heraldryId) {
+  await addToSyncQueue({ entityType: 'heraldry', entityId: heraldryId, operation: 'delete' }, datasetId);
+
   if (!userId || !isOnline) return;
 
   try {
     await deleteHeraldryCloud(userId, datasetId, heraldryId);
+    await markEntitySynced('heraldry', heraldryId, datasetId);
   } catch (error) {
     console.error('☁️ Failed to sync heraldry delete:', error);
   }
@@ -651,10 +732,13 @@ export async function syncDeleteHeraldry(userId, datasetId, heraldryId) {
  * Add heraldry link (local + cloud)
  */
 export async function syncAddHeraldryLink(userId, datasetId, linkId, linkData) {
+  await addToSyncQueue({ entityType: 'heraldryLink', entityId: linkId, operation: 'add', data: linkData }, datasetId);
+
   if (!userId || !isOnline) return;
 
   try {
     await addHeraldryLinkCloud(userId, datasetId, { ...linkData, id: linkId });
+    await markEntitySynced('heraldryLink', linkId, datasetId);
   } catch (error) {
     console.error('☁️ Failed to sync heraldry link add:', error);
   }
@@ -664,10 +748,13 @@ export async function syncAddHeraldryLink(userId, datasetId, linkId, linkData) {
  * Delete heraldry link (local + cloud)
  */
 export async function syncDeleteHeraldryLink(userId, datasetId, linkId) {
+  await addToSyncQueue({ entityType: 'heraldryLink', entityId: linkId, operation: 'delete' }, datasetId);
+
   if (!userId || !isOnline) return;
 
   try {
     await deleteHeraldryLinkCloud(userId, datasetId, linkId);
+    await markEntitySynced('heraldryLink', linkId, datasetId);
   } catch (error) {
     console.error('☁️ Failed to sync heraldry link delete:', error);
   }
@@ -683,10 +770,13 @@ export async function syncDeleteHeraldryLink(userId, datasetId, linkId) {
  * @param {Object} dignityData - The dignity data
  */
 export async function syncAddDignity(userId, datasetId, dignityId, dignityData) {
+  await addToSyncQueue({ entityType: 'dignity', entityId: dignityId, operation: 'add', data: dignityData }, datasetId);
+
   if (!userId || !isOnline) return;
 
   try {
     await addDignityCloud(userId, datasetId, { ...dignityData, id: dignityId });
+    await markEntitySynced('dignity', dignityId, datasetId);
   } catch (error) {
     console.error('☁️ Failed to sync dignity add:', error);
   }
@@ -696,10 +786,13 @@ export async function syncAddDignity(userId, datasetId, dignityId, dignityData) 
  * Update dignity (local + cloud)
  */
 export async function syncUpdateDignity(userId, datasetId, dignityId, updates) {
+  await addToSyncQueue({ entityType: 'dignity', entityId: dignityId, operation: 'update', data: updates }, datasetId);
+
   if (!userId || !isOnline) return;
 
   try {
     await updateDignityCloud(userId, datasetId, dignityId, updates);
+    await markEntitySynced('dignity', dignityId, datasetId);
   } catch (error) {
     console.error('☁️ Failed to sync dignity update:', error);
   }
@@ -709,10 +802,13 @@ export async function syncUpdateDignity(userId, datasetId, dignityId, updates) {
  * Delete dignity (local + cloud)
  */
 export async function syncDeleteDignity(userId, datasetId, dignityId) {
+  await addToSyncQueue({ entityType: 'dignity', entityId: dignityId, operation: 'delete' }, datasetId);
+
   if (!userId || !isOnline) return;
 
   try {
     await deleteDignityCloud(userId, datasetId, dignityId);
+    await markEntitySynced('dignity', dignityId, datasetId);
   } catch (error) {
     console.error('☁️ Failed to sync dignity delete:', error);
   }
@@ -722,10 +818,13 @@ export async function syncDeleteDignity(userId, datasetId, dignityId) {
  * Add dignity tenure (local + cloud)
  */
 export async function syncAddDignityTenure(userId, datasetId, tenureId, tenureData) {
+  await addToSyncQueue({ entityType: 'dignityTenure', entityId: tenureId, operation: 'add', data: tenureData }, datasetId);
+
   if (!userId || !isOnline) return;
 
   try {
     await addDignityTenureCloud(userId, datasetId, { ...tenureData, id: tenureId });
+    await markEntitySynced('dignityTenure', tenureId, datasetId);
   } catch (error) {
     console.error('☁️ Failed to sync dignity tenure add:', error);
   }
@@ -735,10 +834,13 @@ export async function syncAddDignityTenure(userId, datasetId, tenureId, tenureDa
  * Update dignity tenure (local + cloud)
  */
 export async function syncUpdateDignityTenure(userId, datasetId, tenureId, updates) {
+  await addToSyncQueue({ entityType: 'dignityTenure', entityId: tenureId, operation: 'update', data: updates }, datasetId);
+
   if (!userId || !isOnline) return;
 
   try {
     await updateDignityTenureCloud(userId, datasetId, tenureId, updates);
+    await markEntitySynced('dignityTenure', tenureId, datasetId);
   } catch (error) {
     console.error('☁️ Failed to sync dignity tenure update:', error);
   }
@@ -748,10 +850,13 @@ export async function syncUpdateDignityTenure(userId, datasetId, tenureId, updat
  * Delete dignity tenure (local + cloud)
  */
 export async function syncDeleteDignityTenure(userId, datasetId, tenureId) {
+  await addToSyncQueue({ entityType: 'dignityTenure', entityId: tenureId, operation: 'delete' }, datasetId);
+
   if (!userId || !isOnline) return;
 
   try {
     await deleteDignityTenureCloud(userId, datasetId, tenureId);
+    await markEntitySynced('dignityTenure', tenureId, datasetId);
   } catch (error) {
     console.error('☁️ Failed to sync dignity tenure delete:', error);
   }
@@ -761,10 +866,13 @@ export async function syncDeleteDignityTenure(userId, datasetId, tenureId) {
  * Add dignity link (local + cloud)
  */
 export async function syncAddDignityLink(userId, datasetId, linkId, linkData) {
+  await addToSyncQueue({ entityType: 'dignityLink', entityId: linkId, operation: 'add', data: linkData }, datasetId);
+
   if (!userId || !isOnline) return;
 
   try {
     await addDignityLinkCloud(userId, datasetId, { ...linkData, id: linkId });
+    await markEntitySynced('dignityLink', linkId, datasetId);
   } catch (error) {
     console.error('☁️ Failed to sync dignity link add:', error);
   }
@@ -774,10 +882,13 @@ export async function syncAddDignityLink(userId, datasetId, linkId, linkData) {
  * Delete dignity link (local + cloud)
  */
 export async function syncDeleteDignityLink(userId, datasetId, linkId) {
+  await addToSyncQueue({ entityType: 'dignityLink', entityId: linkId, operation: 'delete' }, datasetId);
+
   if (!userId || !isOnline) return;
 
   try {
     await deleteDignityLinkCloud(userId, datasetId, linkId);
+    await markEntitySynced('dignityLink', linkId, datasetId);
   } catch (error) {
     console.error('☁️ Failed to sync dignity link delete:', error);
   }
@@ -793,10 +904,13 @@ export async function syncDeleteDignityLink(userId, datasetId, linkId) {
  * @param {Object} roleData - The role data
  */
 export async function syncAddHouseholdRole(userId, datasetId, roleId, roleData) {
+  await addToSyncQueue({ entityType: 'householdRole', entityId: roleId, operation: 'add', data: roleData }, datasetId);
+
   if (!userId || !isOnline) return;
 
   try {
     await addHouseholdRoleCloud(userId, datasetId, { ...roleData, id: roleId });
+    await markEntitySynced('householdRole', roleId, datasetId);
   } catch (error) {
     console.error('☁️ Failed to sync household role add:', error);
   }
@@ -806,10 +920,13 @@ export async function syncAddHouseholdRole(userId, datasetId, roleId, roleData) 
  * Update household role (local + cloud)
  */
 export async function syncUpdateHouseholdRole(userId, datasetId, roleId, updates) {
+  await addToSyncQueue({ entityType: 'householdRole', entityId: roleId, operation: 'update', data: updates }, datasetId);
+
   if (!userId || !isOnline) return;
 
   try {
     await updateHouseholdRoleCloud(userId, datasetId, roleId, updates);
+    await markEntitySynced('householdRole', roleId, datasetId);
   } catch (error) {
     console.error('☁️ Failed to sync household role update:', error);
   }
@@ -819,10 +936,13 @@ export async function syncUpdateHouseholdRole(userId, datasetId, roleId, updates
  * Delete household role (local + cloud)
  */
 export async function syncDeleteHouseholdRole(userId, datasetId, roleId) {
+  await addToSyncQueue({ entityType: 'householdRole', entityId: roleId, operation: 'delete' }, datasetId);
+
   if (!userId || !isOnline) return;
 
   try {
     await deleteHouseholdRoleCloud(userId, datasetId, roleId);
+    await markEntitySynced('householdRole', roleId, datasetId);
   } catch (error) {
     console.error('☁️ Failed to sync household role delete:', error);
   }
@@ -844,7 +964,7 @@ export function getSyncStatus() {
  * @param {string} userId - The user's Firebase UID
  * @param {string} [datasetId='default'] - The dataset ID
  */
-export async function forceCloudSync(userId, datasetId = DEFAULT_DATASET_ID) {
+export async function forceCloudSync(userId, datasetId = DEFAULT_DATASET_ID, options = {}) {
   if (!userId) return { status: 'no-user' };
 
   const dsId = datasetId || DEFAULT_DATASET_ID;
@@ -853,8 +973,30 @@ export async function forceCloudSync(userId, datasetId = DEFAULT_DATASET_ID) {
   updateSyncStatus({ isSyncing: true, error: null });
 
   try {
-    // Clear ALL local data (including Codex - this is now fixed in database.js)
-    await localDeleteAllData(dsId);
+    // CRITICAL: Check for pending changes unless explicitly overridden
+    // This prevents accidental data loss
+    if (!options.forceClear) {
+      const pendingCount = await getPendingChangeCount(dsId);
+      if (pendingCount > 0) {
+        console.warn(`⚠️ BLOCKING FORCE SYNC: ${pendingCount} pending changes not synced`);
+        updateSyncStatus({
+          isSyncing: false,
+          error: `${pendingCount} pending changes - use forceClear option to override`,
+          pendingChanges: pendingCount
+        });
+        return {
+          status: 'blocked',
+          reason: 'pending-changes',
+          pendingCount,
+          message: 'Set forceClear: true to override and lose pending changes'
+        };
+      }
+    } else {
+      console.warn('⚠️ Force clear requested - pending changes will be lost');
+    }
+
+    // Clear ALL local data (including Codex and sync queue)
+    await localDeleteAllData(dsId, { clearSyncQueue: true });
 
     // Download from cloud
     const cloudData = await downloadAllFromCloud(userId, dsId);

@@ -294,14 +294,46 @@
 }
 
 .entry-heraldry__preview {
+  width: 120px;
+  height: 144px;
   cursor: pointer;
+  border: 2px solid var(--border-primary);
   border-radius: var(--radius-md);
+  background: transparent;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: transform var(--duration-normal) var(--ease-standard);
   flex-shrink: 0;
 }
 
 .entry-heraldry__preview:hover {
   transform: scale(1.05);
+}
+
+.entry-heraldry__svg {
+  width: 85%;
+  height: 85%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.entry-heraldry__svg svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.entry-heraldry__img {
+  max-width: 85%;
+  max-height: 85%;
+  object-fit: contain;
+}
+
+.entry-heraldry__placeholder {
+  color: var(--text-tertiary);
 }
 
 .entry-heraldry__info {

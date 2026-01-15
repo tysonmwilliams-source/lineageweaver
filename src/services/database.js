@@ -318,6 +318,30 @@ db.version(12).stores({
   householdRoles: '++id, houseId, roleType, currentHolderId, startDate, created, updated'
 });
 
+// Version 13: Add Sync Queue for Data Loss Prevention
+// Tracks all local changes pending cloud sync to prevent data loss on refresh.
+// If pending changes exist, cloud-overwrite operations are blocked until sync completes.
+db.version(13).stores({
+  people: '++id, firstName, lastName, houseId, dateOfBirth, dateOfDeath, bastardStatus, codexEntryId, heraldryId',
+  houses: '++id, houseName, parentHouseId, houseType, codexEntryId, heraldryId',
+  relationships: '++id, person1Id, person2Id, relationshipType',
+  codexEntries: '++id, type, title, category, *tags, era, created, updated',
+  codexLinks: '++id, sourceId, targetId, type',
+  acknowledgedDuplicates: '++id, person1Id, person2Id, acknowledgedAt',
+  heraldry: '++id, name, category, *tags, created, updated',
+  heraldryLinks: '++id, heraldryId, entityType, entityId, linkType',
+  dignities: '++id, name, shortName, dignityClass, dignityRank, swornToId, currentHolderId, currentHouseId, codexEntryId, created, updated',
+  dignityTenures: '++id, dignityId, personId, dateStarted, dateEnded, acquisitionType, endType, created',
+  dignityLinks: '++id, dignityId, entityType, entityId, linkType, created',
+  bugs: '++id, title, status, priority, system, page, created, resolved',
+  householdRoles: '++id, houseId, roleType, currentHolderId, startDate, created, updated',
+  // NEW: Sync Queue - tracks pending changes for data loss prevention
+  // entityType: 'person', 'house', 'relationship', 'codexEntry', 'heraldry', etc.
+  // operation: 'add', 'update', 'delete'
+  // synced: 0 (pending) or 1 (confirmed synced)
+  syncQueue: '++id, entityType, entityId, operation, timestamp, synced'
+});
+
 // Version 3: Add heraldry system fields
 db.version(3).stores({
   // No changes to indexes, just adding new fields through upgrade function
@@ -822,9 +846,14 @@ export async function foundCadetHouse(ceremonyData, datasetId) {
  * IMPORTANT: This clears ALL tables including Codex data.
  * Used primarily during cloud sync when downloading fresh data.
  *
+ * NOTE: syncQueue is intentionally NOT cleared - it tracks pending changes
+ * that must be preserved to prevent data loss.
+ *
  * @param {string} [datasetId] - Dataset ID (optional, defaults to 'default')
+ * @param {Object} [options] - Options
+ * @param {boolean} [options.clearSyncQueue=false] - Also clear sync queue (only after successful full sync)
  */
-export async function deleteAllData(datasetId) {
+export async function deleteAllData(datasetId, options = {}) {
   try {
     const database = getDatabase(datasetId);
 
@@ -855,7 +884,14 @@ export async function deleteAllData(datasetId) {
     // Clear household roles table if it exists
     if (database.householdRoles) await database.householdRoles.clear();
 
-    console.log('✅ All data deleted successfully (including Codex, Dignities, Household Roles, and Bugs)');
+    // Only clear syncQueue if explicitly requested (after successful full sync)
+    if (options.clearSyncQueue && database.syncQueue) {
+      await database.syncQueue.clear();
+      console.log('✅ All data deleted including sync queue');
+    } else {
+      console.log('✅ All data deleted successfully (sync queue preserved)');
+    }
+
     return true;
   } catch (error) {
     console.error('❌ Error deleting all data:', error);
@@ -1024,6 +1060,191 @@ export async function getNamedAfterRelationships(personId, datasetId) {
   } catch (error) {
     console.error('Error getting named-after relationships:', error);
     return { namedAfter: [], namesakes: [] };
+  }
+}
+
+// ==================== SYNC QUEUE OPERATIONS ====================
+// These functions manage the pending changes queue for data loss prevention
+
+/**
+ * Add a change to the sync queue (called before each local operation)
+ *
+ * @param {Object} change - The change to track
+ * @param {string} change.entityType - Type: 'person', 'house', 'relationship', etc.
+ * @param {number|string} change.entityId - The entity's local ID
+ * @param {string} change.operation - Operation: 'add', 'update', 'delete'
+ * @param {Object} [change.data] - Optional data snapshot for add/update operations
+ * @param {string} [datasetId] - Dataset ID
+ * @returns {Promise<number>} The sync queue entry ID
+ */
+export async function addToSyncQueue(change, datasetId) {
+  try {
+    const database = getDatabase(datasetId);
+    const entry = {
+      entityType: change.entityType,
+      entityId: String(change.entityId),
+      operation: change.operation,
+      data: change.data || null,
+      timestamp: Date.now(),
+      synced: 0 // 0 = pending, 1 = synced
+    };
+    const id = await database.syncQueue.add(entry);
+    console.log(`📝 Queued ${change.operation} for ${change.entityType}:${change.entityId}`);
+    return id;
+  } catch (error) {
+    console.error('Error adding to sync queue:', error);
+    throw error;
+  }
+}
+
+/**
+ * Mark a sync queue entry as synced (called after cloud confirms)
+ *
+ * @param {number} queueId - The sync queue entry ID
+ * @param {string} [datasetId] - Dataset ID
+ */
+export async function markSynced(queueId, datasetId) {
+  try {
+    const database = getDatabase(datasetId);
+    await database.syncQueue.update(queueId, { synced: 1 });
+    console.log(`✓ Marked queue entry ${queueId} as synced`);
+  } catch (error) {
+    console.error('Error marking as synced:', error);
+  }
+}
+
+/**
+ * Mark sync queue entries as synced by entity (called after cloud confirms)
+ *
+ * @param {string} entityType - The entity type
+ * @param {number|string} entityId - The entity ID
+ * @param {string} [datasetId] - Dataset ID
+ */
+export async function markEntitySynced(entityType, entityId, datasetId) {
+  try {
+    const database = getDatabase(datasetId);
+    await database.syncQueue
+      .where('entityType').equals(entityType)
+      .and(item => item.entityId === String(entityId) && item.synced === 0)
+      .modify({ synced: 1 });
+    console.log(`✓ Marked ${entityType}:${entityId} as synced`);
+  } catch (error) {
+    console.error('Error marking entity as synced:', error);
+  }
+}
+
+/**
+ * Get all pending (unsynced) changes from the queue
+ *
+ * @param {string} [datasetId] - Dataset ID
+ * @returns {Promise<Array>} Array of pending changes
+ */
+export async function getPendingChanges(datasetId) {
+  try {
+    const database = getDatabase(datasetId);
+    const pending = await database.syncQueue
+      .where('synced').equals(0)
+      .toArray();
+    return pending;
+  } catch (error) {
+    console.error('Error getting pending changes:', error);
+    return [];
+  }
+}
+
+/**
+ * Check if there are any pending (unsynced) changes
+ * CRITICAL: Used to block cloud-overwrite operations
+ *
+ * @param {string} [datasetId] - Dataset ID
+ * @returns {Promise<boolean>} True if pending changes exist
+ */
+export async function hasPendingChanges(datasetId) {
+  try {
+    const database = getDatabase(datasetId);
+    const count = await database.syncQueue
+      .where('synced').equals(0)
+      .count();
+    return count > 0;
+  } catch (error) {
+    console.error('Error checking pending changes:', error);
+    return false; // Fail open to avoid blocking users
+  }
+}
+
+/**
+ * Get count of pending changes (for UI display)
+ *
+ * @param {string} [datasetId] - Dataset ID
+ * @returns {Promise<number>} Count of pending changes
+ */
+export async function getPendingChangeCount(datasetId) {
+  try {
+    const database = getDatabase(datasetId);
+    const count = await database.syncQueue
+      .where('synced').equals(0)
+      .count();
+    return count;
+  } catch (error) {
+    console.error('Error getting pending change count:', error);
+    return 0;
+  }
+}
+
+/**
+ * Clear all synced entries from the queue (cleanup)
+ * Should be called periodically or after successful full sync
+ *
+ * @param {string} [datasetId] - Dataset ID
+ */
+export async function clearSyncedItems(datasetId) {
+  try {
+    const database = getDatabase(datasetId);
+    const deleted = await database.syncQueue
+      .where('synced').equals(1)
+      .delete();
+    console.log(`🧹 Cleared ${deleted} synced items from queue`);
+    return deleted;
+  } catch (error) {
+    console.error('Error clearing synced items:', error);
+  }
+}
+
+/**
+ * Clear entire sync queue (use with caution - only after verified full sync)
+ *
+ * @param {string} [datasetId] - Dataset ID
+ */
+export async function clearSyncQueue(datasetId) {
+  try {
+    const database = getDatabase(datasetId);
+    await database.syncQueue.clear();
+    console.log('🧹 Sync queue cleared');
+  } catch (error) {
+    console.error('Error clearing sync queue:', error);
+  }
+}
+
+/**
+ * Get pending changes grouped by entity type (for debugging/UI)
+ *
+ * @param {string} [datasetId] - Dataset ID
+ * @returns {Promise<Object>} Object with entity types as keys and arrays of changes as values
+ */
+export async function getPendingChangesByType(datasetId) {
+  try {
+    const pending = await getPendingChanges(datasetId);
+    const grouped = {};
+    for (const change of pending) {
+      if (!grouped[change.entityType]) {
+        grouped[change.entityType] = [];
+      }
+      grouped[change.entityType].push(change);
+    }
+    return grouped;
+  } catch (error) {
+    console.error('Error grouping pending changes:', error);
+    return {};
   }
 }
 

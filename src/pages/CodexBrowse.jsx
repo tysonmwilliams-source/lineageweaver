@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getEntriesByType } from '../services/codexService';
+import { getHeraldry } from '../services/heraldryService';
 import { useDataset } from '../contexts/DatasetContext';
 import Navigation from '../components/Navigation';
 import Icon from '../components/icons/Icon';
@@ -87,6 +88,9 @@ function CodexBrowse() {
     totalWords: 0
   });
 
+  // Heraldry cache for displaying actual shields
+  const [heraldryCache, setHeraldryCache] = useState({});
+
   // Get type configuration
   const typeConfig = useMemo(() => {
     return TYPE_CONFIG[type] || TYPE_CONFIG.custom;
@@ -134,6 +138,28 @@ function CodexBrowse() {
   useEffect(() => {
     loadEntries();
   }, [loadEntries]);
+
+  // Load heraldry data for entries that have heraldryId (for heraldry type entries)
+  useEffect(() => {
+    if (type !== 'heraldry') return;
+
+    const loadHeraldryData = async () => {
+      const entriesWithHeraldry = allEntries.filter(e => e.heraldryId && !heraldryCache[e.heraldryId]);
+
+      for (const entry of entriesWithHeraldry) {
+        try {
+          const heraldry = await getHeraldry(entry.heraldryId, activeDataset?.id);
+          if (heraldry) {
+            setHeraldryCache(prev => ({ ...prev, [entry.heraldryId]: heraldry }));
+          }
+        } catch (error) {
+          console.error('Error loading heraldry:', error);
+        }
+      }
+    };
+
+    loadHeraldryData();
+  }, [allEntries, type, activeDataset]);
 
   // Apply filters and sorting
   const applyFiltersAndSort = useCallback(() => {
@@ -455,9 +481,28 @@ function CodexBrowse() {
                     whileHover={{ x: 4 }}
                   >
                     <div className="browse-list__item-main">
-                      <div className="browse-list__item-icon">
-                        <Icon name={typeConfig.icon} size={20} />
-                      </div>
+                      {/* Show actual heraldry thumbnail for heraldry entries */}
+                      {type === 'heraldry' && entry.heraldryId && heraldryCache[entry.heraldryId] ? (
+                        <div className="browse-list__item-heraldry">
+                          {heraldryCache[entry.heraldryId].heraldrySVG ? (
+                            <div
+                              className="browse-list__item-heraldry-svg"
+                              dangerouslySetInnerHTML={{ __html: heraldryCache[entry.heraldryId].heraldrySVG }}
+                            />
+                          ) : heraldryCache[entry.heraldryId].heraldryDisplay || heraldryCache[entry.heraldryId].heraldryThumbnail ? (
+                            <img
+                              src={heraldryCache[entry.heraldryId].heraldryDisplay || heraldryCache[entry.heraldryId].heraldryThumbnail}
+                              alt={entry.title}
+                            />
+                          ) : (
+                            <Icon name="shield" size={20} />
+                          )}
+                        </div>
+                      ) : (
+                        <div className="browse-list__item-icon">
+                          <Icon name={typeConfig.icon} size={20} />
+                        </div>
+                      )}
                       <div className="browse-list__item-content">
                         <h3 className="browse-list__item-title">{entry.title}</h3>
                         {entry.subtitle && (

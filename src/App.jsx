@@ -1,7 +1,8 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { useEffect, useState, lazy, Suspense, createContext, useContext } from 'react';
+import { useEffect, useState, lazy, Suspense, createContext, useContext, useCallback } from 'react';
 import Home from './pages/Home';
 import { initializeSampleData } from './services/sampleData';
+import { hasPendingChanges, getPendingChangeCount } from './services/database';
 
 // Lazy-loaded page components for code-splitting
 // This reduces initial bundle size by loading pages on-demand
@@ -146,6 +147,47 @@ function AppContent() {
       setupDatabase();
     }
   }, [user, datasetInitialized]);
+
+  // Beforeunload warning for pending changes (data loss prevention)
+  useEffect(() => {
+    const datasetId = activeDataset?.id || 'default';
+
+    const handleBeforeUnload = async (e) => {
+      // Check synchronously using a cached value, since beforeunload is sync
+      // We'll set up an interval to check periodically
+    };
+
+    // Use a synchronous check via interval to maintain pending status
+    let pendingCount = 0;
+
+    const checkPending = async () => {
+      try {
+        pendingCount = await getPendingChangeCount(datasetId);
+      } catch {
+        pendingCount = 0;
+      }
+    };
+
+    // Check immediately and then every 5 seconds
+    checkPending();
+    const interval = setInterval(checkPending, 5000);
+
+    const beforeUnloadHandler = (e) => {
+      if (pendingCount > 0) {
+        const message = `You have ${pendingCount} unsaved changes that haven't synced to the cloud yet. If you leave now, you may lose data.`;
+        e.preventDefault();
+        e.returnValue = message;
+        return message;
+      }
+    };
+
+    window.addEventListener('beforeunload', beforeUnloadHandler);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('beforeunload', beforeUnloadHandler);
+    };
+  }, [activeDataset?.id]);
 
   // Dataset context loading
   if (user && datasetLoading && !datasetInitialized) {
@@ -326,6 +368,7 @@ function AppContent() {
                 <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/tree" element={<FamilyTree />} />
+                <Route path="/tree/:personId" element={<FamilyTree />} />
                 <Route path="/manage" element={<ManageData />} />
                 <Route path="/codex" element={<CodexLanding />} />
                 <Route path="/codex/create" element={<CodexEntryForm />} />

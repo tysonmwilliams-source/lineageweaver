@@ -434,12 +434,66 @@ export async function getOutgoingLinks(entryId, datasetId) {
 
 /**
  * Get all incoming links to an entry (backlinks - other entries that mention this one)
+ * 
+ * BIDIRECTIONAL SUPPORT: This function now returns both:
+ * 1. Links where this entry is the TARGET (traditional backlinks)
+ * 2. Links where this entry is the SOURCE AND the link is marked bidirectional
+ * 
+ * This ensures that if Entry A links to Entry B with bidirectional=true,
+ * BOTH entries will show each other in their backlinks panel.
+ * 
+ * @param {number} entryId - The entry to get backlinks for
+ * @param {string} [datasetId] - Dataset ID (optional)
+ * @returns {Promise<Array>} - Array of link objects with added `direction` property
  */
 export async function getIncomingLinks(entryId, datasetId) {
   try {
     const db = getDatabase(datasetId);
-    const links = await db.codexLinks.where('targetId').equals(entryId).toArray();
-    return links;
+    
+    // 1. Traditional backlinks: links pointing TO this entry
+    const incomingLinks = await db.codexLinks
+      .where('targetId')
+      .equals(entryId)
+      .toArray();
+    
+    // Mark these as 'incoming' direction for context snippet handling
+    const markedIncoming = incomingLinks.map(link => ({
+      ...link,
+      direction: 'incoming',
+      // For incoming links, sourceId is the entry that references us
+      referringEntryId: link.sourceId
+    }));
+    
+    // 2. Bidirectional reverse links: links FROM this entry that are bidirectional
+    const outgoingBidirectional = await db.codexLinks
+      .where('sourceId')
+      .equals(entryId)
+      .filter(link => link.bidirectional === true)
+      .toArray();
+    
+    // Mark these as 'outgoing-bidirectional' and swap the reference
+    const markedOutgoing = outgoingBidirectional.map(link => ({
+      ...link,
+      direction: 'outgoing-bidirectional',
+      // For bidirectional outgoing links, targetId is the entry we link to
+      // but we want to show IT in OUR backlinks, so referringEntryId = targetId
+      referringEntryId: link.targetId
+    }));
+    
+    // 3. Combine and deduplicate (in case of circular references)
+    const allLinks = [...markedIncoming, ...markedOutgoing];
+    
+    // Deduplicate by referringEntryId to avoid showing same entry twice
+    const seen = new Set();
+    const deduplicated = allLinks.filter(link => {
+      if (seen.has(link.referringEntryId)) {
+        return false;
+      }
+      seen.add(link.referringEntryId);
+      return true;
+    });
+    
+    return deduplicated;
   } catch (error) {
     console.error('Error getting incoming links:', error);
     throw error;

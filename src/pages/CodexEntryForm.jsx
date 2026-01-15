@@ -15,7 +15,9 @@ import {
   getEntry
 } from '../services/codexService';
 import { updateHeraldry } from '../services/heraldryService';
+import { syncAddCodexEntry, syncUpdateCodexEntry, syncUpdateHeraldry } from '../services/dataSyncService';
 import { useDataset } from '../contexts/DatasetContext';
+import { useAuth } from '../contexts/AuthContext';
 import Navigation from '../components/Navigation';
 import Icon from '../components/icons/Icon';
 import ActionButton from '../components/shared/ActionButton';
@@ -57,6 +59,7 @@ function CodexEntryForm() {
   const [searchParams] = useSearchParams();
   const { id } = useParams();
   const { activeDataset } = useDataset();
+  const { user } = useAuth();
 
   const isEditing = Boolean(id);
   const initialType = searchParams.get('type') || 'personage';
@@ -198,14 +201,29 @@ function CodexEntryForm() {
       if (isEditing) {
         await updateEntry(parseInt(id), entryData, datasetId);
         codexEntryId = parseInt(id);
+
+        // ☁️ Sync update to cloud
+        if (user && activeDataset) {
+          syncUpdateCodexEntry(user.uid, activeDataset.id, codexEntryId, entryData);
+        }
       } else {
         codexEntryId = await createEntry(entryData, datasetId);
+
+        // ☁️ Sync new entry to cloud
+        if (user && activeDataset) {
+          syncAddCodexEntry(user.uid, activeDataset.id, codexEntryId, { ...entryData, id: codexEntryId });
+        }
       }
 
       // Bidirectional linking - update heraldry record with codexEntryId
       if (entryData.heraldryId && codexEntryId) {
         try {
           await updateHeraldry(entryData.heraldryId, { codexEntryId }, null, datasetId);
+
+          // ☁️ Sync heraldry update to cloud
+          if (user && activeDataset) {
+            syncUpdateHeraldry(user.uid, activeDataset.id, entryData.heraldryId, { codexEntryId });
+          }
         } catch (linkError) {
           console.error('Warning: Failed to create bidirectional link:', linkError);
         }

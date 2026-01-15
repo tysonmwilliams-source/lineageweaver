@@ -8,7 +8,6 @@ import { useDataset } from '../contexts/DatasetContext';
 import { parseWikiLinks, getContextSnippet } from '../utils/wikiLinkParser';
 import { getPrimaryEpithet } from '../utils/epithetUtils';
 import Navigation from '../components/Navigation';
-import HeraldryThumbnail from '../components/HeraldryThumbnail';
 import Icon from '../components/icons/Icon';
 import LoadingState from '../components/shared/LoadingState';
 import EmptyState from '../components/shared/EmptyState';
@@ -116,12 +115,26 @@ function CodexEntryView() {
       if (incomingLinks.length > 0) {
         const details = await Promise.all(
           incomingLinks.map(async (link) => {
-            const sourceEntry = await getBacklinkEntry(link.sourceId, datasetId);
-            const snippet = getContextSnippet(sourceEntry.content, entryData.title);
+            // Use referringEntryId which handles both traditional and bidirectional links
+            // For incoming links: referringEntryId = sourceId (the entry that contains [[this entry]])
+            // For bidirectional outgoing: referringEntryId = targetId (the entry we link to)
+            const referringId = link.referringEntryId || link.sourceId;
+            const referringEntry = await getBacklinkEntry(referringId, datasetId);
+            
+            // Get context snippet - for bidirectional outgoing links, we look for
+            // mentions of the referring entry in OUR content instead
+            let snippet = '';
+            if (link.direction === 'outgoing-bidirectional') {
+              // This entry links TO referringEntry, so look in THIS entry's content
+              snippet = getContextSnippet(entryData.content, referringEntry.title);
+            } else {
+              // Traditional incoming: referringEntry links TO us, look in THEIR content
+              snippet = getContextSnippet(referringEntry.content, entryData.title);
+            }
 
             return {
               ...link,
-              entry: sourceEntry,
+              entry: referringEntry,
               snippet: snippet
             };
           })
@@ -204,8 +217,13 @@ function CodexEntryView() {
   }, [navigate]);
 
   const handleViewInFamilyTree = useCallback(() => {
-    navigate('/tree');
-  }, [navigate]);
+    // Navigate to tree with person ID for highlighting
+    if (entry?.personId) {
+      navigate(`/tree/${entry.personId}`);
+    } else {
+      navigate('/tree');
+    }
+  }, [navigate, entry?.personId]);
 
   const handleViewInArmory = useCallback(() => {
     if (entry?.heraldryId) {
@@ -479,11 +497,20 @@ function CodexEntryView() {
                       onClick={handleViewInArmory}
                       title="Click to view in The Armory"
                     >
-                      <HeraldryThumbnail
-                        heraldryData={linkedHeraldry}
-                        size="large"
-                        showBlazon={false}
-                      />
+                      {linkedHeraldry.heraldrySVG ? (
+                        <div
+                          className="entry-heraldry__svg"
+                          dangerouslySetInnerHTML={{ __html: linkedHeraldry.heraldrySVG }}
+                        />
+                      ) : linkedHeraldry.heraldryDisplay || linkedHeraldry.heraldryThumbnail ? (
+                        <img
+                          src={linkedHeraldry.heraldryDisplay || linkedHeraldry.heraldryThumbnail}
+                          alt={linkedHeraldry.name}
+                          className="entry-heraldry__img"
+                        />
+                      ) : (
+                        <Icon name="shield" size={64} className="entry-heraldry__placeholder" />
+                      )}
                     </div>
                     <div className="entry-heraldry__info">
                       <h4 className="entry-heraldry__name">{linkedHeraldry.name}</h4>

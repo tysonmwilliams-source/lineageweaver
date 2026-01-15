@@ -438,6 +438,40 @@
   flex-shrink: 0;
 }
 
+/* Heraldry thumbnail for heraldry entries */
+.browse-list__item-heraldry {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 48px;
+  background: transparent;
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.browse-list__item-heraldry img {
+  max-width: 85%;
+  max-height: 85%;
+  object-fit: contain;
+}
+
+.browse-list__item-heraldry-svg {
+  width: 85%;
+  height: 85%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.browse-list__item-heraldry-svg svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
 .browse-list__item-content {
   flex: 1;
   min-width: 0;
@@ -680,7 +714,8 @@
     grid-template-columns: 1fr;
   }
 
-  .browse-list__item-icon {
+  .browse-list__item-icon,
+  .browse-list__item-heraldry {
     display: none;
   }
 

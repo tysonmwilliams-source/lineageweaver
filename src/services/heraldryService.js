@@ -98,8 +98,8 @@ export async function createHeraldry(heraldryData, userId = null, datasetId = nu
     console.log('🛡️ Heraldry created with ID:', id);
 
     // Sync to cloud if userId provided
-    if (userId) {
-      await syncAddHeraldry(userId, id, record);
+    if (userId && datasetId) {
+      await syncAddHeraldry(userId, datasetId, id, { ...record, id });
     }
 
     return id;
@@ -161,9 +161,9 @@ export async function updateHeraldry(id, updates, userId = null, datasetId = nul
     const result = await db.heraldry.update(id, updateData);
     console.log('🛡️ Heraldry updated:', id);
 
-    // Sync to cloud if userId provided
-    if (userId) {
-      await syncUpdateHeraldry(userId, id, updateData);
+    // Sync to cloud if userId and datasetId provided
+    if (userId && datasetId) {
+      await syncUpdateHeraldry(userId, datasetId, id, updateData);
     }
 
     return result;
@@ -194,14 +194,14 @@ export async function deleteHeraldry(id, userId = null, datasetId = null) {
     await db.heraldry.delete(id);
     console.log('🛡️ Heraldry deleted:', id);
 
-    // Sync to cloud if userId provided
-    if (userId) {
+    // Sync to cloud if userId and datasetId provided
+    if (userId && datasetId) {
       // Delete all the links from cloud
       for (const link of links) {
-        await syncDeleteHeraldryLink(userId, link.id);
+        await syncDeleteHeraldryLink(userId, datasetId, link.id);
       }
       // Delete the heraldry from cloud
-      await syncDeleteHeraldry(userId, id);
+      await syncDeleteHeraldry(userId, datasetId, id);
     }
   } catch (error) {
     console.error('❌ Error deleting heraldry:', error);
@@ -252,9 +252,9 @@ export async function linkHeraldryToEntity(linkData, userId = null, datasetId = 
 
     console.log('🔗 Heraldry linked to', linkData.entityType, linkData.entityId);
 
-    // Sync to cloud if userId provided
-    if (userId) {
-      await syncAddHeraldryLink(userId, id, link);
+    // Sync to cloud if userId and datasetId provided
+    if (userId && datasetId) {
+      await syncAddHeraldryLink(userId, datasetId, id, { ...link, id });
     }
 
     return id;
@@ -291,9 +291,9 @@ export async function unlinkHeraldry(linkId, userId = null, datasetId = null) {
       await db.heraldryLinks.delete(linkId);
       console.log('🔗 Heraldry link removed:', linkId);
 
-      // Sync to cloud if userId provided
-      if (userId) {
-        await syncDeleteHeraldryLink(userId, linkId);
+      // Sync to cloud if userId and datasetId provided
+      if (userId && datasetId) {
+        await syncDeleteHeraldryLink(userId, datasetId, linkId);
       }
     }
   } catch (error) {
