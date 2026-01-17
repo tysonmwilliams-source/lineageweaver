@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import * as d3 from 'd3';
 import { useGenealogy } from '../contexts/GenealogyContext';
@@ -10,24 +10,30 @@ import { useTheme } from '../components/ThemeContext';
 import { getAllThemeColors, getHouseColor } from '../utils/themeColors';
 import { getPrimaryEpithet } from '../utils/epithetUtils';
 import { getAllDignities, getDignityIcon } from '../services/dignityService';
+import { calculateBlockBasedLayout } from '../utils/familyBlockLayout';
+
+// 🛠️ DEV LAYOUT TOOLS - PARKED (drag and drop feature available here)
+// import { useDevLayout } from '../hooks/useDevLayout';
+// import {
+//   DevModeToggle,
+//   RuleBuilderPanel
+// } from '../components/dev';
+// import { getImmediateFamily } from '../utils/layoutPatternAnalyser';
 
 function FamilyTree() {
   // ==================== URL PARAMETERS ====================
-  // Handle deep linking to specific people from Codex or other pages
   const { personId: urlPersonId } = useParams();
   
   // Use the global theme system
   const { theme, isDarkTheme } = useTheme();
   
   // ==================== SHARED STATE FROM CONTEXT ====================
-  // This is the key change: FamilyTree now shares data with ManageData!
-  // Any changes in ManageData will automatically update the tree.
   const {
     people,
     houses,
     relationships,
     loading,
-    dataVersion  // Used to detect when to redraw
+    dataVersion
   } = useGenealogy();
 
   // ==================== LOCAL UI STATE ====================
@@ -37,13 +43,13 @@ function FamilyTree() {
   const svgRef = useRef(null);
   const zoomBehaviorRef = useRef(null);
 
-  // BATCH 1: Search functionality
+  // Search functionality
   const [searchResults, setSearchResults] = useState([]);
   
-  // BATCH 1: Quick edit panel
+  // Quick edit panel
   const [selectedPerson, setSelectedPerson] = useState(null);
   
-  // BATCH 1: Relationship calculator
+  // Relationship calculator
   const [showRelationships, setShowRelationships] = useState(false);
   const [referencePerson, setReferencePerson] = useState(null);
   const [relationshipMap, setRelationshipMap] = useState(new Map());
@@ -52,26 +58,25 @@ function FamilyTree() {
   // Controls panel collapse state
   const [controlsPanelExpanded, setControlsPanelExpanded] = useState(false);
   
-  // Vertical spacing control for testing
+  // Vertical spacing control
   const [verticalSpacing, setVerticalSpacing] = useState(50);
   
-  // Fragment gap control - space between disconnected family tree fragments
+  // Fragment gap control
   const [fragmentGap, setFragmentGap] = useState(0);
-  
-  // 👑 DIGNITIES: Store dignities for displaying icons on person cards
+
+  // 🧱 FAMILY BLOCK LAYOUT - experimental spacing based on descendant tree width
+  // Block layout is now always enabled with fixed spacing
+  const useBlockLayout = true;
+  const branchSpacing = 40;
+
+  // 👑 DIGNITIES
   const [dignities, setDignities] = useState([]);
   const [dignitiesByPerson, setDignitiesByPerson] = useState(new Map());
   
-  // 🎯 HIGHLIGHTED PERSON: Person to highlight (from URL navigation)
-  // This creates a persistent highlight effect on a specific person's card
+  // 🎯 HIGHLIGHTED PERSON
   const [highlightedPersonId, setHighlightedPersonId] = useState(null);
 
-
-
   // ==================== HOUSE VIEW CONTROLS ====================
-  // Centre On: which person to use as the tree root
-  // 'auto' = oldest member of selected house (default)
-  // or a specific person ID
   const [centreOnPersonId, setCentreOnPersonId] = useState('auto');
 
   // Card dimensions
@@ -81,15 +86,63 @@ function FamilyTree() {
   const GROUP_SPACING = 50;
   
   // Anchor and start positions
-  const ANCHOR_X = 1500;  // X position for centering tree
-  const START_Y = 100;    // Y position for first generation
+  const ANCHOR_X = 1500;
+  const START_Y = 100;
   
-  // Generation spacing - controls vertical distance between generations
+  // Generation spacing
   const GENERATION_SPACING = verticalSpacing + CARD_HEIGHT;
-  
-  // Fragment gap - extra space between disconnected fragments
-  // This creates visual breathing room between unconnected family trees
-  // Now controlled by state variable fragmentGap
+
+  // 🛠️ DEV LAYOUT - PARKED (drag and drop feature available here)
+  // To re-enable: uncomment the imports at top and uncomment this block
+  /*
+  const algorithmPositionsRef = useRef({});
+  const [ruleBuilderOpen, setRuleBuilderOpen] = useState(false);
+  const {
+    mode,
+    isManualMode,
+    hasOverrides,
+    overrideCount,
+    effectivePositions,
+    manualPositions,
+    getPosition,
+    setPosition,
+    setPositions,
+    getDelta,
+    draggingPersonId,
+    setDraggingPersonId,
+    selectedPersonId: devSelectedPersonId,
+    setSelectedPersonId: setDevSelectedPersonId,
+    auraPersonId,
+    draftRules,
+    updateRule,
+    updateNestedRule,
+    showRulePreview,
+    setShowRulePreview,
+    toggleMode,
+    resetAllPositions,
+    clearSession,
+    exportRules
+  } = useDevLayout(algorithmPositionsRef.current);
+
+  const [isShiftHeld, setIsShiftHeld] = useState(false);
+  useEffect(() => {
+    const handleKeyDown = (e) => { if (e.key === 'Shift') setIsShiftHeld(true); };
+    const handleKeyUp = (e) => { if (e.key === 'Shift') setIsShiftHeld(false); };
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
+  */
+  // Stub values when dev layout is disabled (must be stable references to avoid re-renders)
+  const isManualMode = false;
+  const effectivePositions = useMemo(() => ({}), []);
+  const auraPersonId = null;
+  const setDevSelectedPersonId = useCallback(() => {}, []);
+  const setDraggingPersonId = useCallback(() => {}, []);
+  const setPosition = useCallback(() => {}, []);
 
   // Helper function to harmonize house colors with current theme
   const harmonizeColor = (hexColor) => {
@@ -127,82 +180,40 @@ function FamilyTree() {
     return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
   };
 
-  // ═══════════════════════════════════════════════════════════════════════════
   // TEXT TRUNCATION HELPERS
-  // ═══════════════════════════════════════════════════════════════════════════
-  // Handles long names that overflow card boundaries using a hybrid approach:
-  // 1. Try to fit full text
-  // 2. Truncate with ellipsis if too long
-  // 3. Return info for tooltip when truncated
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  /**
-   * Estimate text width based on character count and font metrics.
-   * Uses average character widths for serif fonts at different sizes.
-   * @param {string} text - The text to measure
-   * @param {number} fontSize - Font size in pixels
-   * @param {boolean} isBold - Whether text is bold (wider characters)
-   * @returns {number} Estimated width in pixels
-   */
   const estimateTextWidth = (text, fontSize, isBold = false) => {
-    // Average character width as ratio of font size (serif fonts)
-    // Bold text is ~10% wider on average
     const avgCharRatio = isBold ? 0.58 : 0.52;
-    // Narrow characters (i, l, t, f, j, etc.) and wide ones (m, w, etc.) average out
     return text.length * fontSize * avgCharRatio;
   };
 
-  /**
-   * Truncate text to fit within a maximum width, adding ellipsis if needed.
-   * Uses a hybrid approach: tries full text first, then progressively truncates.
-   * @param {string} text - The text to potentially truncate
-   * @param {number} maxWidth - Maximum width in pixels
-   * @param {number} fontSize - Font size in pixels
-   * @param {boolean} isBold - Whether text is bold
-   * @returns {{ text: string, truncated: boolean, fullText: string }}
-   */
   const truncateText = (text, maxWidth, fontSize, isBold = false) => {
     if (!text) return { text: '', truncated: false, fullText: '' };
 
     const fullText = text;
     const estimatedWidth = estimateTextWidth(text, fontSize, isBold);
 
-    // If it fits, return as-is
     if (estimatedWidth <= maxWidth) {
       return { text, truncated: false, fullText };
     }
 
-    // Calculate how many characters can fit (leaving room for ellipsis)
     const ellipsis = '…';
     const ellipsisWidth = estimateTextWidth(ellipsis, fontSize, isBold);
     const availableWidth = maxWidth - ellipsisWidth;
     const avgCharWidth = fontSize * (isBold ? 0.58 : 0.52);
     const maxChars = Math.floor(availableWidth / avgCharWidth);
 
-    // Truncate and add ellipsis
     const truncated = text.slice(0, Math.max(maxChars, 3)) + ellipsis;
     return { text: truncated, truncated: true, fullText };
   };
 
-  /**
-   * Smart name truncation that prioritizes first name visibility.
-   * For very long names, shows "FirstName L..." format.
-   * @param {string} firstName - First name
-   * @param {string} lastName - Last name
-   * @param {number} maxWidth - Maximum width in pixels
-   * @param {number} fontSize - Font size in pixels
-   * @returns {{ text: string, truncated: boolean, fullText: string }}
-   */
   const truncateName = (firstName, lastName, maxWidth, fontSize) => {
     const fullName = `${firstName} ${lastName}`;
     const fullWidth = estimateTextWidth(fullName, fontSize, true);
 
-    // If full name fits, use it
     if (fullWidth <= maxWidth) {
       return { text: fullName, truncated: false, fullText: fullName };
     }
 
-    // Try "FirstName LastInitial..." format
     const abbreviated = `${firstName} ${lastName.charAt(0)}…`;
     const abbrevWidth = estimateTextWidth(abbreviated, fontSize, true);
 
@@ -210,40 +221,17 @@ function FamilyTree() {
       return { text: abbreviated, truncated: true, fullText: fullName };
     }
 
-    // Last resort: truncate first name too
     return truncateText(fullName, maxWidth, fontSize, true);
   };
 
-  // ═══════════════════════════════════════════════════════════════════════════
   // HOUSE SCOPE HELPERS
-  // ═══════════════════════════════════════════════════════════════════════════
-  // These functions determine which people to include when viewing a specific house.
-  // The goal is to show:
-  // 1. All members of the selected house (by houseId)
-  // 2. Their spouses (even if from other houses)
-  // 3. Immediate children of house members (even if children belong to another house)
-  // 4. BUT NOT grandchildren/further descendants unless they're also house members
-  // 5. 🪝 Future: Cadet branches when showCadetHouses is true
-  //
-  // This "one generation buffer" ensures you see who house members married and
-  // their children, but don't follow external family lines indefinitely.
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  /**
-   * Get all house IDs that should be included in the current view.
-   * This includes the selected house and optionally its cadet branches.
-   */
   const getHouseIdsInScope = (targetHouseId, allHouses, includeCadets) => {
     const houseIds = new Set([targetHouseId]);
     
-    // 🪝 CADET BRANCH EXTENSION POINT
-    // When includeCadets is true, find all houses where parentHouseId = targetHouseId
     if (includeCadets) {
       allHouses.forEach(house => {
         if (house.parentHouseId === targetHouseId) {
           houseIds.add(house.id);
-          // Note: This doesn't recursively find cadet branches of cadet branches
-          // That would be a future enhancement if needed
         }
       });
     }
@@ -251,21 +239,6 @@ function FamilyTree() {
     return houseIds;
   };
 
-  /**
-   * Build a set of all person IDs that are connected to the selected house.
-   * 
-   * TRAVERSAL RULES:
-   * - House members: Always included, always traverse their descendants
-   * - Non-house-members: Only included if they're a spouse or immediate child of a house member
-   * - We DON'T continue traversing through non-house-members (one generation limit)
-   * 
-   * Example for House Salomon:
-   * - Lady Salomon (house member) ✓ - included, traverse her children
-   * - Her husband Lord Wilfrey (non-member spouse) ✓ - included
-   * - Their child Wenton Wilfrey (non-member) ✓ - included as immediate child
-   * - Wenton's children (non-members) ✗ - NOT included (would require traversing through Wenton)
-   * - BUT if Wenton married a Salomon, their kids would be included via that Salomon
-   */
   const getHouseScopedPeopleIds = (
     targetHouseId,
     allPeople,
@@ -278,18 +251,15 @@ function FamilyTree() {
     const scopedIds = new Set();
     const houseIds = getHouseIdsInScope(targetHouseId, allHouses, includeCadets);
     
-    // Create a lookup for checking house membership
     const peopleById = new Map(allPeople.map(p => [p.id, p]));
     const isHouseMember = (personId) => {
       const person = peopleById.get(personId);
       return person && houseIds.has(person.houseId);
     };
     
-    // Step 1: Find all direct members of the house(s) in scope
     const directMembers = allPeople.filter(p => houseIds.has(p.houseId));
     directMembers.forEach(p => scopedIds.add(p.id));
     
-    // Step 2: Add spouses of direct members
     directMembers.forEach(p => {
       const spouseId = spouseMap.get(p.id);
       if (spouseId) {
@@ -297,9 +267,6 @@ function FamilyTree() {
       }
     });
     
-    // Step 3: Traverse UP to find ancestors of house members
-    // We need ancestors to find the proper root, but we apply the same rule:
-    // only continue traversing through house members
     const findAncestors = (personId, visited = new Set()) => {
       if (visited.has(personId)) return;
       visited.add(personId);
@@ -310,25 +277,18 @@ function FamilyTree() {
       const parents = parentMap.get(personId) || [];
       parents.forEach(parentId => {
         scopedIds.add(parentId);
-        // Also add parent's spouse
         const parentSpouseId = spouseMap.get(parentId);
         if (parentSpouseId) {
           scopedIds.add(parentSpouseId);
         }
-        // Only continue traversing UP if this parent is a house member
-        // (otherwise we'd pull in the spouse's entire family tree)
         if (isHouseMember(parentId)) {
           findAncestors(parentId, visited);
         }
       });
     };
     
-    // Find ancestors of all direct house members
     directMembers.forEach(p => findAncestors(p.id));
     
-    // Step 4: Traverse DOWN to find descendants
-    // KEY RULE: Only continue traversing through house members!
-    // Non-house-members get added (as immediate children) but we don't traverse their children
     const findDescendants = (personId, visited = new Set()) => {
       if (visited.has(personId)) return;
       visited.add(personId);
@@ -336,33 +296,23 @@ function FamilyTree() {
       const person = peopleById.get(personId);
       if (!person) return;
       
-      // Only traverse children if THIS person is a house member
-      // This is the key change that limits to "one generation of non-members"
       if (!isHouseMember(personId)) {
-        return; // Don't traverse children of non-house-members
+        return;
       }
       
       const children = childrenMap.get(personId) || [];
       children.forEach(childId => {
         scopedIds.add(childId);
-        // Also add child's spouse (they're connected to a house member's child)
         const childSpouseId = spouseMap.get(childId);
         if (childSpouseId) {
           scopedIds.add(childSpouseId);
         }
-        // Recursively process this child
-        // If child is a house member, we'll traverse their children
-        // If child is NOT a house member, findDescendants will return early
         findDescendants(childId, visited);
       });
     };
     
-    // Find descendants starting from all house members
-    // (not all scoped people - we only want to start from house members)
     directMembers.forEach(p => findDescendants(p.id));
     
-    // Also traverse from spouses who are house members (married into the house)
-    // This handles cases where someone married INTO the house
     Array.from(scopedIds).forEach(id => {
       if (isHouseMember(id)) {
         findDescendants(id);
@@ -372,80 +322,47 @@ function FamilyTree() {
     return scopedIds;
   };
 
-  /**
-   * Find the best root person for the selected house.
-   * Priority:
-   * 1. If centreOnPersonId is set to a specific person, use them
-   * 2. Otherwise, find the oldest person in the house scope who has no parents
-   * 3. If everyone has parents, use the oldest person in the house scope
-   */
   const findRootPersonForHouse = (
     scopedPeopleIds,
     peopleById,
     parentMap,
     centreOn
   ) => {
-    // If a specific person is selected, use them (if they're in scope)
     if (centreOn !== 'auto' && scopedPeopleIds.has(centreOn)) {
       return centreOn;
     }
     
-    // Get all scoped people as objects
     const scopedPeople = Array.from(scopedPeopleIds)
       .map(id => peopleById.get(id))
       .filter(p => p);
     
-    // Find people with no parents (potential roots)
     const rootCandidates = scopedPeople.filter(p => !parentMap.has(p.id));
     
     if (rootCandidates.length > 0) {
-      // Sort by birth date, return oldest
       rootCandidates.sort((a, b) => parseInt(a.dateOfBirth) - parseInt(b.dateOfBirth));
       return rootCandidates[0].id;
     }
     
-    // Fallback: everyone has parents, use oldest person in scope
     scopedPeople.sort((a, b) => parseInt(a.dateOfBirth) - parseInt(b.dateOfBirth));
     return scopedPeople[0]?.id || null;
   };
 
-  // ═══════════════════════════════════════════════════════════════════════════
   // FRAGMENT DETECTION
-  // ═══════════════════════════════════════════════════════════════════════════
-  // Identifies disconnected sub-trees within a house's members.
-  // A "fragment" is a group of people connected by parent/spouse relationships
-  // but not connected to the main tree.
-  //
-  // Example: If you add Lord Aldric Salomon (b. 1050) without connecting him
-  // to the existing Salomon tree, he becomes a separate fragment.
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  /**
-   * Detect all connected fragments within a set of house members.
-   * Returns an array of fragments, each containing:
-   * - peopleIds: Set of person IDs in this fragment
-   * - rootPerson: The oldest person with no parents (or oldest overall)
-   * - memberCount: Number of people in this fragment
-   * 
-   * Uses Union-Find algorithm for efficient connected component detection.
-   */
   const detectFragments = (
-    houseMembers,      // Array of people who are direct house members
-    spouseMap,         // Map of person -> spouse
-    parentMap,         // Map of child -> [parents]
-    childrenMap        // Map of parent -> [children]
+    houseMembers,
+    spouseMap,
+    parentMap,
+    childrenMap
   ) => {
     if (houseMembers.length === 0) return [];
     
-    // Build adjacency: two people are "connected" if they share a parent/child/spouse relationship
-    const connections = new Map(); // personId -> Set of connected personIds
+    const connections = new Map();
     
     houseMembers.forEach(person => {
       if (!connections.has(person.id)) {
         connections.set(person.id, new Set());
       }
       
-      // Connect to spouse
       const spouseId = spouseMap.get(person.id);
       if (spouseId) {
         connections.get(person.id).add(spouseId);
@@ -453,7 +370,6 @@ function FamilyTree() {
         connections.get(spouseId).add(person.id);
       }
       
-      // Connect to parents
       const parents = parentMap.get(person.id) || [];
       parents.forEach(parentId => {
         connections.get(person.id).add(parentId);
@@ -461,7 +377,6 @@ function FamilyTree() {
         connections.get(parentId).add(person.id);
       });
       
-      // Connect to children
       const children = childrenMap.get(person.id) || [];
       children.forEach(childId => {
         connections.get(person.id).add(childId);
@@ -470,14 +385,12 @@ function FamilyTree() {
       });
     });
     
-    // Find connected components using BFS
     const visited = new Set();
     const fragments = [];
     
     houseMembers.forEach(person => {
       if (visited.has(person.id)) return;
       
-      // BFS to find all connected people
       const fragment = new Set();
       const queue = [person.id];
       
@@ -488,7 +401,6 @@ function FamilyTree() {
         visited.add(currentId);
         fragment.add(currentId);
         
-        // Add all connected people to queue
         const connected = connections.get(currentId) || new Set();
         connected.forEach(connectedId => {
           if (!visited.has(connectedId)) {
@@ -497,7 +409,6 @@ function FamilyTree() {
         });
       }
       
-      // Find the root person for this fragment (oldest with no parents, or just oldest)
       const fragmentPeople = houseMembers.filter(p => fragment.has(p.id));
       const rootCandidates = fragmentPeople.filter(p => !parentMap.has(p.id));
       
@@ -514,22 +425,15 @@ function FamilyTree() {
         peopleIds: fragment,
         rootPerson: rootPerson,
         memberCount: fragment.size,
-        // Include only house members in the fragment for display
         houseMembers: fragmentPeople
       });
     });
     
-    // Sort fragments by root person's birth date (oldest first = main tree)
     fragments.sort((a, b) => parseInt(a.rootPerson.dateOfBirth) - parseInt(b.rootPerson.dateOfBirth));
     
     return fragments;
   };
 
-  /**
-   * Get lineage-gap relationships that could connect fragments.
-   * These are relationships where person1 (descendant) and person2 (ancestor)
-   * are in different fragments.
-   */
   const getLineageGapConnections = (fragments, allRelationships, peopleById) => {
     const lineageGaps = allRelationships.filter(r => r.relationshipType === 'lineage-gap');
     const connections = [];
@@ -539,7 +443,6 @@ function FamilyTree() {
       const ancestor = peopleById.get(gap.person2Id);
       if (!descendant || !ancestor) return;
       
-      // Find which fragments these people belong to
       let descendantFragment = null;
       let ancestorFragment = null;
       
@@ -548,7 +451,6 @@ function FamilyTree() {
         if (frag.peopleIds.has(gap.person2Id)) ancestorFragment = index;
       });
       
-      // Only include if they're in different fragments
       if (descendantFragment !== null && ancestorFragment !== null && descendantFragment !== ancestorFragment) {
         connections.push({
           ...gap,
@@ -563,16 +465,11 @@ function FamilyTree() {
     return connections;
   };
 
-  /**
-   * Get list of notable people in the selected house for the "Centre On" dropdown.
-   * Returns people sorted by birth date with the house members first.
-   */
   const getHouseNotablePeople = useMemo(() => {
     if (!selectedHouseId || people.length === 0) return [];
     
     const houseIds = getHouseIdsInScope(selectedHouseId, houses, showCadetHouses);
     
-    // Get direct house members
     const houseMembers = people
       .filter(p => houseIds.has(p.houseId))
       .sort((a, b) => parseInt(a.dateOfBirth) - parseInt(b.dateOfBirth));
@@ -580,21 +477,22 @@ function FamilyTree() {
     return houseMembers;
   }, [selectedHouseId, people, houses, showCadetHouses]);
 
-  // ==================== RELATIONSHIP MAP BUILDER ====================
-  // This needs to be defined BEFORE fragmentInfo since fragmentInfo uses it.
-  // Builds lookup maps for parent/child/spouse relationships from the relationships array.
+  // RELATIONSHIP MAP BUILDER
   const buildRelationshipMaps = () => {
     const peopleById = new Map(people.map(p => [p.id, p]));
     const housesById = new Map(houses.map(h => [h.id, h]));
     const parentMap = new Map();
     const childrenMap = new Map();
     const spouseMap = new Map();
+    const spouseRelationshipMap = new Map();
 
     relationships.forEach(rel => {
       if (rel.relationshipType === 'spouse') {
         if (peopleById.has(rel.person1Id) && peopleById.has(rel.person2Id)) {
           spouseMap.set(rel.person1Id, rel.person2Id);
           spouseMap.set(rel.person2Id, rel.person1Id);
+          const key = [rel.person1Id, rel.person2Id].sort((a, b) => a - b).join('-');
+          spouseRelationshipMap.set(key, rel);
         }
       } else if (rel.relationshipType === 'parent' || rel.relationshipType === 'adopted-parent') {
         const parentId = rel.person1Id;
@@ -606,13 +504,9 @@ function FamilyTree() {
       }
     });
 
-    return { peopleById, housesById, parentMap, childrenMap, spouseMap };
+    return { peopleById, housesById, parentMap, childrenMap, spouseMap, spouseRelationshipMap };
   };
 
-  /**
-   * Detect fragments (disconnected sub-trees) within the selected house.
-   * Returns { fragments, lineageGaps, hasMultipleFragments }
-   */
   const fragmentInfo = useMemo(() => {
     if (!selectedHouseId || people.length === 0) {
       return { fragments: [], lineageGaps: [], hasMultipleFragments: false };
@@ -621,16 +515,12 @@ function FamilyTree() {
     const { parentMap, childrenMap, spouseMap, peopleById } = buildRelationshipMaps();
     const houseIds = getHouseIdsInScope(selectedHouseId, houses, showCadetHouses);
     
-    // Get direct house members only
     const houseMembers = people.filter(p => houseIds.has(p.houseId));
     
-    // Detect fragments
     const fragments = detectFragments(houseMembers, spouseMap, parentMap, childrenMap);
     
-    // Find lineage-gap connections between fragments
     const lineageGaps = getLineageGapConnections(fragments, relationships, peopleById);
     
-    // Log fragment info for debugging
     if (fragments.length > 1) {
       console.log(`🧩 Detected ${fragments.length} fragments in ${houses.find(h => h.id === selectedHouseId)?.houseName}:`);
       fragments.forEach((frag, i) => {
@@ -648,31 +538,20 @@ function FamilyTree() {
     };
   }, [selectedHouseId, people, houses, relationships, showCadetHouses]);
 
-  // State for fragment panel visibility
   const [showFragmentPanel, setShowFragmentPanel] = useState(true);
 
-  // ==================== FRAGMENT SEPARATOR STYLE ====================
-  // Controls how disconnected fragments are visually delineated
-  // Options: 'none', 'background', 'separator', 'headers', 'combined'
   const [fragmentSeparatorStyle, setFragmentSeparatorStyle] = useState(() => {
     const saved = localStorage.getItem('lineageweaver-fragment-style');
     return saved || 'separator';
   });
 
-  // Persist fragment style preference
   const handleFragmentStyleChange = (style) => {
     setFragmentSeparatorStyle(style);
     localStorage.setItem('lineageweaver-fragment-style', style);
   };
 
-  // ==================== EFFECTS ====================
+  // EFFECTS
   
-  // 🎯 URL PARAMETER NAVIGATION: Navigate to specific person from Codex
-  // When navigating from /tree/:personId, we:
-  // 1. Find the person and their house
-  // 2. Switch to that house's tree
-  // 3. Highlight the person's card
-  // 4. Center view on the person at 150% zoom
   useEffect(() => {
     if (!urlPersonId || people.length === 0 || houses.length === 0) return;
     
@@ -686,15 +565,12 @@ function FamilyTree() {
     
     console.log(`🎯 Navigating to ${person.firstName} ${person.lastName} (ID: ${personId})`);
     
-    // Switch to the person's house
     if (person.houseId && person.houseId !== selectedHouseId) {
       setSelectedHouseId(person.houseId);
     }
     
-    // Set the person as highlighted
     setHighlightedPersonId(personId);
     
-    // Clear highlight after 8 seconds (longer to give time to see it)
     const timer = setTimeout(() => {
       setHighlightedPersonId(null);
     }, 8000);
@@ -702,26 +578,22 @@ function FamilyTree() {
     return () => clearTimeout(timer);
   }, [urlPersonId, people, houses]);
   
-  // Select first house when houses become available
   useEffect(() => {
     if (houses.length > 0 && !selectedHouseId) {
       setSelectedHouseId(houses[0].id);
     }
   }, [houses, selectedHouseId]);
 
-  // Reset centreOnPersonId when house changes
   useEffect(() => {
     setCentreOnPersonId('auto');
   }, [selectedHouseId]);
   
-  // 👑 Load dignities and build person lookup map
   useEffect(() => {
     async function loadDignities() {
       try {
         const allDignities = await getAllDignities();
         setDignities(allDignities);
         
-        // Build a map: personId -> array of dignities they hold
         const byPerson = new Map();
         allDignities.forEach(dignity => {
           if (dignity.currentHolderId) {
@@ -732,7 +604,6 @@ function FamilyTree() {
           }
         });
         
-        // Sort each person's dignities by displayPriority (higher first)
         byPerson.forEach((personDignities, personId) => {
           personDignities.sort((a, b) => (b.displayPriority || 0) - (a.displayPriority || 0));
         });
@@ -745,14 +616,12 @@ function FamilyTree() {
     }
     
     loadDignities();
-  }, [dataVersion]); // Reload when data changes
+  }, [dataVersion]);
 
   // Redraw tree when data changes
-  // Note: dataVersion increments whenever context data changes,
-  // which triggers this effect and redraws the tree
   useEffect(() => {
     if (selectedHouseId && people.length > 0) drawTree();
-  }, [selectedHouseId, people, houses, relationships, showCadetHouses, theme, searchResults, relationshipMap, verticalSpacing, dataVersion, centreOnPersonId, fragmentSeparatorStyle, dignitiesByPerson, fragmentGap, highlightedPersonId]);
+  }, [selectedHouseId, people, houses, relationships, showCadetHouses, theme, searchResults, relationshipMap, verticalSpacing, dataVersion, centreOnPersonId, fragmentSeparatorStyle, dignitiesByPerson, fragmentGap, highlightedPersonId, isManualMode, effectivePositions, useBlockLayout, branchSpacing]);
 
   const handleSearchResults = (results) => {
     setSearchResults(results);
@@ -760,6 +629,11 @@ function FamilyTree() {
 
   const handlePersonClick = (person) => {
     setSelectedPerson(person);
+    
+    // 🛠️ DEV LAYOUT: Also select for dev mode
+    if (isManualMode) {
+      setDevSelectedPersonId(person.id);
+    }
     
     if (showRelationshipsRef.current) {
       setReferencePerson(person);
@@ -769,24 +643,13 @@ function FamilyTree() {
     }
   };
 
-  /**
-   * SIMPLIFIED: Detect generations
-   * - Gen 0 = ALL people with no parents (sorted by birth date)
-   * - Gen 1 = Their children
-   * - Gen 2 = Their grandchildren
-   * - etc.
-   * 
-   * NEW: Accepts optional overrideRootId to start from a specific person
-   */
   const detectGenerations = (peopleById, parentMap, childrenMap, spouseMap, overrideRootId = null) => {
     let rootPerson;
     
     if (overrideRootId && peopleById.has(overrideRootId)) {
-      // Use the specified root person
       rootPerson = peopleById.get(overrideRootId);
       console.log(`Using override root: ${rootPerson.firstName} ${rootPerson.lastName}`);
     } else {
-      // Find ALL people with no parents - they are ALL Gen 0
       const gen0People = Array.from(peopleById.values())
         .filter(p => !parentMap.has(p.id))
         .sort((a, b) => parseInt(a.dateOfBirth) - parseInt(b.dateOfBirth));
@@ -798,7 +661,6 @@ function FamilyTree() {
       
       console.log('Root candidates (no parents):', gen0People.map(p => `${p.firstName} ${p.lastName} (b.${p.dateOfBirth})`));
       
-      // Use ONLY the oldest person as Gen 0
       rootPerson = gen0People[0];
     }
     
@@ -807,23 +669,19 @@ function FamilyTree() {
     const generations = [];
     const processedIds = new Set();
     
-    // Gen 0: Just the root person (not all people with no parents)
     generations.push([rootPerson.id]);
     processedIds.add(rootPerson.id);
     
-    // Mark spouse as processed (if they have one)
     const rootSpouseId = spouseMap.get(rootPerson.id);
     if (rootSpouseId) {
       processedIds.add(rootSpouseId);
     }
     
-    // Build subsequent generations
     let currentGenIndex = 0;
     while (currentGenIndex < generations.length) {
       const currentGen = generations[currentGenIndex];
       const nextGenIds = new Set();
       
-      // For each person in current gen, get their children
       currentGen.forEach(personId => {
         const children = childrenMap.get(personId) || [];
         children.forEach(childId => {
@@ -833,7 +691,6 @@ function FamilyTree() {
           }
         });
         
-        // Also check spouse's children
         const spouseId = spouseMap.get(personId);
         if (spouseId && peopleById.has(spouseId)) {
           const spouseChildren = childrenMap.get(spouseId) || [];
@@ -857,7 +714,8 @@ function FamilyTree() {
     return generations;
   };
 
-  const drawPersonCard = (g, person, x, y, housesById, themeColors) => {
+  // 🛠️ DEV LAYOUT: Draw person card - modified to support dragging
+  const drawPersonCard = (g, person, x, y, housesById, themeColors, spouseMap = null, childrenMap = null) => {
     const birthHouse = housesById.get(person.houseId);
     const originalColor = birthHouse ? birthHouse.colorCode : '#666666';
     const harmonizedBg = harmonizeColor(originalColor);
@@ -868,11 +726,91 @@ function FamilyTree() {
     if (person.legitimacyStatus === 'commoner') borderColor = themeColors.statusBorders.commoner;
     if (person.legitimacyStatus === 'unknown') borderColor = themeColors.statusBorders.unknown;
 
+    // 🛠️ DEV LAYOUT: Use effective position if in manual mode
+    let finalX = x;
+    let finalY = y;
+    
+    if (isManualMode && effectivePositions[person.id]) {
+      finalX = effectivePositions[person.id].x;
+      finalY = effectivePositions[person.id].y;
+    }
+
     const card = g.append('g')
       .attr('class', 'person-card')
-      .attr('transform', `translate(${x}, ${y})`)
-      .style('cursor', 'pointer')
+      .attr('data-person-id', person.id)
+      .attr('transform', `translate(${finalX}, ${finalY})`)
+      .style('cursor', isManualMode ? 'grab' : 'pointer')
       .on('click', () => handlePersonClick(person));
+    
+    // 🛠️ DEV LAYOUT: Add drag behavior if in manual mode
+    if (isManualMode) {
+      const dragStartRef = { x: 0, y: 0, spouseStartX: 0, spouseStartY: 0, offsetX: 0, offsetY: 0 };
+      
+      const drag = d3.drag()
+        .on('start', function(event) {
+          setDraggingPersonId(person.id);
+          setDevSelectedPersonId(person.id);
+          d3.select(this).raise().style('cursor', 'grabbing');
+          
+          // Get mouse position in the zoom group's coordinate system
+          const zoomGroup = d3.select(svgRef.current).select('.zoom-group').node();
+          const [mouseX, mouseY] = d3.pointer(event, zoomGroup);
+          
+          // Store the offset from mouse to card origin
+          dragStartRef.offsetX = mouseX - finalX;
+          dragStartRef.offsetY = mouseY - finalY;
+          
+          // Store starting position
+          dragStartRef.x = finalX;
+          dragStartRef.y = finalY;
+          
+          // Store spouse starting position for coupled dragging
+          if (spouseMap) {
+            const spouseId = spouseMap.get(person.id);
+            if (spouseId && effectivePositions[spouseId]) {
+              dragStartRef.spouseId = spouseId;
+              dragStartRef.spouseStartX = effectivePositions[spouseId].x;
+              dragStartRef.spouseStartY = effectivePositions[spouseId].y;
+            }
+          }
+        })
+        .on('drag', function(event) {
+          // Get mouse position in the zoom group's coordinate system
+          const zoomGroup = d3.select(svgRef.current).select('.zoom-group').node();
+          const [mouseX, mouseY] = d3.pointer(event, zoomGroup);
+          
+          // Calculate new position accounting for the initial offset
+          const newX = mouseX - dragStartRef.offsetX;
+          const newY = mouseY - dragStartRef.offsetY;
+          
+          // Move this card
+          d3.select(this).attr('transform', `translate(${newX}, ${newY})`);
+          setPosition(person.id, newX, newY);
+          
+          // Move spouse together (same delta)
+          if (dragStartRef.spouseId) {
+            const deltaX = newX - dragStartRef.x;
+            const deltaY = newY - dragStartRef.y;
+            const newSpouseX = dragStartRef.spouseStartX + deltaX;
+            const newSpouseY = dragStartRef.spouseStartY + deltaY;
+            
+            // Find and move spouse card
+            g.selectAll('.person-card')
+              .filter(function() {
+                return d3.select(this).attr('data-person-id') == dragStartRef.spouseId;
+              })
+              .attr('transform', `translate(${newSpouseX}, ${newSpouseY})`);
+            
+            setPosition(dragStartRef.spouseId, newSpouseX, newSpouseY);
+          }
+        })
+        .on('end', function() {
+          setDraggingPersonId(null);
+          d3.select(this).style('cursor', 'grab');
+        });
+      
+      card.call(drag);
+    }
     
     card.append('rect')
       .attr('width', CARD_WIDTH)
@@ -888,12 +826,10 @@ function FamilyTree() {
       .attr('width', CARD_WIDTH - 2).attr('height', CARD_HEIGHT - 2)
       .attr('fill', 'none').attr('stroke', glowColor).attr('stroke-width', 1).attr('rx', 5);
     
-    // Text truncation settings - leave padding for margins
     const textMaxWidth = CARD_WIDTH - 16;
     const nameFontSize = 13;
     const secondaryFontSize = 10;
 
-    // Truncate name if needed
     const nameResult = truncateName(person.firstName, person.lastName, textMaxWidth, nameFontSize);
 
     card.append('text')
@@ -904,7 +840,6 @@ function FamilyTree() {
 
     let currentY = 22;
 
-    // ✨ EPITHETS: Show primary epithet below name
     const primaryEpithet = getPrimaryEpithet(person.epithets);
     let epithetResult = null;
     if (primaryEpithet) {
@@ -913,7 +848,7 @@ function FamilyTree() {
       card.append('text')
         .attr('x', CARD_WIDTH / 2).attr('y', currentY)
         .attr('text-anchor', 'middle').attr('class', 'person-epithet')
-        .attr('fill', '#d4a574')  // Accent color for epithets
+        .attr('fill', '#d4a574')
         .attr('font-style', 'italic')
         .attr('font-size', '10px')
         .text(epithetResult.text);
@@ -939,7 +874,6 @@ function FamilyTree() {
       .attr('fill', '#b8a891')
       .text(datesResult.text);
 
-    // Add tooltip with full text if any field was truncated
     const anyTruncated = nameResult.truncated ||
                          epithetResult?.truncated ||
                          maidenResult?.truncated ||
@@ -955,6 +889,7 @@ function FamilyTree() {
 
     const isHighlighted = searchResults.some(p => p.id === person.id);
     const isUrlHighlighted = highlightedPersonId === person.id;
+    const isDevSelected = isManualMode && auraPersonId === person.id;
     
     if (isHighlighted) {
       card.append('rect')
@@ -967,9 +902,7 @@ function FamilyTree() {
         .attr('class', 'search-highlight');
     }
     
-    // 🎯 URL Navigation Highlight: Gold pulsing glow for person navigated from Codex
     if (isUrlHighlighted) {
-      // Outer glow ring
       card.append('rect')
         .attr('width', CARD_WIDTH + 16)
         .attr('height', CARD_HEIGHT + 16)
@@ -981,17 +914,31 @@ function FamilyTree() {
         .attr('rx', 14)
         .attr('class', 'url-highlight-glow');
       
-      // Inner highlight border
       card.append('rect')
         .attr('width', CARD_WIDTH + 6)
         .attr('height', CARD_HEIGHT + 6)
         .attr('x', -3)
         .attr('y', -3)
         .attr('fill', 'none')
-        .attr('stroke', '#d4af37')  // Gold
+        .attr('stroke', '#d4af37')
         .attr('stroke-width', 3)
         .attr('rx', 9)
         .attr('class', 'url-highlight');
+    }
+    
+    // 🛠️ DEV LAYOUT: Selection ring for dev mode
+    if (isDevSelected) {
+      card.append('rect')
+        .attr('width', CARD_WIDTH + 8)
+        .attr('height', CARD_HEIGHT + 8)
+        .attr('x', -4)
+        .attr('y', -4)
+        .attr('fill', 'none')
+        .attr('stroke', '#00ff88')
+        .attr('stroke-width', 3)
+        .attr('stroke-dasharray', '6,3')
+        .attr('rx', 10)
+        .attr('class', 'dev-selection-ring');
     }
     
     if (showRelationships && relationshipMap.has(person.id)) {
@@ -1014,14 +961,11 @@ function FamilyTree() {
         .text(relationship);
     }
     
-    // 👑 DIGNITY ICON: Show highest-priority dignity icon in top-right corner
     const personDignities = dignitiesByPerson.get(person.id);
     if (personDignities && personDignities.length > 0) {
-      // Get the highest-priority dignity (already sorted by displayPriority)
       const topDignity = personDignities[0];
       const icon = getDignityIcon(topDignity);
       
-      // Draw icon with subtle background
       card.append('circle')
         .attr('cx', CARD_WIDTH - 12)
         .attr('cy', 12)
@@ -1038,26 +982,35 @@ function FamilyTree() {
         .attr('class', 'dignity-icon')
         .text(icon);
       
-      // Add tooltip with title name (SVG title element)
       card.append('title')
         .text(`${topDignity.title}${personDignities.length > 1 ? ` (+${personDignities.length - 1} more)` : ''}`);
     }
     
-    return { x, y, width: CARD_WIDTH, height: CARD_HEIGHT, personId: person.id };
+    return { x: finalX, y: finalY, width: CARD_WIDTH, height: CARD_HEIGHT, personId: person.id };
   };
 
-  const drawMarriageLine = (g, pos1, pos2, themeColors) => {
+  const drawMarriageLine = (g, pos1, pos2, themeColors, relationship = null) => {
+    const isBetrothed = relationship?.marriageStatus === 'betrothed';
+
     const marriageColor = isDarkTheme() ? '#c08a7a' : '#b87a8a';
-    
-    // Vertical layout: spouses are side by side, line goes right
+    const betrothalColor = isDarkTheme() ? '#8a7ac0' : '#9a8ab8';
+    const lineColor = isBetrothed ? betrothalColor : marriageColor;
+
     const x1 = pos1.x + pos1.width;
     const y1 = pos1.y + pos1.height / 2;
     const x2 = pos2.x;
     const y2 = pos2.y + pos2.height / 2;
-    
-    g.append('line').attr('class', 'marriage-line')
+
+    const line = g.append('line').attr('class', isBetrothed ? 'betrothal-line' : 'marriage-line')
       .attr('x1', x1).attr('y1', y1).attr('x2', x2).attr('y2', y2)
-      .attr('stroke', marriageColor);
+      .attr('stroke', lineColor)
+      .attr('stroke-width', 2.5)
+      .attr('opacity', 0.8);
+
+    if (isBetrothed) {
+      line.attr('stroke-dasharray', '8,4');
+    }
+
     return { x: (x1 + x2) / 2, y: (y1 + y2) / 2 };
   };
 
@@ -1108,39 +1061,41 @@ function FamilyTree() {
     }
 
     if (legitimateChildren.length > 0) {
-      const legitFirstX = legitimateChildren[0].x + CARD_WIDTH / 2;
-      const legitLastX = legitimateChildren[legitimateChildren.length - 1].x + CARD_WIDTH / 2;
-      const legitCenterX = (legitFirstX + legitLastX) / 2;
+      // Sort children by X position to ensure correct line drawing
+      const sortedLegit = [...legitimateChildren].sort((a, b) => a.x - b.x);
+      const legitFirstX = sortedLegit[0].x + CARD_WIDTH / 2;
+      const legitLastX = sortedLegit[sortedLegit.length - 1].x + CARD_WIDTH / 2;
       const legitMarriageX = marriageCenter.x + legitOffset;
       const legitY = midY + yOffset;
 
+      // Vertical line from parent down to horizontal bar level
       g.append('line').attr('class', 'child-line-legit').attr('stroke', themeColors.lines.legitimate).attr('stroke-width', 2).attr('x1', legitMarriageX).attr('y1', marriageCenter.y).attr('x2', legitMarriageX).attr('y2', legitY);
-      g.append('line').attr('class', 'child-line-legit').attr('stroke', themeColors.lines.legitimate).attr('stroke-width', 2).attr('x1', legitMarriageX).attr('y1', legitY).attr('x2', legitCenterX).attr('y2', legitY);
-      g.append('line').attr('class', 'child-line-legit').attr('stroke', themeColors.lines.legitimate).attr('stroke-width', 2).attr('x1', legitFirstX).attr('y1', legitY).attr('x2', legitLastX).attr('y2', legitY);
-      legitimateChildren.forEach(pos => {
+      // Horizontal line spanning from leftmost to rightmost child (or from parent to nearest edge if parent is outside)
+      const horizLeftX = Math.min(legitFirstX, legitMarriageX);
+      const horizRightX = Math.max(legitLastX, legitMarriageX);
+      g.append('line').attr('class', 'child-line-legit').attr('stroke', themeColors.lines.legitimate).attr('stroke-width', 2).attr('x1', horizLeftX).attr('y1', legitY).attr('x2', horizRightX).attr('y2', legitY);
+      // Vertical lines down to each child
+      sortedLegit.forEach(pos => {
         g.append('line').attr('class', 'child-line-legit').attr('stroke', themeColors.lines.legitimate).attr('stroke-width', 2).attr('x1', pos.x + CARD_WIDTH / 2).attr('y1', legitY).attr('x2', pos.x + CARD_WIDTH / 2).attr('y2', pos.y);
       });
     }
 
     if (bastardChildren.length > 0) {
-      const bastardFirstX = bastardChildren[0].x + CARD_WIDTH / 2;
-      const bastardLastX = bastardChildren[bastardChildren.length - 1].x + CARD_WIDTH / 2;
-      const bastardCenterX = (bastardFirstX + bastardLastX) / 2;
+      // Sort bastard children by X position
+      const sortedBastards = [...bastardChildren].sort((a, b) => a.x - b.x);
+      const bastardFirstX = sortedBastards[0].x + CARD_WIDTH / 2;
+      const bastardLastX = sortedBastards[sortedBastards.length - 1].x + CARD_WIDTH / 2;
       const bastardY = midY - 5 + yOffset;
-      
+
       let bastardMarriageX = marriageCenter.x + bastardOffset;
       let bastardStartY = marriageCenter.y;
-      
-      // CRITICAL: Check if bastards have BOTH parents or just ONE
-      // If a bastard has only ONE parent in this couple, line comes from that parent's card
-      // If a bastard has BOTH parents (pre-marital), line comes from marriage center
-      const firstBastard = peopleById.get(bastardChildren[0].personId);
+
+      const firstBastard = peopleById.get(sortedBastards[0].personId);
       if (firstBastard) {
         const bastardParents = parentMap.get(firstBastard.id) || [];
         const hasBothParents = spouseId && bastardParents.includes(parentId) && bastardParents.includes(spouseId);
-        
+
         if (!hasBothParents) {
-          // Only ONE parent - line comes from parent's card center (no offset)
           const parentPos = positionMap.get(parentId);
           if (parentPos) {
             bastardMarriageX = parentPos.x + CARD_WIDTH / 2;
@@ -1149,34 +1104,182 @@ function FamilyTree() {
         }
       }
 
+      // Vertical line from parent down to horizontal bar level
       g.append('line').attr('class', 'child-line-bastard').attr('stroke', themeColors.lines.bastard).attr('stroke-width', 2).attr('x1', bastardMarriageX).attr('y1', bastardStartY).attr('x2', bastardMarriageX).attr('y2', bastardY);
-      g.append('line').attr('class', 'child-line-bastard').attr('stroke', themeColors.lines.bastard).attr('stroke-width', 2).attr('x1', bastardMarriageX).attr('y1', bastardY).attr('x2', bastardCenterX).attr('y2', bastardY);
-      g.append('line').attr('class', 'child-line-bastard').attr('stroke', themeColors.lines.bastard).attr('stroke-width', 2).attr('x1', bastardFirstX).attr('y1', bastardY).attr('x2', bastardLastX).attr('y2', bastardY);
-      bastardChildren.forEach(pos => {
+      // Horizontal line spanning from leftmost to rightmost child (or from parent to nearest edge)
+      const horizLeftX = Math.min(bastardFirstX, bastardMarriageX);
+      const horizRightX = Math.max(bastardLastX, bastardMarriageX);
+      g.append('line').attr('class', 'child-line-bastard').attr('stroke', themeColors.lines.bastard).attr('stroke-width', 2).attr('x1', horizLeftX).attr('y1', bastardY).attr('x2', horizRightX).attr('y2', bastardY);
+      // Vertical lines down to each child
+      sortedBastards.forEach(pos => {
         g.append('line').attr('class', 'child-line-bastard').attr('stroke', themeColors.lines.bastard).attr('stroke-width', 2).attr('x1', pos.x + CARD_WIDTH / 2).attr('y1', bastardY).attr('x2', pos.x + CARD_WIDTH / 2).attr('y2', pos.y);
       });
     }
 
     if (adoptedChildren.length > 0) {
-      const adoptedFirstX = adoptedChildren[0].x + CARD_WIDTH / 2;
-      const adoptedLastX = adoptedChildren[adoptedChildren.length - 1].x + CARD_WIDTH / 2;
-      const adoptedCenterX = (adoptedFirstX + adoptedLastX) / 2;
+      // Sort adopted children by X position
+      const sortedAdopted = [...adoptedChildren].sort((a, b) => a.x - b.x);
+      const adoptedFirstX = sortedAdopted[0].x + CARD_WIDTH / 2;
+      const adoptedLastX = sortedAdopted[sortedAdopted.length - 1].x + CARD_WIDTH / 2;
       const adoptedMarriageX = marriageCenter.x + adoptedOffset;
       const adoptedY = midY + 5 + yOffset;
 
+      // Vertical line from parent down to horizontal bar level
       g.append('line').attr('class', 'child-line-adopted').attr('stroke', themeColors.lines.adopted).attr('stroke-width', 2).attr('x1', adoptedMarriageX).attr('y1', marriageCenter.y).attr('x2', adoptedMarriageX).attr('y2', adoptedY);
-      g.append('line').attr('class', 'child-line-adopted').attr('stroke', themeColors.lines.adopted).attr('stroke-width', 2).attr('x1', adoptedMarriageX).attr('y1', adoptedY).attr('x2', adoptedCenterX).attr('y2', adoptedY);
-      g.append('line').attr('class', 'child-line-adopted').attr('stroke', themeColors.lines.adopted).attr('stroke-width', 2).attr('x1', adoptedFirstX).attr('y1', adoptedY).attr('x2', adoptedLastX).attr('y2', adoptedY);
-      adoptedChildren.forEach(pos => {
+      // Horizontal line spanning from leftmost to rightmost child (or from parent to nearest edge)
+      const horizLeftX = Math.min(adoptedFirstX, adoptedMarriageX);
+      const horizRightX = Math.max(adoptedLastX, adoptedMarriageX);
+      g.append('line').attr('class', 'child-line-adopted').attr('stroke', themeColors.lines.adopted).attr('stroke-width', 2).attr('x1', horizLeftX).attr('y1', adoptedY).attr('x2', horizRightX).attr('y2', adoptedY);
+      // Vertical lines down to each child
+      sortedAdopted.forEach(pos => {
         g.append('line').attr('class', 'child-line-adopted').attr('stroke', themeColors.lines.adopted).attr('stroke-width', 2).attr('x1', pos.x + CARD_WIDTH / 2).attr('y1', adoptedY).attr('x2', pos.x + CARD_WIDTH / 2).attr('y2', pos.y);
       });
     }
   };
 
+  // 🛠️ DEV LAYOUT - PARKED (aura overlay for measuring distances)
+  /*
+  const drawDevAuraOverlay = (g, selectedPersonId, positionMap, themeColors) => {
+    if (!selectedPersonId || !positionMap.has(selectedPersonId)) return;
+
+    const { parentMap, childrenMap, spouseMap } = buildRelationshipMaps();
+    const family = getImmediateFamily(selectedPersonId, relationships);
+    const selectedPos = positionMap.get(selectedPersonId);
+
+    const auraGroup = g.append('g').attr('class', 'dev-aura-overlay');
+
+    // Draw measurement lines to parents (green vertical)
+    family.parents.forEach(parentId => {
+      const parentPos = positionMap.get(parentId);
+      if (parentPos) {
+        const dist = Math.round(Math.abs(selectedPos.y - parentPos.y));
+        auraGroup.append('line')
+          .attr('x1', selectedPos.x + CARD_WIDTH/2)
+          .attr('y1', selectedPos.y)
+          .attr('x2', selectedPos.x + CARD_WIDTH/2)
+          .attr('y2', parentPos.y + CARD_HEIGHT)
+          .attr('stroke', 'var(--color-success, #4ade80)')
+          .attr('stroke-width', 2)
+          .attr('stroke-dasharray', '6,4')
+          .attr('opacity', 0.8);
+
+        auraGroup.append('text')
+          .attr('x', selectedPos.x + CARD_WIDTH/2 + 20)
+          .attr('y', (selectedPos.y + parentPos.y + CARD_HEIGHT) / 2)
+          .attr('fill', 'var(--color-success, #4ade80)')
+          .attr('font-size', '11px')
+          .attr('font-family', 'monospace')
+          .text(`↕ ${dist}px`);
+      }
+    });
+
+    // Draw measurement lines to children (green vertical)
+    family.children.forEach(childId => {
+      const childPos = positionMap.get(childId);
+      if (childPos) {
+        const dist = Math.round(Math.abs(childPos.y - selectedPos.y));
+        auraGroup.append('line')
+          .attr('x1', selectedPos.x + CARD_WIDTH/2)
+          .attr('y1', selectedPos.y + CARD_HEIGHT)
+          .attr('x2', selectedPos.x + CARD_WIDTH/2)
+          .attr('y2', childPos.y)
+          .attr('stroke', 'var(--color-success, #4ade80)')
+          .attr('stroke-width', 2)
+          .attr('stroke-dasharray', '6,4')
+          .attr('opacity', 0.8);
+
+        auraGroup.append('text')
+          .attr('x', selectedPos.x + CARD_WIDTH/2 + 20)
+          .attr('y', (selectedPos.y + CARD_HEIGHT + childPos.y) / 2)
+          .attr('fill', 'var(--color-success, #4ade80)')
+          .attr('font-size', '11px')
+          .attr('font-family', 'monospace')
+          .text(`↕ ${dist}px`);
+      }
+    });
+
+    // Draw measurement line to spouse (gold horizontal)
+    family.spouses.forEach(spouseId => {
+      const spousePos = positionMap.get(spouseId);
+      if (spousePos) {
+        const dist = Math.round(Math.abs(spousePos.x - selectedPos.x - CARD_WIDTH));
+        const y = selectedPos.y + CARD_HEIGHT/2;
+
+        auraGroup.append('line')
+          .attr('x1', selectedPos.x + CARD_WIDTH)
+          .attr('y1', y)
+          .attr('x2', spousePos.x)
+          .attr('y2', y)
+          .attr('stroke', '#d4a574')
+          .attr('stroke-width', 2)
+          .attr('stroke-dasharray', '6,4')
+          .attr('opacity', 0.8);
+
+        auraGroup.append('text')
+          .attr('x', (selectedPos.x + CARD_WIDTH + spousePos.x) / 2)
+          .attr('y', y - 8)
+          .attr('fill', '#d4a574')
+          .attr('font-size', '11px')
+          .attr('font-family', 'monospace')
+          .attr('text-anchor', 'middle')
+          .text(`↔ ${dist}px`);
+      }
+    });
+
+    // Draw measurement lines to siblings (blue horizontal)
+    family.siblings.forEach(siblingId => {
+      const siblingPos = positionMap.get(siblingId);
+      if (siblingPos && siblingId !== selectedPersonId) {
+        const dist = Math.round(Math.abs(siblingPos.x - selectedPos.x));
+        const y = selectedPos.y + CARD_HEIGHT + 15;
+
+        auraGroup.append('line')
+          .attr('x1', selectedPos.x + CARD_WIDTH/2)
+          .attr('y1', y)
+          .attr('x2', siblingPos.x + CARD_WIDTH/2)
+          .attr('y2', y)
+          .attr('stroke', '#60a5fa')
+          .attr('stroke-width', 2)
+          .attr('stroke-dasharray', '4,4')
+          .attr('opacity', 0.6);
+
+        auraGroup.append('text')
+          .attr('x', (selectedPos.x + siblingPos.x + CARD_WIDTH) / 2)
+          .attr('y', y - 5)
+          .attr('fill', '#60a5fa')
+          .attr('font-size', '10px')
+          .attr('font-family', 'monospace')
+          .attr('text-anchor', 'middle')
+          .text(`${dist}px`);
+      }
+    });
+
+    // Coordinate display under selected card
+    auraGroup.append('rect')
+      .attr('x', selectedPos.x + CARD_WIDTH/2 - 50)
+      .attr('y', selectedPos.y + CARD_HEIGHT + 8)
+      .attr('width', 100)
+      .attr('height', 22)
+      .attr('fill', 'var(--bg-primary, #1a1a2e)')
+      .attr('stroke', 'var(--accent-primary, #d4a574)')
+      .attr('stroke-width', 2)
+      .attr('rx', 4);
+
+    auraGroup.append('text')
+      .attr('x', selectedPos.x + CARD_WIDTH/2)
+      .attr('y', selectedPos.y + CARD_HEIGHT + 23)
+      .attr('fill', 'var(--accent-primary, #d4a574)')
+      .attr('font-size', '11px')
+      .attr('font-family', 'monospace')
+      .attr('font-weight', 'bold')
+      .attr('text-anchor', 'middle')
+      .text(`${Math.round(selectedPos.x)}, ${Math.round(selectedPos.y)}`);
+  };
+  */
+
   const drawTree = () => {
     const themeColors = getAllThemeColors();
     
-    // Check if we have a saved transform from before redraw
     let savedTransform = null;
     const existingGroup = d3.select(svgRef.current).select('.zoom-group');
     if (!existingGroup.empty()) {
@@ -1187,7 +1290,7 @@ function FamilyTree() {
     }
 
     d3.select(svgRef.current).selectAll('*').remove();
-    const { peopleById, housesById, parentMap, childrenMap, spouseMap } = buildRelationshipMaps();
+    const { peopleById, housesById, parentMap, childrenMap, spouseMap, spouseRelationshipMap } = buildRelationshipMaps();
     
     const svg = d3.select(svgRef.current).attr('width', '100%').attr('height', '100%');
     const g = svg.append('g').attr('class', 'zoom-group');
@@ -1197,10 +1300,7 @@ function FamilyTree() {
 
     svg.call(zoom);
     zoomBehaviorRef.current = zoom;
-    
-    // NOTE: We'll set the transform AFTER drawing so we can center on content
 
-    // Draw anchor line (vertical line at center X)
     g.append('line').attr('class', 'anchor-line')
       .attr('x1', ANCHOR_X).attr('y1', 0).attr('x2', ANCHOR_X).attr('y2', 5000)
       .attr('stroke', themeColors.lines.anchor);
@@ -1210,19 +1310,10 @@ function FamilyTree() {
       return;
     }
 
-    // ════════════════════════════════════════════════════════════════════════
-    // HOUSE SCOPE FILTERING
-    // ════════════════════════════════════════════════════════════════════════
-    // Filter people to only those connected to the selected house.
-    // This happens BEFORE detectGenerations so the existing algorithm
-    // works on the filtered dataset unchanged.
-    // ════════════════════════════════════════════════════════════════════════
-    
     let scopedPeopleById = peopleById;
     let overrideRootId = null;
     
     if (selectedHouseId) {
-      // Get the set of person IDs in scope for this house
       const scopedIds = getHouseScopedPeopleIds(
         selectedHouseId,
         people,
@@ -1233,7 +1324,6 @@ function FamilyTree() {
         showCadetHouses
       );
       
-      // Create a filtered Map of only scoped people
       scopedPeopleById = new Map();
       scopedIds.forEach(id => {
         if (peopleById.has(id)) {
@@ -1241,7 +1331,6 @@ function FamilyTree() {
         }
       });
       
-      // Find the root person for this house view
       overrideRootId = findRootPersonForHouse(
         scopedIds,
         peopleById,
@@ -1254,19 +1343,10 @@ function FamilyTree() {
       console.log(`   Root person ID: ${overrideRootId}`);
     }
 
-    // ════════════════════════════════════════════════════════════════════════
-    // MULTI-FRAGMENT DRAWING
-    // ════════════════════════════════════════════════════════════════════════
-    // If there are multiple disconnected fragments, we draw each one sequentially
-    // with FRAGMENT_GAP (200px) spacing between them. This ensures all fragments
-    // are visible and properly separated.
-    // ════════════════════════════════════════════════════════════════════════
-    
     const positionMap = new Map();
     const marriageCenters = new Map();
     const marriageLinesToDraw = [];
     
-    // Determine which fragments to draw
     const fragmentsToDraw = fragmentInfo.hasMultipleFragments 
       ? fragmentInfo.fragments 
       : [{ rootPerson: scopedPeopleById.get(overrideRootId), peopleIds: new Set(scopedPeopleById.keys()) }];
@@ -1276,36 +1356,23 @@ function FamilyTree() {
       return;
     }
     
-    // Positioning variables for vertical layout
-    let currentGenPos = START_Y;  // Position along generation axis (Y)
-    const anchorSibPos = ANCHOR_X;  // Anchor along sibling axis (X)
+    let currentGenPos = START_Y;
+    const anchorSibPos = ANCHOR_X;
     
-    // Helper to convert layout positions to X,Y (vertical layout)
     const layoutToXY = (sibPos, genPos) => {
       return { x: sibPos, y: genPos };
     };
     
-    // Get the "sibling size" (width in vertical layout)
     const siblingSize = CARD_WIDTH;
     const genSize = CARD_HEIGHT;
     const genSpacing = verticalSpacing;
     
-    // ════════════════════════════════════════════════════════════════════════
-    // FRAGMENT LOOP: Draw each disconnected fragment sequentially
-    // ════════════════════════════════════════════════════════════════════════
-    // Each fragment gets its own call to detectGenerations() and is drawn
-    // with FRAGMENT_GAP (200px) spacing between fragments.
-    // ════════════════════════════════════════════════════════════════════════
-    
     fragmentsToDraw.forEach((fragment, fragmentIndex) => {
-      // Add fragmentGap before drawing subsequent fragments
       if (fragmentIndex > 0) {
         currentGenPos += fragmentGap;
         console.log(`📏 Added ${fragmentGap}px gap before fragment ${fragmentIndex + 1}`);
       }
       
-      // Build a scoped peopleById for this fragment
-      // For multi-fragment mode, we need to include spouses who may not be in the fragment
       const fragmentPeopleById = new Map();
       fragment.peopleIds.forEach(id => {
         if (scopedPeopleById.has(id)) {
@@ -1313,7 +1380,6 @@ function FamilyTree() {
         }
       });
       
-      // Also include spouses of fragment members (they may be from other houses)
       fragment.peopleIds.forEach(id => {
         const spouseId = spouseMap.get(id);
         if (spouseId && scopedPeopleById.has(spouseId)) {
@@ -1321,7 +1387,6 @@ function FamilyTree() {
         }
       });
       
-      // Detect generations for THIS fragment starting from its root person
       const fragmentRootId = fragment.rootPerson?.id;
       const generations = detectGenerations(fragmentPeopleById, parentMap, childrenMap, spouseMap, fragmentRootId);
       
@@ -1331,61 +1396,230 @@ function FamilyTree() {
       }
       
       console.log(`🌳 Drawing fragment ${fragmentIndex + 1}/${fragmentsToDraw.length}: ${fragment.rootPerson?.firstName} ${fragment.rootPerson?.lastName} (${generations.length} generations)`);
-    
+
+      // 🧱 BLOCK LAYOUT: Pre-calculate positions if enabled
+      let blockPositions = null;
+      if (useBlockLayout) {
+        console.log('🧱 Using BLOCK LAYOUT mode');
+        blockPositions = calculateBlockBasedLayout(
+          generations,
+          childrenMap,
+          spouseMap,
+          fragmentPeopleById,
+          parentMap,
+          {
+            cardWidth: CARD_WIDTH,
+            cardHeight: CARD_HEIGHT,
+            siblingSpacing: SPACING,
+            spouseSpacing: SPACING,
+            branchSpacing: branchSpacing,
+            anchorX: ANCHOR_X,
+            startY: currentGenPos,
+            generationSpacing: GENERATION_SPACING
+          }
+        );
+        console.log('🧱 Block positions calculated for', blockPositions.size, 'people');
+      }
+
     generations.forEach((genIds, genIndex) => {
       const isLastGeneration = genIndex === generations.length - 1;
       console.log(`Drawing generation ${genIndex} with ${genIds.length} people`);
       
-      // Special handling for Gen 0 (single root person + spouse if exists)
       if (genIndex === 0) {
         const rootPerson = fragmentPeopleById.get(genIds[0]);
         if (!rootPerson) {
           console.error('Root person not found');
           return;
         }
-        
+
         const rootSpouseId = spouseMap.get(rootPerson.id);
         const rootSpouse = rootSpouseId ? fragmentPeopleById.get(rootSpouseId) : null;
-        
-        // Calculate width along sibling axis (person + spouse if exists)
+
+        // 🧱 BLOCK LAYOUT: Use pre-calculated positions if available
+        if (useBlockLayout && blockPositions) {
+          const rootBlockPos = blockPositions.get(rootPerson.id);
+          if (rootBlockPos) {
+            const rootPos = drawPersonCard(g, rootPerson, rootBlockPos.x, rootBlockPos.y, housesById, themeColors, spouseMap, childrenMap);
+            positionMap.set(rootPerson.id, rootPos);
+
+            if (rootSpouse) {
+              const spouseBlockPos = blockPositions.get(rootSpouse.id);
+              if (spouseBlockPos) {
+                const spousePos = drawPersonCard(g, rootSpouse, spouseBlockPos.x, spouseBlockPos.y, housesById, themeColors, spouseMap, childrenMap);
+                positionMap.set(rootSpouse.id, spousePos);
+
+                const mc = {
+                  x: (rootPos.x + rootPos.width + spousePos.x) / 2,
+                  y: (rootPos.y + rootPos.height/2 + spousePos.y + spousePos.height/2) / 2
+                };
+                marriageCenters.set([rootPerson.id, rootSpouse.id].sort().join('-'), mc);
+                const relKey = [rootPerson.id, rootSpouse.id].sort((a, b) => a - b).join('-');
+                const spouseRel = spouseRelationshipMap.get(relKey);
+                marriageLinesToDraw.push([rootPos, spousePos, spouseRel]);
+              }
+            }
+
+            if (!isLastGeneration) {
+              currentGenPos += genSize + genSpacing;
+            }
+            return; // Skip standard layout for gen 0
+          }
+        }
+
+        // Standard layout (non-block mode)
         const gen0Cards = rootSpouse ? 2 : 1;
         const gen0SibWidth = gen0Cards * siblingSize + (gen0Cards - 1) * SPACING;
         let gen0SibPos = anchorSibPos - (gen0SibWidth / 2);
-        
-        // Draw root person
+
         const coords = layoutToXY(gen0SibPos, currentGenPos);
-        const rootPos = drawPersonCard(g, rootPerson, coords.x, coords.y, housesById, themeColors);
+        const rootPos = drawPersonCard(g, rootPerson, coords.x, coords.y, housesById, themeColors, spouseMap, childrenMap);
         positionMap.set(rootPerson.id, rootPos);
         gen0SibPos += siblingSize + SPACING;
-        
-        // Draw spouse if exists
+
         if (rootSpouse) {
           const spouseCoords = layoutToXY(gen0SibPos, currentGenPos);
-          const spousePos = drawPersonCard(g, rootSpouse, spouseCoords.x, spouseCoords.y, housesById, themeColors);
+          const spousePos = drawPersonCard(g, rootSpouse, spouseCoords.x, spouseCoords.y, housesById, themeColors, spouseMap, childrenMap);
           positionMap.set(rootSpouse.id, spousePos);
-          
-          // Store marriage center (vertical layout: spouses side by side)
+
           const mc = {
             x: (rootPos.x + rootPos.width + spousePos.x) / 2,
             y: (rootPos.y + rootPos.height/2 + spousePos.y + spousePos.height/2) / 2
           };
           marriageCenters.set([rootPerson.id, rootSpouse.id].sort().join('-'), mc);
-          marriageLinesToDraw.push([rootPos, spousePos]);
+          const relKey = [rootPerson.id, rootSpouse.id].sort((a, b) => a - b).join('-');
+          const spouseRel = spouseRelationshipMap.get(relKey);
+          marriageLinesToDraw.push([rootPos, spousePos, spouseRel]);
         }
         
-        // Only add spacing if this is NOT the last generation of the fragment
         if (!isLastGeneration) {
           currentGenPos += genSize + genSpacing;
         }
-        return; // Skip to next generation
+        return;
       }
-      
-      // For all other generations, build groups by parent
+
+      // 🧱 BLOCK LAYOUT: For subsequent generations, use pre-calculated positions
+      if (useBlockLayout && blockPositions) {
+        // Draw all people in this generation using block positions
+        genIds.forEach(childId => {
+          const childBlockPos = blockPositions.get(childId);
+          const child = fragmentPeopleById.get(childId);
+          if (!childBlockPos || !child) return;
+
+          const childPos = drawPersonCard(g, child, childBlockPos.x, childBlockPos.y, housesById, themeColors, spouseMap, childrenMap);
+          positionMap.set(childId, childPos);
+
+          // Draw spouse if has one
+          const childSpouseId = spouseMap.get(childId);
+          if (childSpouseId && fragmentPeopleById.has(childSpouseId)) {
+            const spouse = fragmentPeopleById.get(childSpouseId);
+            const spouseBlockPos = blockPositions.get(childSpouseId);
+            if (spouseBlockPos) {
+              const spousePos = drawPersonCard(g, spouse, spouseBlockPos.x, spouseBlockPos.y, housesById, themeColors, spouseMap, childrenMap);
+              positionMap.set(childSpouseId, spousePos);
+
+              const mc = {
+                x: (childPos.x + childPos.width + spousePos.x) / 2,
+                y: (childPos.y + childPos.height/2 + spousePos.y + spousePos.height/2) / 2
+              };
+              marriageCenters.set([childId, childSpouseId].sort().join('-'), mc);
+              const relKey = [childId, childSpouseId].sort((a, b) => a - b).join('-');
+              const spouseRel = spouseRelationshipMap.get(relKey);
+              marriageLinesToDraw.push([childPos, spousePos, spouseRel]);
+            }
+          }
+        });
+
+        // Draw parent-child lines - separate children by parentage
+        const prevGenIds = generations[genIndex - 1];
+        const processedChildIds = new Set();
+
+        prevGenIds.forEach(parentId => {
+          const parentPos = positionMap.get(parentId);
+          if (!parentPos) return;
+
+          const spouseId = spouseMap.get(parentId);
+          const spousePos = spouseId ? positionMap.get(spouseId) : null;
+
+          // Get this parent's children
+          const parentChildren = childrenMap.get(parentId) || [];
+          const spouseChildren = spouseId ? (childrenMap.get(spouseId) || []) : [];
+
+          // Separate children into: both parents vs single parent (bastards)
+          const jointChildren = []; // Children of both parents
+          const singleParentChildren = []; // Children of only this parent (bastards)
+
+          parentChildren.forEach(childId => {
+            if (!genIds.includes(childId) || processedChildIds.has(childId)) return;
+
+            const childParents = parentMap.get(childId) || [];
+            const hasBothParents = spouseId && childParents.includes(parentId) && childParents.includes(spouseId);
+
+            if (hasBothParents) {
+              jointChildren.push(childId);
+            } else if (childParents.includes(parentId) && !childParents.includes(spouseId)) {
+              singleParentChildren.push(childId);
+            }
+            processedChildIds.add(childId);
+          });
+
+          // Also check spouse's children (in case they have children from another relationship)
+          if (spouseId) {
+            spouseChildren.forEach(childId => {
+              if (!genIds.includes(childId) || processedChildIds.has(childId)) return;
+
+              const childParents = parentMap.get(childId) || [];
+              // Already handled if both parents, so this would be spouse-only child
+              if (!childParents.includes(parentId) && childParents.includes(spouseId)) {
+                // This child belongs to spouse only - will be drawn when we process spouse
+              }
+            });
+          }
+
+          const prevGenY = currentGenPos - genSpacing - CARD_HEIGHT;
+
+          // Draw lines for joint children (from marriage center)
+          if (jointChildren.length > 0) {
+            const jointChildPositions = jointChildren
+              .map(id => positionMap.get(id))
+              .filter(pos => pos);
+
+            if (jointChildPositions.length > 0) {
+              const mcKey = spouseId ? [parentId, spouseId].sort().join('-') : parentId.toString();
+              const parentMC = marriageCenters.get(mcKey) || {
+                x: parentPos.x + CARD_WIDTH/2,
+                y: parentPos.y + CARD_HEIGHT
+              };
+              drawChildLines(g, parentMC, jointChildPositions, prevGenY + CARD_HEIGHT, currentGenPos, fragmentPeopleById, parentMap, positionMap, themeColors, 0, parentId, spouseId);
+            }
+          }
+
+          // Draw lines for single-parent children (bastards) - from this parent only
+          if (singleParentChildren.length > 0) {
+            const singleChildPositions = singleParentChildren
+              .map(id => positionMap.get(id))
+              .filter(pos => pos);
+
+            if (singleChildPositions.length > 0) {
+              const singleParentMC = {
+                x: parentPos.x + CARD_WIDTH/2,
+                y: parentPos.y + CARD_HEIGHT
+              };
+              drawChildLines(g, singleParentMC, singleChildPositions, prevGenY + CARD_HEIGHT, currentGenPos, fragmentPeopleById, parentMap, positionMap, themeColors, 0, parentId, null);
+            }
+          }
+        });
+
+        if (!isLastGeneration) {
+          currentGenPos += genSize + genSpacing;
+        }
+        return; // Skip standard layout for this generation
+      }
+
+      // Standard layout (non-block mode)
       const prevGenIds = generations[genIndex - 1];
       const groups = [];
       const processedChildren = new Set();
       
-      // Get ALL people from previous generation including spouses
       const prevGenPeople = new Set(prevGenIds);
       prevGenIds.forEach(pid => {
         const spouse = spouseMap.get(pid);
@@ -1400,13 +1634,11 @@ function FamilyTree() {
         const children = childrenMap.get(parentId) || [];
         const childSet = new Set(children);
         
-        // Add spouse's children
         if (spouseId) {
           const spouseChildren = childrenMap.get(spouseId) || [];
           spouseChildren.forEach(c => childSet.add(c));
         }
         
-        // Filter to only children in THIS generation who haven't been processed
         const genChildren = Array.from(childSet)
           .filter(id => genIds.includes(id) && !processedChildren.has(id))
           .map(id => fragmentPeopleById.get(id))
@@ -1415,12 +1647,10 @@ function FamilyTree() {
         
         if (genChildren.length === 0) return;
         
-        // Mark as processed
         genChildren.forEach(child => processedChildren.add(child.id));
         
         const groupKey = spouseId ? [parentId, spouseId].sort().join('-') : parentId.toString();
         
-        // Skip if this couple already has a group
         if (groups.find(g => g.key === groupKey)) return;
         
         groups.push({
@@ -1431,32 +1661,12 @@ function FamilyTree() {
         });
       });
       
-      // ════════════════════════════════════════════════════════════════════════
-      // PRIMOGENITURE ORDERING: Sort groups by inherited ancestral position
-      // ════════════════════════════════════════════════════════════════════════
-      // The key insight: A person's position in the tree is determined by their
-      // ANCESTRY, not their individual birth date. Wenton's entire line (children,
-      // grandchildren, etc.) comes before Steffan's entire line because Wenton
-      // is the elder sibling - regardless of when individual descendants were born.
-      //
-      // We build an "ancestral order key" for each parent by tracing back to find
-      // their position within each generation of ancestors.
-      // ════════════════════════════════════════════════════════════════════════
-      
-      // ════════════════════════════════════════════════════════════════════════
-      // HELPER: Check if a person can be traced back to the tree root
-      // This determines if they're a "blood relative" vs "married in"
-      // 
-      // MEMOIZED: Results are cached so we only calculate once per person,
-      // making this performant even with 10+ generations and hundreds of people.
-      // ════════════════════════════════════════════════════════════════════════
       const traceableCache = new Map();
       
       const canTraceToRoot = (personId, visited = new Set()) => {
-        // Return cached result if we've already calculated this person
         if (traceableCache.has(personId)) return traceableCache.get(personId);
         
-        if (visited.has(personId)) return false; // Prevent infinite loops
+        if (visited.has(personId)) return false;
         visited.add(personId);
         
         const person = fragmentPeopleById.get(personId);
@@ -1465,36 +1675,30 @@ function FamilyTree() {
           return false;
         }
         
-        // Check if this person is the root (first person in Gen 0)
         const rootPersonId = generations[0]?.[0];
         if (personId === rootPersonId) {
           traceableCache.set(personId, true);
           return true;
         }
         
-        // Check if spouse of root
         const rootSpouseId = spouseMap.get(rootPersonId);
         if (personId === rootSpouseId) {
           traceableCache.set(personId, true);
           return true;
         }
         
-        // Try to trace through parents
         const parents = parentMap.get(personId);
         if (!parents || parents.length === 0) {
           traceableCache.set(personId, false);
           return false;
         }
         
-        // If ANY parent can trace to root, this person can too
         const result = parents.some(pid => canTraceToRoot(pid, new Set(visited)));
         traceableCache.set(personId, result);
         return result;
       };
       
       const getAncestralOrderKey = (personId) => {
-        // Build a chain of birth order positions from root to this person
-        // e.g., [0, 1, 0] means: root's 1st child → their 2nd child → their 1st child
         const orderChain = [];
         let currentId = personId;
         
@@ -1502,21 +1706,14 @@ function FamilyTree() {
           const person = scopedPeopleById.get(currentId);
           if (!person) break;
           
-          // Find this person's parents
           const parents = parentMap.get(currentId);
           if (!parents || parents.length === 0) {
-            // This is a root person - they get position 0
             orderChain.unshift(0);
             break;
           }
           
-          // ════════════════════════════════════════════════════════════════════
-          // CRITICAL FIX: Pick the parent who can trace back to the tree root
-          // This ensures we follow the BLOODLINE, not spouses who married in
-          // ════════════════════════════════════════════════════════════════════
-          let parentId = parents[0]; // Default to first
+          let parentId = parents[0];
           if (parents.length > 1) {
-            // Find the parent who is a blood relative (can trace to root)
             const bloodParent = parents.find(pid => canTraceToRoot(pid));
             if (bloodParent) {
               parentId = bloodParent;
@@ -1526,28 +1723,21 @@ function FamilyTree() {
           const parent = scopedPeopleById.get(parentId);
           if (!parent) break;
           
-          // Get all siblings (children of the same parent)
           const siblingIds = childrenMap.get(parentId) || [];
           const siblings = siblingIds
             .map(id => scopedPeopleById.get(id))
             .filter(p => p)
             .sort((a, b) => parseInt(a.dateOfBirth) - parseInt(b.dateOfBirth));
           
-          // Find this person's position among siblings (birth order)
           const birthPosition = siblings.findIndex(s => s.id === currentId);
           orderChain.unshift(birthPosition >= 0 ? birthPosition : 999);
           
-          // Move up to parent
           currentId = parentId;
         }
         
         return orderChain;
       };
       
-      // Compare two ancestral order keys
-      // [0, 1] < [0, 2] (same grandparent, but 2nd vs 3rd child)
-      // [0] < [1] (1st vs 2nd child of root)
-      // [0, 0] < [1, 0] (grandchild of 1st child vs grandchild of 2nd child)
       const compareOrderKeys = (keyA, keyB) => {
         const maxLen = Math.max(keyA.length, keyB.length);
         for (let i = 0; i < maxLen; i++) {
@@ -1564,10 +1754,8 @@ function FamilyTree() {
         return compareOrderKeys(keyA, keyB);
       });
       
-      // Calculate generation width along sibling axis
       let totalCards = 0;
       groups.forEach(group => {
-        // CRITICAL FIX: Count children in BIRTH ORDER, not by legitimacy type
         totalCards += group.children.length;
         
         group.children.forEach(child => {
@@ -1578,47 +1766,42 @@ function FamilyTree() {
         });
       });
       
-      // Calculate sibling axis width and starting position
       const genSibWidth = totalCards * siblingSize + (totalCards - 1) * SPACING + (groups.length - 1) * GROUP_SPACING;
       let currentSibPos = anchorSibPos - (genSibWidth / 2);
       
-      // Draw each group
       groups.forEach((group, groupIdx) => {
         const groupPositions = [];
         
-        // CRITICAL FIX: Draw children in BIRTH ORDER (already sorted)
         group.children.forEach(child => {
           const coords = layoutToXY(currentSibPos, currentGenPos);
-          const childPos = drawPersonCard(g, child, coords.x, coords.y, housesById, themeColors);
+          const childPos = drawPersonCard(g, child, coords.x, coords.y, housesById, themeColors, spouseMap, childrenMap);
           positionMap.set(child.id, childPos);
           groupPositions.push(childPos);
           currentSibPos += siblingSize + SPACING;
           
-          // Draw spouse ALWAYS (not just if in same generation)
           const childSpouseId = spouseMap.get(child.id);
           if (childSpouseId && fragmentPeopleById.has(childSpouseId)) {
             const spouse = fragmentPeopleById.get(childSpouseId);
             const spouseCoords = layoutToXY(currentSibPos, currentGenPos);
-            const spousePos = drawPersonCard(g, spouse, spouseCoords.x, spouseCoords.y, housesById, themeColors);
+            const spousePos = drawPersonCard(g, spouse, spouseCoords.x, spouseCoords.y, housesById, themeColors, spouseMap, childrenMap);
             positionMap.set(childSpouseId, spousePos);
-            
-            // Marriage center (vertical layout: spouses side by side)
+
             const mc = {
               x: (childPos.x + childPos.width + spousePos.x) / 2,
               y: (childPos.y + childPos.height/2 + spousePos.y + spousePos.height/2) / 2
             };
             marriageCenters.set([child.id, childSpouseId].sort().join('-'), mc);
-            marriageLinesToDraw.push([childPos, spousePos]);
-            
+            const relKey = [child.id, childSpouseId].sort((a, b) => a - b).join('-');
+            const spouseRel = spouseRelationshipMap.get(relKey);
+            marriageLinesToDraw.push([childPos, spousePos, spouseRel]);
+
             currentSibPos += siblingSize + SPACING;
           }
         });
         
-        // Draw child lines
           const mcKey = group.spouseId ? [group.parentId, group.spouseId].sort().join('-') : group.parentId.toString();
           const parentPos = positionMap.get(group.parentId);
           
-          // Skip if parent position not found (shouldn't happen but safety check)
           if (!parentPos) {
             console.warn(`Parent position not found for parentId: ${group.parentId}`);
             if (groupIdx < groups.length - 1) {
@@ -1634,11 +1817,9 @@ function FamilyTree() {
           
           const prevGenY = currentGenPos - genSpacing - CARD_HEIGHT;
           
-          // Preserve Lochlann special case
           const isLochlann = group.parentId === 18;
           const yOffset = isLochlann ? -5 : 0;
           
-          // Draw child lines using the classic triple-offset system
           drawChildLines(g, parentMC, groupPositions, prevGenY + CARD_HEIGHT, currentGenPos, fragmentPeopleById, parentMap, positionMap, themeColors, yOffset, group.parentId, group.spouseId);
         
         if (groupIdx < groups.length - 1) {
@@ -1646,30 +1827,31 @@ function FamilyTree() {
         }
       });
       
-      // Only add spacing if this is NOT the last generation of the fragment
       if (!isLastGeneration) {
         currentGenPos += genSize + genSpacing;
       }
     });
     
-    }); // End of fragment loop
+    });
     
-    // Draw all marriage lines
-    marriageLinesToDraw.forEach(([pos1, pos2]) => drawMarriageLine(g, pos1, pos2, themeColors));
+    marriageLinesToDraw.forEach(([pos1, pos2, relationship]) => drawMarriageLine(g, pos1, pos2, themeColors, relationship));
 
-    // ════════════════════════════════════════════════════════════════════════
-    // FRAGMENT VISUALIZATION
-    // ════════════════════════════════════════════════════════════════════════
-    // Draw visual separators between disconnected fragments based on user preference.
-    // This runs AFTER all cards are drawn so we can calculate bounding boxes.
-    // ════════════════════════════════════════════════════════════════════════
-    
+    // 🛠️ DEV LAYOUT: Store algorithm positions for the hook
+    const algorithmPositions = {};
+    // 🛠️ DEV LAYOUT - PARKED
+    // positionMap.forEach((pos, personId) => {
+    //   algorithmPositions[personId] = { x: pos.x, y: pos.y };
+    // });
+    // algorithmPositionsRef.current = algorithmPositions;
+    // if (isManualMode && auraPersonId) {
+    //   drawDevAuraOverlay(g, auraPersonId, positionMap, themeColors);
+    // }
+
+    // Fragment visualization code...
     if (fragmentInfo.hasMultipleFragments && fragmentSeparatorStyle !== 'none') {
-      // Build a lookup: personId -> fragmentIndex
       const personToFragment = new Map();
       fragmentInfo.fragments.forEach((frag, index) => {
         frag.peopleIds.forEach(pid => personToFragment.set(pid, index));
-        // Also include spouses who might not be house members
         frag.houseMembers.forEach(member => {
           const spouseId = spouseMap.get(member.id);
           if (spouseId && !personToFragment.has(spouseId)) {
@@ -1678,7 +1860,6 @@ function FamilyTree() {
         });
       });
       
-      // Calculate bounding box for each fragment
       const fragmentBounds = fragmentInfo.fragments.map((frag, index) => {
         const positions = Array.from(positionMap.entries())
           .filter(([pid, pos]) => personToFragment.get(pid) === index)
@@ -1694,10 +1875,8 @@ function FamilyTree() {
         return { minX, maxX, minY, maxY, width: maxX - minX, height: maxY - minY, index };
       }).filter(b => b !== null);
       
-      // Sort fragments by their vertical position (top to bottom)
       fragmentBounds.sort((a, b) => a.minY - b.minY);
       
-      // Fragment colors - subtle, theme-aware
       const fragmentColors = isDarkTheme() 
         ? ['rgba(139, 90, 43, 0.08)', 'rgba(70, 90, 110, 0.08)', 'rgba(90, 70, 90, 0.08)', 'rgba(60, 90, 60, 0.08)']
         : ['rgba(210, 180, 140, 0.12)', 'rgba(180, 200, 220, 0.12)', 'rgba(220, 200, 220, 0.12)', 'rgba(200, 220, 200, 0.12)'];
@@ -1706,15 +1885,12 @@ function FamilyTree() {
       const headerBgColor = isDarkTheme() ? 'rgba(45, 35, 28, 0.9)' : 'rgba(250, 245, 235, 0.9)';
       const headerTextColor = isDarkTheme() ? '#e9dcc9' : '#5c4a3d';
       
-      // Create a group for fragment decorations (behind cards)
       const fragmentGroup = g.insert('g', '.person-card').attr('class', 'fragment-decorations');
       
-      // Draw based on selected style
       fragmentBounds.forEach((bounds, i) => {
         const fragment = fragmentInfo.fragments[bounds.index];
         const colorIndex = bounds.index % fragmentColors.length;
         
-        // BACKGROUND SHADING
         if (fragmentSeparatorStyle === 'background' || fragmentSeparatorStyle === 'combined') {
           fragmentGroup.append('rect')
             .attr('class', 'fragment-bg')
@@ -1727,28 +1903,23 @@ function FamilyTree() {
             .attr('stroke', isDarkTheme() ? 'rgba(184, 168, 145, 0.15)' : 'rgba(139, 90, 43, 0.1)')
             .attr('stroke-width', 1);
         }
-        
       });
       
-      // SEPARATOR LINES between fragments
       if (fragmentSeparatorStyle === 'separator' || fragmentSeparatorStyle === 'combined') {
         for (let i = 0; i < fragmentBounds.length - 1; i++) {
           const upperBounds = fragmentBounds[i];
           const lowerBounds = fragmentBounds[i + 1];
           
-          // Calculate the gap between fragments
           const gapY = (upperBounds.maxY + lowerBounds.minY) / 2;
           const lineMinX = Math.min(upperBounds.minX, lowerBounds.minX) - 50;
           const lineMaxX = Math.max(upperBounds.maxX, lowerBounds.maxX) + 50;
           
-          // Calculate time gap for label
           const upperFragment = fragmentInfo.fragments[upperBounds.index];
           const lowerFragment = fragmentInfo.fragments[lowerBounds.index];
           const latestUpperBirth = Math.max(...upperFragment.houseMembers.map(p => parseInt(p.dateOfBirth) || 0));
           const earliestLowerBirth = Math.min(...lowerFragment.houseMembers.map(p => parseInt(p.dateOfBirth) || 9999));
           const yearGap = earliestLowerBirth - latestUpperBirth;
           
-          // Draw dashed separator line
           g.append('line')
             .attr('class', 'fragment-separator')
             .attr('x1', lineMinX)
@@ -1759,10 +1930,8 @@ function FamilyTree() {
             .attr('stroke-width', 2)
             .attr('stroke-dasharray', '8,6');
           
-          // Decorative elements on the line
           const centerX = (lineMinX + lineMaxX) / 2;
           
-          // Center label background
           const labelText = yearGap > 0 ? `～ ~${yearGap} years ～` : '～ Lineage Gap ～';
           const labelWidth = labelText.length * 6.5 + 20;
           
@@ -1791,37 +1960,30 @@ function FamilyTree() {
       console.log('🎨 Fragment visualization drawn:', fragmentSeparatorStyle);
     }
     
-    // ==================== CENTER VIEW ON CONTENT ====================
-    // Calculate bounding box of all drawn cards to center the view
+    // Center view on content
     if (positionMap.size > 0) {
       const positions = Array.from(positionMap.values());
       
-      // Find bounding box of all cards
       const minX = Math.min(...positions.map(p => p.x));
       const maxX = Math.max(...positions.map(p => p.x + p.width));
       const minY = Math.min(...positions.map(p => p.y));
       const maxY = Math.max(...positions.map(p => p.y + p.height));
       
-      // Calculate center of content
       const contentCenterX = (minX + maxX) / 2;
       const contentCenterY = (minY + maxY) / 2;
       const contentWidth = maxX - minX;
       const contentHeight = maxY - minY;
       
-      // Get viewport dimensions
       const svgElement = svgRef.current;
       const viewportWidth = svgElement?.clientWidth || window.innerWidth;
       const viewportHeight = svgElement?.clientHeight || window.innerHeight;
       
-      // 🎯 SPECIAL CASE: If we have a highlighted person from URL navigation,
-      // center directly on their card at 150% zoom
       if (highlightedPersonId && positionMap.has(highlightedPersonId)) {
         const highlightedPos = positionMap.get(highlightedPersonId);
         const personCenterX = highlightedPos.x + highlightedPos.width / 2;
         const personCenterY = highlightedPos.y + highlightedPos.height / 2;
-        const targetScale = 1.5; // 150% zoom
+        const targetScale = 1.5;
         
-        // Calculate translation to center the highlighted person in viewport
         const translateX = (viewportWidth / 2) - (personCenterX * targetScale);
         const translateY = (viewportHeight / 2) - (personCenterY * targetScale);
         
@@ -1838,21 +2000,17 @@ function FamilyTree() {
           scale: targetScale
         });
       } else if (savedTransform) {
-        // If we have a saved transform (from redraw), use it
         svg.call(zoom.transform, savedTransform);
       } else {
-        // Calculate ideal scale to fit content with some padding
         const padding = 100;
         const scaleX = (viewportWidth - padding * 2) / contentWidth;
         const scaleY = (viewportHeight - padding * 2) / contentHeight;
-        const idealScale = Math.min(scaleX, scaleY, 1); // Don't zoom in beyond 1x
-        const finalScale = Math.max(idealScale, 0.3); // Don't zoom out too far
+        const idealScale = Math.min(scaleX, scaleY, 1);
+        const finalScale = Math.max(idealScale, 0.3);
         
-        // Calculate translation to center content in viewport
         const translateX = (viewportWidth / 2) - (contentCenterX * finalScale);
         const translateY = (viewportHeight / 2) - (contentCenterY * finalScale);
         
-        // Apply the calculated transform
         const initialTransform = d3.zoomIdentity
           .translate(translateX, translateY)
           .scale(finalScale);
@@ -1868,20 +2026,16 @@ function FamilyTree() {
         });
       }
     } else {
-      // Fallback if no positions (empty tree)
       const fallbackTransform = savedTransform || d3.zoomIdentity.translate(200, 100).scale(0.8);
       svg.call(zoom.transform, fallbackTransform);
     }
   };
 
-  // Handle house change - clear saved transform to re-center on new house
   const handleHouseChange = (newHouseId) => {
-    // Clear the saved transform by removing it from the SVG
     if (svgRef.current) {
       const svg = d3.select(svgRef.current);
       const g = svg.select('.zoom-group');
       if (!g.empty()) {
-        // Reset to trigger re-centering
         g.attr('transform', null);
       }
     }
@@ -1912,6 +2066,33 @@ function FamilyTree() {
         compactMode={true}
       />
 
+      {/* 🛠️ DEV LAYOUT - PARKED (drag and drop feature available here)
+      <DevModeToggle
+        isManualMode={isManualMode}
+        onToggle={toggleMode}
+        onOpenRuleBuilder={() => setRuleBuilderOpen(true)}
+        hasOverrides={hasOverrides}
+        overrideCount={overrideCount}
+        isDarkTheme={isDarkTheme()}
+      />
+      <RuleBuilderPanel
+        isOpen={ruleBuilderOpen}
+        onClose={() => setRuleBuilderOpen(false)}
+        people={people}
+        positions={manualPositions}
+        relationships={relationships}
+        draftRules={draftRules}
+        onUpdateRule={updateRule}
+        onUpdateNestedRule={updateNestedRule}
+        showRulePreview={showRulePreview}
+        onToggleRulePreview={setShowRulePreview}
+        onExportRules={exportRules}
+        onResetPositions={resetAllPositions}
+        onClearSession={clearSession}
+        isDarkTheme={isDarkTheme()}
+      />
+      */}
+
       <div className="fixed top-20 right-6 z-10">
         <div
           className="rounded-lg shadow-lg transition-all duration-300 ease-in-out overflow-hidden"
@@ -1926,7 +2107,6 @@ function FamilyTree() {
             padding: controlsPanelExpanded ? '1rem' : '0 1rem'
           }}
         >
-          {/* View House Dropdown */}
           <label className="block mb-2 font-medium" style={{ color: 'var(--text-primary)' }}>View House:</label>
           <select 
             value={selectedHouseId || ''} 
@@ -1948,7 +2128,6 @@ function FamilyTree() {
             ))}
           </select>
 
-          {/* Centre On Dropdown */}
           <div className="mt-4 pt-4" style={{ borderTopWidth: '1px', borderColor: 'var(--border-primary)' }}>
             <label className="block mb-2 text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Centre On:</label>
             <select 
@@ -1972,7 +2151,6 @@ function FamilyTree() {
             </select>
           </div>
 
-          {/* 🪝 Cadet Houses Toggle - Extension Point */}
           <div className="mt-4 pt-4" style={{ borderTopWidth: '1px', borderColor: 'var(--border-primary)' }}>
             <label className="flex items-center cursor-pointer transition-opacity hover:opacity-80" style={{ color: 'var(--text-primary)' }}>
               <input
@@ -1983,12 +2161,8 @@ function FamilyTree() {
               />
               <span className="text-sm">Include Cadet Branches</span>
             </label>
-            <p className="mt-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
-              Show members of cadet houses descended from this house
-            </p>
           </div>
 
-          {/* Generation Spacing */}
           <div className="mt-4 pt-4" style={{ borderTopWidth: '1px', borderColor: 'var(--border-primary)' }}>
             <label className="block mb-2 text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Generation Spacing:</label>
             <select 
@@ -2012,7 +2186,6 @@ function FamilyTree() {
             </select>
           </div>
 
-          {/* Show Relationships Toggle */}
           <div className="mt-4 pt-4" style={{ borderTopWidth: '1px', borderColor: 'var(--border-primary)' }}>
             <label className="flex items-center cursor-pointer transition-opacity hover:opacity-80" style={{ color: 'var(--text-primary)' }}>
               <input
@@ -2031,30 +2204,20 @@ function FamilyTree() {
               />
               <span className="text-sm">Show Relationships</span>
             </label>
-            {showRelationships && referencePerson && (
-              <div className="mt-2 text-xs p-2 rounded" style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}>
-                Reference: {referencePerson.firstName} {referencePerson.lastName}
-              </div>
-            )}
           </div>
         </div>
       </div>
 
-      <TreeControls 
-        svgRef={svgRef} 
-        zoomBehaviorRef={zoomBehaviorRef} 
+      <TreeControls
+        svgRef={svgRef}
+        zoomBehaviorRef={zoomBehaviorRef}
         showCadetHouses={showCadetHouses}
-        onToggleCadetHouses={(checked) => setShowCadetHouses(checked)} 
+        onToggleCadetHouses={(checked) => setShowCadetHouses(checked)}
         zoomLevel={zoomLevel}
-        onZoomChange={(level) => setZoomLevel(level)} 
+        onZoomChange={(level) => setZoomLevel(level)}
         isDarkTheme={isDarkTheme()}
       />
 
-      {/* ════════════════════════════════════════════════════════════════════════
-          FRAGMENT PANEL
-          Shows when there are disconnected sub-trees in the current house view.
-          Allows users to see which fragments exist and navigate between them.
-          ════════════════════════════════════════════════════════════════════════ */}
       {fragmentInfo.hasMultipleFragments && showFragmentPanel && (
         <div 
           className="fixed bottom-6 left-6 z-10 max-w-sm"
@@ -2067,7 +2230,6 @@ function FamilyTree() {
             padding: '1rem'
           }}
         >
-          {/* Header */}
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <span className="text-lg">🧩</span>
@@ -2079,19 +2241,11 @@ function FamilyTree() {
               onClick={() => setShowFragmentPanel(false)}
               className="p-1 rounded hover:opacity-70 transition"
               style={{ color: 'var(--text-secondary)' }}
-              title="Hide panel"
             >
               ✕
             </button>
           </div>
           
-          {/* Description */}
-          <p className="text-xs mb-3" style={{ color: 'var(--text-secondary)' }}>
-            This house has {fragmentInfo.fragments.length} separate family trees that aren't connected.
-            Use "Lineage Gap" relationships to link distant ancestors.
-          </p>
-          
-          {/* Fragment List */}
           <div className="space-y-2">
             {fragmentInfo.fragments.map((fragment, index) => (
               <div 
@@ -2104,127 +2258,15 @@ function FamilyTree() {
                 }}
                 onClick={() => setCentreOnPersonId(fragment.rootPerson.id)}
               >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span 
-                      className="text-xs font-medium px-1.5 py-0.5 rounded mr-2"
-                      style={{
-                        backgroundColor: index === 0 ? 'var(--accent-primary)' : 'var(--bg-primary)',
-                        color: index === 0 ? 'white' : 'var(--text-secondary)'
-                      }}
-                    >
-                      {index === 0 ? 'Main' : `#${index + 1}`}
-                    </span>
-                    <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                      {fragment.rootPerson.firstName} {fragment.rootPerson.lastName}
-                    </span>
-                  </div>
-                  <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                    {fragment.memberCount} {fragment.memberCount === 1 ? 'person' : 'people'}
-                  </span>
-                </div>
-                <div className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
-                  b. {fragment.rootPerson.dateOfBirth}
-                  {fragment.rootPerson.dateOfDeath && ` - d. ${fragment.rootPerson.dateOfDeath}`}
-                </div>
-              </div>
-            ))}
-          </div>
-          
-          {/* Lineage Gap Connections */}
-          {fragmentInfo.lineageGaps.length > 0 && (
-            <div className="mt-3 pt-3" style={{ borderTopWidth: '1px', borderColor: 'var(--border-primary)' }}>
-              <div className="flex items-center gap-2 mb-2">
-                <span>🔗</span>
-                <span className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>
-                  Lineage Gap Connections
+                <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                  {fragment.rootPerson.firstName} {fragment.rootPerson.lastName}
                 </span>
               </div>
-              {fragmentInfo.lineageGaps.map((gap, index) => (
-                <div 
-                  key={index}
-                  className="text-xs p-2 rounded mb-1"
-                  style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-secondary)' }}
-                >
-                  <span style={{ color: 'var(--text-primary)' }}>
-                    {gap.descendant.firstName} {gap.descendant.lastName}
-                  </span>
-                  {' → '}
-                  <span style={{ color: 'var(--text-primary)' }}>
-                    {gap.ancestor.firstName} {gap.ancestor.lastName}
-                  </span>
-                  {gap.estimatedGenerations && (
-                    <span className="ml-1">(~{gap.estimatedGenerations} gen)</span>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-          
-          {/* Separator Style Selector */}
-          <div className="mt-3 pt-3" style={{ borderTopWidth: '1px', borderColor: 'var(--border-primary)' }}>
-            <label className="block mb-2 text-xs font-medium" style={{ color: 'var(--text-primary)' }}>
-              Visual Style:
-            </label>
-            <select
-              value={fragmentSeparatorStyle}
-              onChange={(e) => handleFragmentStyleChange(e.target.value)}
-              className="w-full p-1.5 text-xs rounded transition"
-              style={{
-                backgroundColor: 'var(--bg-tertiary)',
-                color: 'var(--text-primary)',
-                borderWidth: '1px',
-                borderColor: 'var(--border-primary)',
-                borderRadius: 'var(--radius-md)'
-              }}
-            >
-              <option value="none">None</option>
-              <option value="separator">Separator Lines</option>
-              <option value="background">Background Shading</option>
-              <option value="combined">Lines + Shading</option>
-            </select>
-          </div>
-          
-          {/* Fragment Gap Control */}
-          <div className="mt-3 pt-3" style={{ borderTopWidth: '1px', borderColor: 'var(--border-primary)' }}>
-            <label className="block mb-2 text-xs font-medium" style={{ color: 'var(--text-primary)' }}>
-              Fragment Gap:
-            </label>
-            <select
-              value={fragmentGap}
-              onChange={(e) => setFragmentGap(Number(e.target.value))}
-              className="w-full p-1.5 text-xs rounded transition"
-              style={{
-                backgroundColor: 'var(--bg-tertiary)',
-                color: 'var(--text-primary)',
-                borderWidth: '1px',
-                borderColor: 'var(--border-primary)',
-                borderRadius: 'var(--radius-md)'
-              }}
-            >
-              <option value={70}>70px</option>
-              <option value={60}>60px</option>
-              <option value={50}>50px</option>
-              <option value={40}>40px</option>
-              <option value={30}>30px</option>
-              <option value={20}>20px</option>
-              <option value={10}>10px</option>
-              <option value={0}>None</option>
-            </select>
-            <p className="mt-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
-              Vertical space between disconnected fragments
-            </p>
-          </div>
-          
-          {/* Help text */}
-          <div className="mt-3 pt-3 text-xs" style={{ borderTopWidth: '1px', borderColor: 'var(--border-primary)', color: 'var(--text-secondary)' }}>
-            <strong>Tip:</strong> Click a fragment to centre the tree on it. 
-            Go to Manage Data → Relationships to create Lineage Gap connections.
+            ))}
           </div>
         </div>
       )}
       
-      {/* Show/hide fragment panel button when fragments exist but panel is hidden */}
       {fragmentInfo.hasMultipleFragments && !showFragmentPanel && (
         <button
           onClick={() => setShowFragmentPanel(true)}
@@ -2251,9 +2293,7 @@ function FamilyTree() {
           person={selectedPerson}
           onClose={() => setSelectedPerson(null)}
           onPersonSelect={(newPerson) => {
-            // Navigate to the clicked related person
             setSelectedPerson(newPerson);
-            // Also update relationship calculator if active
             if (showRelationshipsRef.current) {
               setReferencePerson(newPerson);
               const { parentMap, childrenMap, spouseMap } = buildRelationshipMaps();
@@ -2272,67 +2312,25 @@ function FamilyTree() {
           font-weight: bold; 
           font-size: 13px; 
           font-family: var(--font-display), 'Georgia', serif; 
-          text-shadow: 0 1px 2px rgba(0, 0, 0, ${isDarkTheme() ? '0.3' : '0.1'}); 
         }
         .person-dates { 
           font-size: 10px; 
           font-family: var(--font-body), 'Georgia', serif;
-          text-shadow: 0 1px 1px rgba(0, 0, 0, ${isDarkTheme() ? '0.2' : '0.1'}); 
-        }
-        .person-maiden { 
-          font-size: 10px; 
-          font-style: italic; 
-          font-family: var(--font-body), 'Georgia', serif;
-          text-shadow: 0 1px 1px rgba(0, 0, 0, ${isDarkTheme() ? '0.2' : '0.1'}); 
-        }
-        .person-epithet {
-          font-size: 10px;
-          font-style: italic;
-          font-family: var(--font-body), 'Georgia', serif;
-          text-shadow: 0 1px 1px rgba(0, 0, 0, ${isDarkTheme() ? '0.2' : '0.1'});
-        }
-        .dignity-icon {
-          filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.3));
         }
         .marriage-line { stroke-width: 2.5; fill: none; opacity: 0.8; }
         .child-line-legit { fill: none; opacity: 0.8; }
         .child-line-bastard { fill: none; opacity: 0.8; }
         .child-line-adopted { fill: none; opacity: 0.8; }
         .anchor-line { stroke-width: 1; stroke-dasharray: 5,5; opacity: 0.15; }
-        .search-highlight {
-          animation: pulse 1.5s infinite;
-        }
-        .url-highlight {
-          animation: urlHighlightPulse 1.2s ease-in-out infinite;
-        }
-        .url-highlight-glow {
-          animation: urlGlowPulse 1.2s ease-in-out infinite;
-        }
+        .search-highlight { animation: pulse 1.5s infinite; }
+        .dev-selection-ring { animation: devSelectionPulse 2s ease-in-out infinite; }
         @keyframes pulse {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.5; }
         }
-        @keyframes urlHighlightPulse {
-          0%, 100% { 
-            stroke: #d4af37;
-            stroke-width: 3;
-            filter: drop-shadow(0 0 4px rgba(212, 175, 55, 0.6));
-          }
-          50% { 
-            stroke: #ffd700;
-            stroke-width: 4;
-            filter: drop-shadow(0 0 12px rgba(255, 215, 0, 0.8));
-          }
-        }
-        @keyframes urlGlowPulse {
-          0%, 100% { 
-            stroke: rgba(212, 175, 55, 0.3);
-            stroke-width: 8;
-          }
-          50% { 
-            stroke: rgba(255, 215, 0, 0.5);
-            stroke-width: 12;
-          }
+        @keyframes devSelectionPulse {
+          0%, 100% { stroke: #00ff88; stroke-width: 3; }
+          50% { stroke: #00cc66; stroke-width: 4; }
         }
       `}</style>
     </div>
