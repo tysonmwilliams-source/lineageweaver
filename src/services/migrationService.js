@@ -5,6 +5,11 @@
  * Handles data migrations for integrating existing records with new systems.
  * Run these migrations after upgrading to ensure full data connectivity.
  *
+ * PERFORMANCE:
+ * - Migration status is cached in localStorage to skip expensive checks
+ * - Each migration has a version number; migrations only run if version is newer
+ * - Use forceMigration=true to bypass cache for debugging
+ *
  * MIGRATIONS:
  * - migrateHousesToCodex: Creates Codex entries for houses without them
  * - migrateDignitiesToCodex: Creates Codex entries for dignities without them
@@ -12,6 +17,58 @@
  */
 
 import { db, getDatabase, DEFAULT_DATASET_ID } from './database';
+
+// ==================== MIGRATION VERSION CACHE ====================
+
+// Current migration version - bump this when adding new migrations
+const MIGRATION_VERSION = 3;
+
+// LocalStorage key for migration cache
+const MIGRATION_CACHE_KEY = 'lineageweaver-migration-version';
+
+/**
+ * Get cached migration version for a user/dataset
+ * @param {string} userId
+ * @param {string} datasetId
+ * @returns {number} Cached version or 0 if not found
+ */
+function getCachedMigrationVersion(userId, datasetId) {
+  try {
+    const cache = JSON.parse(localStorage.getItem(MIGRATION_CACHE_KEY) || '{}');
+    const key = `${userId}_${datasetId}`;
+    return cache[key] || 0;
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * Set cached migration version for a user/dataset
+ * @param {string} userId
+ * @param {string} datasetId
+ * @param {number} version
+ */
+function setCachedMigrationVersion(userId, datasetId, version) {
+  try {
+    const cache = JSON.parse(localStorage.getItem(MIGRATION_CACHE_KEY) || '{}');
+    const key = `${userId}_${datasetId}`;
+    cache[key] = version;
+    localStorage.setItem(MIGRATION_CACHE_KEY, JSON.stringify(cache));
+  } catch (error) {
+    console.warn('Failed to cache migration version:', error);
+  }
+}
+
+/**
+ * Check if migrations need to run based on cached version
+ * @param {string} userId
+ * @param {string} datasetId
+ * @returns {boolean} True if migrations should run
+ */
+export function needsMigrationCheck(userId, datasetId) {
+  const cachedVersion = getCachedMigrationVersion(userId, datasetId);
+  return cachedVersion < MIGRATION_VERSION;
+}
 import {
   createEntry,
   createLink,
@@ -21,7 +78,7 @@ import {
   getOutgoingLinks,
   getAllEntries
 } from './codexService';
-import { getAllDignities, updateDignity, DIGNITY_CLASSES } from './dignityService';
+import { getAllDignities, updateDignity, DIGNITY_CLASSES, DIGNITY_NATURES } from './dignityService';
 import { syncAddCodexLink } from './dataSyncService';
 import {
   createDataset,
@@ -201,15 +258,41 @@ export async function migrateDignitiesToCodex() {
 // ==================== CROSS-LINKING MIGRATIONS ====================
 
 /**
- * Check if a link already exists between two Codex entries
+ * Check if a link of a specific type already exists between two Codex entries
+ * Handles bidirectional links correctly by checking both directions
  *
- * @param {number} sourceId - Source entry ID
- * @param {number} targetId - Target entry ID
- * @returns {Promise<boolean>} True if link exists
+ * @param {number} sourceId - Source entry ID (e.g., person)
+ * @param {number} targetId - Target entry ID (e.g., house)
+ * @param {string} linkType - The type of link to check for
+ * @returns {Promise<boolean>} True if link of that type exists
  */
-async function linkExists(sourceId, targetId) {
-  const outgoing = await getOutgoingLinks(sourceId);
-  return outgoing.some(link => link.targetId === targetId);
+async function linkExistsOfType(sourceId, targetId, linkType) {
+  // Ensure consistent ID types for comparison
+  const sourceIdNum = Number(sourceId);
+  const targetIdNum = Number(targetId);
+
+  // Get all codex links directly from DB for accurate check
+  const allLinks = await db.codexLinks.toArray();
+
+  // Check for the specific link in either direction
+  return allLinks.some(link => {
+    if (link.type !== linkType) return false;
+
+    const linkSourceId = Number(link.sourceId);
+    const linkTargetId = Number(link.targetId);
+
+    // Case 1: Direct link (source → target)
+    if (linkSourceId === sourceIdNum && linkTargetId === targetIdNum) {
+      return true;
+    }
+
+    // Case 2: Reverse bidirectional link (target → source with bidirectional flag)
+    if (link.bidirectional && linkSourceId === targetIdNum && linkTargetId === sourceIdNum) {
+      return true;
+    }
+
+    return false;
+  });
 }
 
 /**
@@ -225,7 +308,8 @@ async function linkExists(sourceId, targetId) {
 async function createBidirectionalLink(entryId1, entryId2, type, label, syncContext = null) {
   if (!entryId1 || !entryId2 || entryId1 === entryId2) return false;
 
-  const exists = await linkExists(entryId1, entryId2);
+  // Check if a link of this specific type already exists
+  const exists = await linkExistsOfType(entryId1, entryId2, type);
   if (exists) return false;
 
   const linkData = {
@@ -246,6 +330,103 @@ async function createBidirectionalLink(entryId1, entryId2, type, label, syncCont
   return true;
 }
 
+// ==================== DIGNITY NATURE MIGRATION ====================
+
+/**
+ * Migrate existing dignities to have dignityNature field
+ *
+ * Converts legacy isHereditary boolean to the new dignityNature system:
+ * - Knights (sir class) → 'personal-honour'
+ * - Non-hereditary non-knights → 'office'
+ * - Hereditary titles → 'territorial'
+ *
+ * Also initializes grant tracking fields (grantedById, grantedByDignityId, grantDate)
+ * as null for existing records.
+ *
+ * @param {Object} syncContext - Optional sync context { userId, datasetId }
+ * @returns {Promise<Object>} Migration results
+ */
+export async function migrateDignityNatures(syncContext = null) {
+  console.log('📜 Starting Dignity Nature migration...');
+
+  const results = {
+    total: 0,
+    migrated: 0,
+    skipped: 0,
+    byNature: {
+      territorial: 0,
+      office: 0,
+      'personal-honour': 0,
+      courtesy: 0
+    },
+    errors: []
+  };
+
+  try {
+    const dignities = await getAllDignities();
+    results.total = dignities.length;
+
+    for (const dignity of dignities) {
+      try {
+        // Skip if already has dignityNature set
+        if (dignity.dignityNature && DIGNITY_NATURES[dignity.dignityNature]) {
+          results.skipped++;
+          results.byNature[dignity.dignityNature] = (results.byNature[dignity.dignityNature] || 0) + 1;
+          continue;
+        }
+
+        // Determine nature from existing data
+        let nature = 'territorial'; // Default
+
+        // Knights are personal honours
+        if (dignity.dignityClass === 'sir') {
+          nature = 'personal-honour';
+        }
+        // Non-hereditary non-knights are likely offices
+        else if (dignity.isHereditary === false) {
+          nature = 'office';
+        }
+        // Everything else is territorial (hereditary land-based)
+
+        // Update the dignity with nature and empty grant tracking fields
+        const updates = {
+          dignityNature: nature,
+          // Initialize grant tracking fields if not present
+          grantedById: dignity.grantedById || null,
+          grantedByDignityId: dignity.grantedByDignityId || null,
+          grantDate: dignity.grantDate || null
+        };
+
+        await updateDignity(dignity.id, updates, syncContext?.userId, syncContext?.datasetId);
+
+        results.migrated++;
+        results.byNature[nature] = (results.byNature[nature] || 0) + 1;
+        console.log(`📜 Migrated "${dignity.name}" → ${nature}`);
+
+      } catch (error) {
+        console.error(`❌ Error migrating dignity "${dignity.name}":`, error);
+        results.errors.push({
+          dignityId: dignity.id,
+          dignityName: dignity.name,
+          error: error.message
+        });
+      }
+    }
+
+    console.log(`📜 Dignity Nature migration complete: ${results.migrated} migrated, ${results.skipped} skipped`);
+    console.log('📜 By nature:', results.byNature);
+
+    return results;
+
+  } catch (error) {
+    console.error('❌ Dignity Nature migration failed:', error);
+    results.errors.push({ type: 'general', error: error.message });
+    return results;
+  }
+}
+
+// ==================== CROSS-LINKING MIGRATIONS ====================
+
 /**
  * Migrate Person ↔ House Codex cross-links
  *
@@ -261,6 +442,10 @@ export async function migratePersonHouseLinks(syncContext = null) {
     total: 0,
     linked: 0,
     skipped: 0,
+    skippedNoHouse: 0,
+    skippedNoPersonEntry: 0,
+    skippedNoHouseEntry: 0,
+    skippedLinkExists: 0,
     errors: []
   };
 
@@ -273,6 +458,7 @@ export async function migratePersonHouseLinks(syncContext = null) {
         // Skip if person has no house
         if (!person.houseId) {
           results.skipped++;
+          results.skippedNoHouse++;
           continue;
         }
 
@@ -280,6 +466,7 @@ export async function migratePersonHouseLinks(syncContext = null) {
         const personEntry = await getEntryByPersonId(person.id);
         if (!personEntry) {
           results.skipped++;
+          results.skippedNoPersonEntry++;
           continue;
         }
 
@@ -287,6 +474,7 @@ export async function migratePersonHouseLinks(syncContext = null) {
         const houseEntry = await getEntryByHouseId(person.houseId);
         if (!houseEntry) {
           results.skipped++;
+          results.skippedNoHouseEntry++;
           continue;
         }
 
@@ -304,6 +492,7 @@ export async function migratePersonHouseLinks(syncContext = null) {
           console.log(`🔗 Linked ${person.firstName} ${person.lastName} ↔ House Codex entry`);
         } else {
           results.skipped++;
+          results.skippedLinkExists++;
         }
 
       } catch (error) {
@@ -315,7 +504,12 @@ export async function migratePersonHouseLinks(syncContext = null) {
       }
     }
 
-    console.log('🔗 Person ↔ House cross-linking complete:', results);
+    console.log('🔗 Person ↔ House cross-linking complete:', {
+      total: results.total,
+      linked: results.linked,
+      skipped: results.skipped,
+      errors: results.errors.length
+    });
     return results;
 
   } catch (error) {
@@ -554,6 +748,7 @@ export async function runAllMigrations(syncContext = null) {
   const results = {
     houses: null,
     dignities: null,
+    dignityNatures: null,
     crossLinks: null,
     success: true,
     errors: []
@@ -572,6 +767,12 @@ export async function runAllMigrations(syncContext = null) {
       results.errors.push(...results.dignities.errors);
     }
 
+    // Run Dignity Nature migration (v3)
+    results.dignityNatures = await migrateDignityNatures(syncContext);
+    if (results.dignityNatures.errors.length > 0) {
+      results.errors.push(...results.dignityNatures.errors);
+    }
+
     // Run cross-linking migrations (with sync context for cloud persistence)
     results.crossLinks = await runCrossLinkingMigrations(syncContext);
     if (results.crossLinks.errors.length > 0) {
@@ -583,6 +784,7 @@ export async function runAllMigrations(syncContext = null) {
     console.log('🔄 All migrations complete!', {
       housesMigrated: results.houses?.migrated || 0,
       dignitiesMigrated: results.dignities?.migrated || 0,
+      dignityNaturesMigrated: results.dignityNatures?.migrated || 0,
       crossLinksCreated: results.crossLinks?.totalLinked || 0,
       totalErrors: results.errors.length
     });
@@ -609,28 +811,124 @@ export async function getMigrationStatus() {
     const houses = await db.houses.toArray();
     const dignities = await getAllDignities();
     const people = await db.people.toArray();
+    const codexEntries = await db.codexEntries.toArray();
     const codexLinks = await db.codexLinks.toArray();
 
     const housesWithoutCodex = houses.filter(h => !h.codexEntryId).length;
     const dignitiesWithoutCodex = dignities.filter(d => !d.codexEntryId).length;
 
-    // Count potential cross-links needed
-    // Person ↔ House links (people with houses that have Codex entries)
-    const peopleWithHouses = people.filter(p => p.houseId).length;
+    // Build lookup maps for Codex entries by entity ID
+    const codexByPersonId = new Map();
+    const codexByHouseId = new Map();
+    const codexByDignityId = new Map();
 
-    // Person ↔ Dignity links (dignities with current holders)
-    const dignitiesWithHolders = dignities.filter(d => d.currentHolderId).length;
+    for (const entry of codexEntries) {
+      if (entry.personId) codexByPersonId.set(entry.personId, entry);
+      if (entry.houseId) codexByHouseId.set(entry.houseId, entry);
+      if (entry.dignityId) codexByDignityId.set(entry.dignityId, entry);
+    }
 
-    // House ↔ Dignity links (dignities with current houses)
-    const dignitiesWithHouses = dignities.filter(d => d.currentHouseId).length;
+    // Count LINKABLE cross-links (both entities must have Codex entries)
+    // AND count how many are actually linked
 
-    // Count existing cross-links by type
-    const memberOfLinks = codexLinks.filter(l => l.type === 'member-of').length;
-    const holdsTitleLinks = codexLinks.filter(l => l.type === 'holds-title').length;
-    const houseHoldsLinks = codexLinks.filter(l => l.type === 'house-holds').length;
+    // Person ↔ House links: person has Codex entry AND house has Codex entry
+    let linkablePersonHouse = 0;
+    let linkedPersonHouse = 0;
+    for (const person of people) {
+      if (person.houseId && codexByPersonId.has(person.id) && codexByHouseId.has(person.houseId)) {
+        linkablePersonHouse++;
 
-    const potentialCrossLinks = peopleWithHouses + dignitiesWithHolders + dignitiesWithHouses;
-    const existingCrossLinks = memberOfLinks + holdsTitleLinks + houseHoldsLinks;
+        // Check if this specific person→house link exists
+        const personEntry = codexByPersonId.get(person.id);
+        const houseEntry = codexByHouseId.get(person.houseId);
+        const personEntryId = Number(personEntry.id);
+        const houseEntryId = Number(houseEntry.id);
+
+        const hasLink = codexLinks.some(link => {
+          if (link.type !== 'member-of') return false;
+          const linkSourceId = Number(link.sourceId);
+          const linkTargetId = Number(link.targetId);
+
+          // Direct link: person → house
+          if (linkSourceId === personEntryId && linkTargetId === houseEntryId) return true;
+          // Reverse bidirectional: house → person
+          if (link.bidirectional && linkSourceId === houseEntryId && linkTargetId === personEntryId) return true;
+          return false;
+        });
+
+        if (hasLink) linkedPersonHouse++;
+      }
+    }
+
+    // Person ↔ Dignity links: dignity has holder AND both have Codex entries
+    let linkablePersonDignity = 0;
+    let linkedPersonDignity = 0;
+    for (const dignity of dignities) {
+      if (dignity.currentHolderId && codexByDignityId.has(dignity.id) && codexByPersonId.has(dignity.currentHolderId)) {
+        linkablePersonDignity++;
+
+        // Check if this specific person→dignity link exists
+        const dignityEntry = codexByDignityId.get(dignity.id);
+        const personEntry = codexByPersonId.get(dignity.currentHolderId);
+        const dignityEntryId = Number(dignityEntry.id);
+        const personEntryId = Number(personEntry.id);
+
+        const hasLink = codexLinks.some(link => {
+          if (link.type !== 'holds-title') return false;
+          const linkSourceId = Number(link.sourceId);
+          const linkTargetId = Number(link.targetId);
+
+          // Direct: person → dignity
+          if (linkSourceId === personEntryId && linkTargetId === dignityEntryId) return true;
+          // Reverse bidirectional: dignity → person
+          if (link.bidirectional && linkSourceId === dignityEntryId && linkTargetId === personEntryId) return true;
+          return false;
+        });
+
+        if (hasLink) linkedPersonDignity++;
+      }
+    }
+
+    // House ↔ Dignity links: dignity has house AND both have Codex entries
+    let linkableHouseDignity = 0;
+    let linkedHouseDignity = 0;
+    for (const dignity of dignities) {
+      if (dignity.currentHouseId && codexByDignityId.has(dignity.id) && codexByHouseId.has(dignity.currentHouseId)) {
+        linkableHouseDignity++;
+
+        // Check if this specific house→dignity link exists
+        const dignityEntry = codexByDignityId.get(dignity.id);
+        const houseEntry = codexByHouseId.get(dignity.currentHouseId);
+        const dignityEntryId = Number(dignityEntry.id);
+        const houseEntryId = Number(houseEntry.id);
+
+        const hasLink = codexLinks.some(link => {
+          if (link.type !== 'house-holds') return false;
+          const linkSourceId = Number(link.sourceId);
+          const linkTargetId = Number(link.targetId);
+
+          // Direct: house → dignity
+          if (linkSourceId === houseEntryId && linkTargetId === dignityEntryId) return true;
+          // Reverse bidirectional: dignity → house
+          if (link.bidirectional && linkSourceId === dignityEntryId && linkTargetId === houseEntryId) return true;
+          return false;
+        });
+
+        if (hasLink) linkedHouseDignity++;
+      }
+    }
+
+    const potentialCrossLinks = linkablePersonHouse + linkablePersonDignity + linkableHouseDignity;
+    const existingCrossLinks = linkedPersonHouse + linkedPersonDignity + linkedHouseDignity;
+
+    // Check if cross-links need migration (existing < potential)
+    const personHouseNeedsMigration = linkedPersonHouse < linkablePersonHouse;
+    const personDignityNeedsMigration = linkedPersonDignity < linkablePersonDignity;
+    const houseDignityNeedsMigration = linkedHouseDignity < linkableHouseDignity;
+    const crossLinksNeedMigration = personHouseNeedsMigration || personDignityNeedsMigration || houseDignityNeedsMigration;
+
+    // Count dignities without nature set
+    const dignitiesWithoutNature = dignities.filter(d => !d.dignityNature).length;
 
     return {
       houses: {
@@ -643,26 +941,31 @@ export async function getMigrationStatus() {
         withCodex: dignities.length - dignitiesWithoutCodex,
         needsMigration: dignitiesWithoutCodex
       },
+      dignityNatures: {
+        total: dignities.length,
+        withNature: dignities.length - dignitiesWithoutNature,
+        needsMigration: dignitiesWithoutNature
+      },
       crossLinks: {
         personHouse: {
-          potential: peopleWithHouses,
-          existing: memberOfLinks
+          potential: linkablePersonHouse,
+          existing: linkedPersonHouse
         },
         personDignity: {
-          potential: dignitiesWithHolders,
-          existing: holdsTitleLinks
+          potential: linkablePersonDignity,
+          existing: linkedPersonDignity
         },
         houseDignity: {
-          potential: dignitiesWithHouses,
-          existing: houseHoldsLinks
+          potential: linkableHouseDignity,
+          existing: linkedHouseDignity
         },
         total: {
           potential: potentialCrossLinks,
           existing: existingCrossLinks,
-          needsMigration: potentialCrossLinks > existingCrossLinks
+          needsMigration: crossLinksNeedMigration
         }
       },
-      needsMigration: housesWithoutCodex > 0 || dignitiesWithoutCodex > 0 || potentialCrossLinks > existingCrossLinks
+      needsMigration: housesWithoutCodex > 0 || dignitiesWithoutCodex > 0 || dignitiesWithoutNature > 0 || crossLinksNeedMigration
     };
   } catch (error) {
     console.error('❌ Error checking migration status:', error);
@@ -940,17 +1243,31 @@ export async function migrateLocalDatabase() {
 /**
  * Run full dataset migration (Firestore + local)
  *
+ * PERFORMANCE: Uses version caching to skip expensive checks on subsequent loads.
+ * Pass forceMigration=true to bypass cache for debugging.
+ *
  * @param {string} userId - The user's Firebase UID
+ * @param {string} [datasetId='default'] - The dataset ID
+ * @param {boolean} [forceMigration=false] - Force migration even if cached
  * @returns {Promise<Object>} Combined results
  */
-export async function runDatasetMigration(userId) {
-  console.log('📂 Running full dataset migration...');
-
+export async function runDatasetMigration(userId, datasetId = 'default', forceMigration = false) {
   const results = {
     firestore: null,
     local: null,
-    success: false
+    success: false,
+    skipped: false
   };
+
+  // Check if we can skip based on cached version
+  if (!forceMigration && !needsMigrationCheck(userId, datasetId)) {
+    console.log('📂 Migration check skipped (cached version is current)');
+    results.success = true;
+    results.skipped = true;
+    return results;
+  }
+
+  console.log('📂 Running full dataset migration...');
 
   try {
     // Migrate Firestore structure
@@ -960,6 +1277,11 @@ export async function runDatasetMigration(userId) {
     results.local = await migrateLocalDatabase();
 
     results.success = results.firestore.success && results.local.success;
+
+    // Cache the migration version on success
+    if (results.success) {
+      setCachedMigrationVersion(userId, datasetId, MIGRATION_VERSION);
+    }
 
     console.log('📂 Full dataset migration complete:', {
       firestoreSuccess: results.firestore.success,
@@ -980,6 +1302,7 @@ export async function runDatasetMigration(userId) {
 export default {
   migrateHousesToCodex,
   migrateDignitiesToCodex,
+  migrateDignityNatures,
   migratePersonHouseLinks,
   migratePersonDignityLinks,
   migrateHouseDignityLinks,
@@ -988,6 +1311,7 @@ export default {
   getMigrationStatus,
   // Dataset migration
   needsDatasetMigration,
+  needsMigrationCheck,
   migrateToDatasetStructure,
   migrateLocalDatabase,
   runDatasetMigration

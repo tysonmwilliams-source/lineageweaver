@@ -1,0 +1,417 @@
+/**
+ * DignityVisuals.css - Visual Components for Dignity Display
+ *
+ * PURPOSE:
+ * Styles for rank pips, chain of command, and class badges.
+ * Uses CSS custom properties for theming.
+ */
+
+/* ============================================
+   RANK PIPS
+   ============================================ */
+
+.rank-pips {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.rank-pips--sm {
+  gap: 2px;
+}
+
+.rank-pips--lg {
+  gap: 4px;
+}
+
+.rank-pips__pip {
+  border-radius: var(--radius-full);
+  background: var(--border-secondary);
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.rank-pips--sm .rank-pips__pip {
+  width: 5px;
+  height: 5px;
+}
+
+.rank-pips--md .rank-pips__pip {
+  width: 7px;
+  height: 7px;
+}
+
+.rank-pips--lg .rank-pips__pip {
+  width: 9px;
+  height: 9px;
+}
+
+.rank-pips__pip--filled {
+  background: var(--accent-primary);
+  box-shadow: 0 0 4px rgba(212, 175, 55, 0.4);
+}
+
+/* ============================================
+   CLASS BADGE
+   ============================================ */
+
+.class-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.class-badge--sm {
+  padding: 2px var(--space-1);
+  font-size: var(--text-2xs);
+}
+
+.class-badge--md {
+  font-size: var(--text-xs);
+}
+
+.class-badge--lg {
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-sm);
+}
+
+/* Class-specific colors */
+.class-badge--crown {
+  background: rgba(147, 51, 234, 0.15);
+  color: #9333ea;
+}
+
+.class-badge--driht {
+  background: rgba(212, 175, 55, 0.15);
+  color: var(--accent-primary);
+}
+
+.class-badge--ward {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+}
+
+.class-badge--sir {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.class-badge--other {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+/* ============================================
+   NATURE BADGE
+   ============================================ */
+
+.nature-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.nature-badge--sm {
+  padding: 2px var(--space-1);
+  font-size: var(--text-2xs);
+}
+
+.nature-badge--md {
+  font-size: var(--text-xs);
+}
+
+.nature-badge--lg {
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-sm);
+}
+
+/* Nature-specific colors */
+.nature-badge--territorial {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.nature-badge--office {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.nature-badge--personal-honour {
+  background: rgba(168, 85, 247, 0.15);
+  color: #a855f7;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.nature-badge--courtesy {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.nature-badge__name {
+  line-height: 1;
+}
+
+/* ============================================
+   RANK INDICATOR
+   ============================================ */
+
+.rank-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.rank-indicator--sm {
+  gap: var(--space-1);
+}
+
+.rank-indicator__name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.rank-indicator--sm .rank-indicator__name {
+  font-size: var(--text-xs);
+}
+
+.rank-indicator--md .rank-indicator__name {
+  font-size: var(--text-sm);
+}
+
+.rank-indicator--lg .rank-indicator__name {
+  font-size: var(--text-base);
+}
+
+/* ============================================
+   CHAIN OF COMMAND
+   ============================================ */
+
+.chain-of-command {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  padding: var(--space-3);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-md);
+}
+
+.chain-of-command--compact {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  background: transparent;
+  border: none;
+}
+
+/* Levels */
+.chain-of-command__level {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.chain-of-command__level--current {
+  z-index: 1;
+}
+
+/* Connectors */
+.chain-of-command__connector {
+  width: 2px;
+  height: 16px;
+  background: var(--border-primary);
+}
+
+.chain-of-command__connector--up {
+  background: linear-gradient(to top, var(--accent-primary), var(--border-primary));
+}
+
+.chain-of-command__connector--down {
+  background: linear-gradient(to bottom, var(--accent-primary), var(--border-primary));
+}
+
+/* Boxes */
+.chain-of-command__box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  text-align: center;
+  min-width: 160px;
+}
+
+.chain-of-command__box--muted {
+  background: var(--bg-primary);
+  border: 1px dashed var(--border-secondary);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+.chain-of-command__box--muted strong {
+  color: var(--text-secondary);
+  font-size: var(--text-xs);
+  font-weight: 500;
+}
+
+.chain-of-command__box--highlighted {
+  background: var(--bg-tertiary);
+  border: 2px solid var(--accent-primary);
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.15);
+}
+
+.chain-of-command__title {
+  font-family: var(--font-display);
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.chain-of-command__subtitle {
+  font-size: var(--text-xs);
+  color: var(--accent-primary);
+}
+
+/* Compact variant */
+.chain-of-command--compact .chain-of-command__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+.chain-of-command--compact .chain-of-command__item--current {
+  padding: var(--space-1) var(--space-2);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+}
+
+.chain-of-command--compact .chain-of-command__name {
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.chain-of-command--compact .chain-of-command__item--superior {
+  color: var(--text-secondary);
+}
+
+.chain-of-command--compact .chain-of-command__item--subordinate {
+  color: var(--text-secondary);
+}
+
+/* ============================================
+   HIERARCHY POSITION
+   ============================================ */
+
+.hierarchy-position {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-md);
+}
+
+.hierarchy-position__track {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  padding: var(--space-4) 0;
+}
+
+.hierarchy-position__track::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(to right, var(--accent-primary), var(--border-secondary));
+  transform: translateY(-50%);
+}
+
+.hierarchy-position__marker {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 1;
+}
+
+.hierarchy-position__dot {
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-full);
+  background: var(--bg-primary);
+  border: 2px solid var(--border-primary);
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.hierarchy-position__marker--current .hierarchy-position__dot {
+  width: 16px;
+  height: 16px;
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 8px rgba(212, 175, 55, 0.5);
+}
+
+.hierarchy-position__label {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--accent-primary);
+}
+
+.hierarchy-position__labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--text-2xs);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 640px) {
+  .chain-of-command__box {
+    min-width: 120px;
+    padding: var(--space-2);
+  }
+
+  .chain-of-command__title {
+    font-size: var(--text-sm);
+  }
+
+  .hierarchy-position__label {
+    font-size: var(--text-2xs);
+  }
+}

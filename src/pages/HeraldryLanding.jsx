@@ -31,6 +31,7 @@ import { useDataset } from '../contexts/DatasetContext';
 import Navigation from '../components/Navigation';
 import Icon from '../components/icons';
 import { LoadingState, EmptyState, SectionHeader, Card, ActionButton } from '../components/shared';
+import DignityEducationPanel from '../components/DignityEducationPanel';
 import './HeraldryLanding.css';
 
 // Animation variants
@@ -291,6 +292,9 @@ function HeraldryLanding() {
       <Navigation />
       <div className="armory-page">
         <div className="armory-container">
+          {/* Education Panel Sidebar */}
+          <DignityEducationPanel defaultCollapsed={true} />
+
           <motion.div
             className="armory-content"
             initial={{ opacity: 0 }}

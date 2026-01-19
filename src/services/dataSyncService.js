@@ -92,6 +92,8 @@ import {
   markEntitySynced,
   hasPendingChanges,
   getPendingChangeCount,
+  getPendingChanges,
+  getPendingChangesByType,
   clearSyncQueue,
   clearSyncedItems
 } from './database';
@@ -131,6 +133,12 @@ let syncStatus = {
 // Listeners for sync status changes
 const syncStatusListeners = new Set();
 
+// Periodic sync interval (5 minutes = 300000ms)
+const PERIODIC_SYNC_INTERVAL = 5 * 60 * 1000;
+let periodicSyncIntervalId = null;
+let periodicSyncUserId = null;
+let periodicSyncDatasetId = null;
+
 /**
  * Subscribe to sync status changes
  * @param {Function} callback - Called when sync status changes
@@ -164,6 +172,194 @@ if (typeof window !== 'undefined') {
     console.log('📴 Gone offline');
     isOnline = false;
   });
+}
+
+// ==================== PERIODIC SYNC ====================
+
+/**
+ * Sync only pending changes to cloud (more efficient than full sync)
+ * PERFORMANCE: Only uploads items that have been modified since last sync
+ *
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ * @returns {Object} Result with status and counts
+ */
+export async function syncPendingChanges(userId, datasetId = DEFAULT_DATASET_ID) {
+  if (!userId || !isOnline) {
+    return { status: 'skipped', reason: !userId ? 'no-user' : 'offline' };
+  }
+
+  const dsId = datasetId || DEFAULT_DATASET_ID;
+
+  try {
+    // Get pending changes grouped by type
+    const pendingByType = await getPendingChangesByType(dsId);
+    const totalPending = Object.values(pendingByType).flat().length;
+
+    if (totalPending === 0) {
+      return { status: 'no-changes', synced: 0 };
+    }
+
+    console.log(`🔄 Syncing ${totalPending} pending changes...`);
+
+    let syncedCount = 0;
+    const errors = [];
+
+    // Process each entity type
+    for (const [entityType, changes] of Object.entries(pendingByType)) {
+      for (const change of changes) {
+        try {
+          await syncSingleChange(userId, dsId, entityType, change);
+          await markEntitySynced(entityType, change.entityId, dsId);
+          syncedCount++;
+        } catch (error) {
+          errors.push({ entityType, entityId: change.entityId, error: error.message });
+          console.error(`❌ Failed to sync ${entityType}:${change.entityId}:`, error);
+        }
+      }
+    }
+
+    console.log(`✅ Synced ${syncedCount}/${totalPending} changes`);
+
+    return {
+      status: errors.length === 0 ? 'success' : 'partial',
+      synced: syncedCount,
+      failed: errors.length,
+      errors
+    };
+  } catch (error) {
+    console.error('❌ Pending changes sync failed:', error);
+    return { status: 'error', error: error.message };
+  }
+}
+
+/**
+ * Sync a single change to cloud
+ * @private
+ */
+async function syncSingleChange(userId, datasetId, entityType, change) {
+  const { operation, entityId, data } = change;
+
+  // Map entity types to their cloud sync functions
+  const syncMap = {
+    person: {
+      add: () => addPersonCloud(userId, datasetId, { ...data, id: entityId }),
+      update: () => updatePersonCloud(userId, datasetId, entityId, data),
+      delete: () => deletePersonCloud(userId, datasetId, entityId)
+    },
+    house: {
+      add: () => addHouseCloud(userId, datasetId, { ...data, id: entityId }),
+      update: () => updateHouseCloud(userId, datasetId, entityId, data),
+      delete: () => deleteHouseCloud(userId, datasetId, entityId)
+    },
+    relationship: {
+      add: () => addRelationshipCloud(userId, datasetId, { ...data, id: entityId }),
+      update: () => updateRelationshipCloud(userId, datasetId, entityId, data),
+      delete: () => deleteRelationshipCloud(userId, datasetId, entityId)
+    },
+    codexEntry: {
+      add: () => addCodexEntryCloud(userId, datasetId, { ...data, id: entityId }),
+      update: () => updateCodexEntryCloud(userId, datasetId, entityId, data),
+      delete: () => deleteCodexEntryCloud(userId, datasetId, entityId)
+    },
+    codexLink: {
+      add: () => addCodexLinkCloud(userId, datasetId, { ...data, id: entityId }),
+      delete: () => deleteCodexLinkCloud(userId, datasetId, entityId)
+    },
+    heraldry: {
+      add: () => addHeraldryCloud(userId, datasetId, { ...data, id: entityId }),
+      update: () => updateHeraldryCloud(userId, datasetId, entityId, data),
+      delete: () => deleteHeraldryCloud(userId, datasetId, entityId)
+    },
+    dignity: {
+      add: () => addDignityCloud(userId, datasetId, { ...data, id: entityId }),
+      update: () => updateDignityCloud(userId, datasetId, entityId, data),
+      delete: () => deleteDignityCloud(userId, datasetId, entityId)
+    },
+    householdRole: {
+      add: () => addHouseholdRoleCloud(userId, datasetId, { ...data, id: entityId }),
+      update: () => updateHouseholdRoleCloud(userId, datasetId, entityId, data),
+      delete: () => deleteHouseholdRoleCloud(userId, datasetId, entityId)
+    }
+  };
+
+  const handler = syncMap[entityType]?.[operation];
+  if (!handler) {
+    console.warn(`Unknown sync operation: ${entityType}.${operation}`);
+    return;
+  }
+
+  await handler();
+}
+
+/**
+ * Perform a periodic sync - uploads only pending changes to cloud
+ * PERFORMANCE: Uses change tracking instead of uploading everything
+ * Only runs if online and not currently syncing
+ */
+async function performPeriodicSync() {
+  // Skip if offline, already syncing, or no user
+  if (!isOnline || syncStatus.isSyncing || !periodicSyncUserId) {
+    return;
+  }
+
+  // Check if there are any pending changes first (cheap check)
+  const pendingCount = await getPendingChangeCount(periodicSyncDatasetId);
+  if (pendingCount === 0) {
+    // No pending changes, skip sync
+    return;
+  }
+
+  console.log(`⏰ Periodic sync triggered (${pendingCount} pending changes)...`);
+
+  try {
+    // Use the smarter pending-only sync
+    const result = await syncPendingChanges(periodicSyncUserId, periodicSyncDatasetId);
+    if (result.status === 'success' || result.status === 'no-changes') {
+      console.log('✅ Periodic sync complete:', result.synced || 0, 'changes synced');
+    } else if (result.status === 'partial') {
+      console.warn(`⚠️ Periodic sync partial: ${result.synced} synced, ${result.failed} failed`);
+    } else if (result.status !== 'skipped') {
+      console.warn('⚠️ Periodic sync issue:', result);
+    }
+  } catch (error) {
+    console.error('❌ Periodic sync failed:', error);
+  }
+}
+
+/**
+ * Start the periodic sync interval
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ */
+export function startPeriodicSync(userId, datasetId = DEFAULT_DATASET_ID) {
+  // Stop any existing interval
+  stopPeriodicSync();
+
+  if (!userId) {
+    console.warn('⚠️ Cannot start periodic sync without userId');
+    return;
+  }
+
+  periodicSyncUserId = userId;
+  periodicSyncDatasetId = datasetId || DEFAULT_DATASET_ID;
+
+  // Start the interval
+  periodicSyncIntervalId = setInterval(performPeriodicSync, PERIODIC_SYNC_INTERVAL);
+  console.log(`⏰ Periodic sync started (every ${PERIODIC_SYNC_INTERVAL / 60000} minutes)`);
+}
+
+/**
+ * Stop the periodic sync interval
+ */
+export function stopPeriodicSync() {
+  if (periodicSyncIntervalId) {
+    clearInterval(periodicSyncIntervalId);
+    periodicSyncIntervalId = null;
+    console.log('⏰ Periodic sync stopped');
+  }
+  periodicSyncUserId = null;
+  periodicSyncDatasetId = null;
 }
 
 // ==================== INITIALIZATION ====================
@@ -477,14 +673,39 @@ export async function syncUpdatePerson(userId, datasetId, personId, updates) {
 }
 
 /**
- * Delete a person (local + cloud)
+ * Delete a person (local + cloud) with CASCADE delete of relationships
+ * This ensures relationships are also deleted from cloud when a person is deleted
+ *
+ * @param {string} userId - Firebase user ID
+ * @param {string} datasetId - Dataset ID
+ * @param {number} personId - Person ID to delete
+ * @param {number[]} relationshipIds - IDs of relationships to cascade delete (captured before local delete)
  */
-export async function syncDeletePerson(userId, datasetId, personId) {
+export async function syncDeletePerson(userId, datasetId, personId, relationshipIds = []) {
   await addToSyncQueue({ entityType: 'person', entityId: personId, operation: 'delete' }, datasetId);
+
+  // CASCADE: Queue all relationships for cloud deletion
+  // The relationship IDs are passed in because local DB cascade already happened
+  for (const relId of relationshipIds) {
+    await addToSyncQueue({ entityType: 'relationship', entityId: relId, operation: 'delete' }, datasetId);
+    console.log(`☁️ Queued cascade delete for relationship ${relId} (person ${personId})`);
+  }
 
   if (!userId || !isOnline) return;
 
   try {
+    // First delete relationships from cloud (cascade)
+    for (const relId of relationshipIds) {
+      try {
+        await deleteRelationshipCloud(userId, datasetId, relId);
+        await markEntitySynced('relationship', relId, datasetId);
+        console.log(`☁️ Cascade deleted relationship ${relId} from cloud`);
+      } catch (relError) {
+        console.warn(`☁️ Could not cascade delete relationship ${relId}:`, relError);
+      }
+    }
+
+    // Then delete the person from cloud
     await deletePersonCloud(userId, datasetId, personId);
     await markEntitySynced('person', personId, datasetId);
   } catch (error) {
@@ -1106,11 +1327,120 @@ export async function forceCloudSync(userId, datasetId = DEFAULT_DATASET_ID, opt
   }
 }
 
+/**
+ * Force upload all local data to cloud
+ * CRITICAL: Call this after bulk imports to prevent data loss
+ *
+ * This uploads the current local database state to cloud, ensuring
+ * imported data is persisted and won't be lost on next sync.
+ *
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} [datasetId='default'] - The dataset ID
+ * @returns {Promise<Object>} Upload result
+ */
+export async function forceUploadToCloud(userId, datasetId = DEFAULT_DATASET_ID) {
+  if (!userId) return { status: 'no-user' };
+
+  const dsId = datasetId || DEFAULT_DATASET_ID;
+  const localDb = getDatabase(dsId);
+
+  updateSyncStatus({ isSyncing: true, error: null });
+
+  try {
+    console.log('⬆️ Force uploading all local data to cloud...');
+
+    // Gather all local data
+    const localPeople = await getAllPeople(dsId);
+    const localHouses = await getAllHouses(dsId);
+    const localRelationships = await getAllRelationships(dsId);
+
+    let codexEntries = [];
+    let codexLinks = [];
+    let heraldry = [];
+    let heraldryLinks = [];
+    let dignities = [];
+    let dignityTenures = [];
+    let dignityLinks = [];
+    let householdRoles = [];
+
+    try {
+      codexEntries = await getAllCodexEntries();
+      codexLinks = await localDb.codexLinks.toArray();
+    } catch (e) {
+      console.warn('Could not get codex data for upload:', e);
+    }
+
+    try {
+      heraldry = await localGetAllHeraldry(dsId);
+      heraldryLinks = await localDb.heraldryLinks.toArray();
+    } catch (e) {
+      console.warn('Could not get heraldry data for upload:', e);
+    }
+
+    try {
+      dignities = await localDb.dignities.toArray();
+      dignityTenures = await localDb.dignityTenures.toArray();
+      dignityLinks = await localDb.dignityLinks.toArray();
+    } catch (e) {
+      console.warn('Could not get dignities data for upload:', e);
+    }
+
+    try {
+      householdRoles = await localGetAllHouseholdRoles(dsId);
+    } catch (e) {
+      console.warn('Could not get household roles for upload:', e);
+    }
+
+    // Upload everything to cloud
+    await syncAllToCloud(userId, dsId, {
+      people: localPeople,
+      houses: localHouses,
+      relationships: localRelationships,
+      codexEntries,
+      codexLinks,
+      heraldry,
+      heraldryLinks,
+      dignities,
+      dignityTenures,
+      dignityLinks,
+      householdRoles
+    });
+
+    // Clear the sync queue since everything is now synced
+    await clearSyncQueue(dsId);
+
+    console.log('✅ Force upload complete:', {
+      people: localPeople.length,
+      houses: localHouses.length,
+      relationships: localRelationships.length,
+      codexEntries: codexEntries.length
+    });
+
+    updateSyncStatus({ isSyncing: false, lastSyncTime: new Date() });
+    return {
+      status: 'success',
+      uploaded: {
+        people: localPeople.length,
+        houses: localHouses.length,
+        relationships: localRelationships.length,
+        codexEntries: codexEntries.length
+      }
+    };
+  } catch (error) {
+    console.error('❌ Force upload failed:', error);
+    updateSyncStatus({ isSyncing: false, error: error.message });
+    return { status: 'error', error: error.message };
+  }
+}
+
 export default {
   initializeSync,
   onSyncStatusChange,
   getSyncStatus,
   forceCloudSync,
+  forceUploadToCloud,
+  startPeriodicSync,
+  stopPeriodicSync,
   
   // Sync wrappers - People
   syncAddPerson,

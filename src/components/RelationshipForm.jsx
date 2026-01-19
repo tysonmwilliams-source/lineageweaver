@@ -121,6 +121,7 @@ function RelationshipForm({
     person2Id: relationship?.person2Id || '',
     relationshipType: relationship?.relationshipType || 'parent',
     biologicalParent: relationship?.biologicalParent ?? true,
+    betrothalDate: relationship?.betrothalDate || '',
     marriageDate: relationship?.marriageDate || '',
     divorceDate: relationship?.divorceDate || '',
     marriageStatus: relationship?.marriageStatus || 'married',
@@ -202,6 +203,9 @@ function RelationshipForm({
     if (formData.relationshipType === 'spouse') {
       const dateRegex = /^\d{4}(-\d{2}(-\d{2})?)?$/;
 
+      if (formData.betrothalDate && !dateRegex.test(formData.betrothalDate)) {
+        newErrors.betrothalDate = 'Date must be YYYY, YYYY-MM, or YYYY-MM-DD';
+      }
       if (formData.marriageDate && !dateRegex.test(formData.marriageDate)) {
         newErrors.marriageDate = 'Date must be YYYY, YYYY-MM, or YYYY-MM-DD';
       }
@@ -269,6 +273,8 @@ function RelationshipForm({
         person2Id: parseInt(formData.person2Id),
         relationshipType: formData.relationshipType,
         biologicalParent: formData.relationshipType === 'parent' ? formData.biologicalParent : null,
+        betrothalDate: formData.relationshipType === 'spouse' && formData.betrothalDate
+          ? formData.betrothalDate : null,
         marriageDate: formData.relationshipType === 'spouse' && formData.marriageDate
           ? formData.marriageDate : null,
         divorceDate: formData.relationshipType === 'spouse' && formData.divorceDate
@@ -675,7 +681,7 @@ function RelationshipForm({
             {/* Marriage Status */}
             <div className="relationship-form__group">
               <label htmlFor="marriageStatus" className="relationship-form__label">
-                Marriage Status
+                Status
               </label>
               <select
                 id="marriageStatus"
@@ -684,11 +690,40 @@ function RelationshipForm({
                 onChange={handleChange}
                 className="relationship-form__select"
               >
+                <option value="betrothed">Betrothed</option>
                 <option value="married">Married</option>
                 <option value="divorced">Divorced</option>
                 <option value="widowed">Widowed</option>
               </select>
             </div>
+
+            {/* Betrothal Date - shown when betrothed */}
+            {formData.marriageStatus === 'betrothed' && (
+              <div className="relationship-form__group">
+                <label htmlFor="betrothalDate" className="relationship-form__label">
+                  Betrothal Date
+                </label>
+                <input
+                  type="text"
+                  id="betrothalDate"
+                  name="betrothalDate"
+                  value={formData.betrothalDate}
+                  onChange={handleChange}
+                  className={`relationship-form__input ${errors.betrothalDate ? 'relationship-form__input--error' : ''}`}
+                  placeholder="YYYY-MM-DD or YYYY"
+                />
+                {errors.betrothalDate ? (
+                  <span className="relationship-form__error">
+                    <Icon name="alert-circle" size={12} />
+                    {errors.betrothalDate}
+                  </span>
+                ) : (
+                  <span className="relationship-form__hint">
+                    Format: YYYY-MM-DD, YYYY-MM, or YYYY
+                  </span>
+                )}
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

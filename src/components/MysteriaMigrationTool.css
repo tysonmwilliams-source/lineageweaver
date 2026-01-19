@@ -1,0 +1,429 @@
+/**
+ * MysteriaMigrationTool.css - Mysteria Migration Tool Styles
+ *
+ * PURPOSE:
+ * Styles for the mysteria to dignities & titles migration tool.
+ * Follows medieval manuscript aesthetic with BEM naming.
+ * Uses CSS custom properties for theming.
+ */
+
+/* ============================================
+   CONTAINER
+   ============================================ */
+
+.mysteria-migration {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+}
+
+/* ============================================
+   HEADER
+   ============================================ */
+
+.mysteria-migration__header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  margin: calc(-1 * var(--space-5));
+  margin-bottom: 0;
+  background: var(--bg-tertiary);
+  border: none;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.mysteria-migration__header:hover {
+  background: var(--bg-primary);
+}
+
+.mysteria-migration__header--collapsed {
+  border-radius: var(--radius-lg);
+  margin-bottom: calc(-1 * var(--space-5));
+}
+
+.mysteria-migration__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.mysteria-migration__title h3 {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.mysteria-migration__title-icon--warning {
+  color: var(--accent-primary);
+}
+
+.mysteria-migration__title-icon--success {
+  color: var(--color-success);
+}
+
+.mysteria-migration__badge {
+  padding: var(--space-1) var(--space-2);
+  background: var(--accent-primary);
+  color: var(--bg-primary);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  margin-left: var(--space-2);
+}
+
+.mysteria-migration__collapse-icon {
+  color: var(--text-tertiary);
+  transition: transform var(--duration-fast) var(--ease-standard);
+}
+
+.mysteria-migration__header:hover .mysteria-migration__collapse-icon {
+  color: var(--text-primary);
+}
+
+/* ============================================
+   CONTENT
+   ============================================ */
+
+.mysteria-migration__content {
+  overflow: hidden;
+  padding-top: var(--space-4);
+}
+
+.mysteria-migration__description {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin: 0 0 var(--space-4) 0;
+  line-height: 1.5;
+}
+
+.mysteria-migration__description strong {
+  color: var(--text-primary);
+}
+
+/* ============================================
+   LOADING STATE
+   ============================================ */
+
+.mysteria-migration__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-8);
+  color: var(--text-secondary);
+}
+
+.mysteria-migration__spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================
+   SUCCESS STATE
+   ============================================ */
+
+.mysteria-migration__success {
+  text-align: center;
+  padding: var(--space-8) var(--space-4);
+}
+
+.mysteria-migration__success-icon {
+  color: var(--color-success);
+  margin-bottom: var(--space-4);
+}
+
+.mysteria-migration__success-text {
+  font-size: var(--text-base);
+  color: var(--text-primary);
+  margin: 0 0 var(--space-2) 0;
+}
+
+.mysteria-migration__success-subtext {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* ============================================
+   ACTIONS BAR
+   ============================================ */
+
+.mysteria-migration__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--border-secondary);
+}
+
+.mysteria-migration__select-all {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.mysteria-migration__select-all input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.mysteria-migration__select-all:hover {
+  color: var(--text-primary);
+}
+
+.mysteria-migration__action-buttons {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.mysteria-migration__action-group {
+  display: flex;
+  gap: var(--space-2);
+}
+
+/* ============================================
+   ENTRIES LIST
+   ============================================ */
+
+.mysteria-migration__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: var(--space-2);
+}
+
+/* Custom scrollbar */
+.mysteria-migration__list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.mysteria-migration__list::-webkit-scrollbar-track {
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-full);
+}
+
+.mysteria-migration__list::-webkit-scrollbar-thumb {
+  background: var(--border-primary);
+  border-radius: var(--radius-full);
+}
+
+.mysteria-migration__list::-webkit-scrollbar-thumb:hover {
+  background: var(--border-secondary);
+}
+
+/* ============================================
+   LIST ITEM
+   ============================================ */
+
+.mysteria-migration__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-md);
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.mysteria-migration__item:hover {
+  border-color: var(--border-primary);
+  background: var(--bg-tertiary);
+}
+
+.mysteria-migration__item--selected {
+  border-color: var(--accent-primary);
+  background: rgba(212, 175, 55, 0.05);
+}
+
+.mysteria-migration__item-checkbox {
+  flex-shrink: 0;
+}
+
+.mysteria-migration__item-checkbox input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.mysteria-migration__item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.mysteria-migration__item-title {
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--space-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mysteria-migration__item-subtitle {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  font-style: italic;
+  margin-bottom: var(--space-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mysteria-migration__item-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+.mysteria-migration__item-category,
+.mysteria-migration__item-date {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.mysteria-migration__item-actions {
+  display: flex;
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+
+.mysteria-migration__item-migrate,
+.mysteria-migration__item-skip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.mysteria-migration__item-migrate {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: var(--bg-primary);
+}
+
+.mysteria-migration__item-migrate:hover:not(:disabled) {
+  background: var(--accent-secondary);
+  border-color: var(--accent-secondary);
+  transform: scale(1.05);
+}
+
+.mysteria-migration__item-skip {
+  background: var(--bg-secondary);
+  color: var(--text-tertiary);
+}
+
+.mysteria-migration__item-skip:hover:not(:disabled) {
+  background: var(--color-error-bg);
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+
+.mysteria-migration__item-migrate:disabled,
+.mysteria-migration__item-skip:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ============================================
+   HELP TEXT
+   ============================================ */
+
+.mysteria-migration__help {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+  padding: var(--space-3);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+.mysteria-migration__help p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.mysteria-migration__help strong {
+  color: var(--text-secondary);
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 640px) {
+  .mysteria-migration__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .mysteria-migration__select-all {
+    justify-content: center;
+  }
+
+  .mysteria-migration__action-buttons {
+    justify-content: center;
+  }
+
+  .mysteria-migration__action-group {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .mysteria-migration__action-group > * {
+    width: 100%;
+  }
+
+  .mysteria-migration__item {
+    flex-wrap: wrap;
+  }
+
+  .mysteria-migration__item-info {
+    order: 2;
+    flex-basis: calc(100% - 40px);
+  }
+
+  .mysteria-migration__item-actions {
+    order: 3;
+    width: 100%;
+    justify-content: flex-end;
+    margin-top: var(--space-2);
+    padding-top: var(--space-2);
+    border-top: 1px solid var(--border-secondary);
+  }
+}

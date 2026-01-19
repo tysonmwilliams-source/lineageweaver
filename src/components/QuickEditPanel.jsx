@@ -21,10 +21,11 @@ import { useGenealogy } from '../contexts/GenealogyContext';
 import { useDataset } from '../contexts/DatasetContext';
 import HouseHeraldrySection from './HouseHeraldrySection';
 import PersonalArmsSection from './PersonalArmsSection';
+import { hasPersonalArms } from '../services/heraldryService';
 import { getEntryByPersonId } from '../services/codexService';
 import { getBiographyStatus, getStatusSummary } from '../utils/biographyStatus';
 import { validateRelationship } from '../utils/SmartDataValidator';
-import { getDignitiesForPerson, getDignityIcon, DIGNITY_CLASSES } from '../services/dignityService';
+import { getDignitiesForPerson, getDignityIcon, DIGNITY_CLASSES, DIGNITY_NATURES } from '../services/dignityService';
 import EpithetsSection from './EpithetsSection';
 import { getPrimaryEpithet } from '../utils/epithetUtils';
 import Icon from './icons/Icon';
@@ -112,6 +113,23 @@ function QuickEditPanel({
   const [loadingCodex, setLoadingCodex] = useState(false);
   const [personDignities, setPersonDignities] = useState([]);
   const [loadingDignities, setLoadingDignities] = useState(false);
+  const [personHasArms, setPersonHasArms] = useState(false);
+
+  // Collapsible section state
+  // Biography is always collapsed, others auto-expand if they have data
+  const [collapsedSections, setCollapsedSections] = useState({
+    personalArms: true,
+    biography: true,
+    titles: true,
+    epithets: true
+  });
+
+  const toggleSection = (section) => {
+    setCollapsedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
 
   // Reset state when person changes
   useEffect(() => {
@@ -125,11 +143,24 @@ function QuickEditPanel({
     if (person?.id) {
       loadCodexEntry(person.id);
       loadPersonDignities(person.id);
+      loadPersonalArmsStatus(person.id);
     } else {
       setCodexEntry(null);
       setPersonDignities([]);
+      setPersonHasArms(false);
     }
   }, [person, activeDataset]);
+
+  // Smart auto-expand: when data loads, expand sections that have content (except biography)
+  useEffect(() => {
+    setCollapsedSections(prev => ({
+      ...prev,
+      personalArms: !personHasArms,  // Expand if has arms
+      // biography always stays collapsed (user preference)
+      titles: personDignities.length === 0,  // Expand if has titles
+      epithets: !(person?.epithets?.length > 0)  // Expand if has epithets
+    }));
+  }, [personHasArms, personDignities, person?.epithets]);
 
   const loadCodexEntry = async (personId) => {
     const datasetId = activeDataset?.id;
@@ -162,6 +193,17 @@ function QuickEditPanel({
       setPersonDignities([]);
     } finally {
       setLoadingDignities(false);
+    }
+  };
+
+  const loadPersonalArmsStatus = async (personId) => {
+    const datasetId = activeDataset?.id;
+    try {
+      const hasArms = await hasPersonalArms(personId, datasetId);
+      setPersonHasArms(hasArms);
+    } catch (error) {
+      console.warn('Could not check personal arms:', error);
+      setPersonHasArms(false);
     }
   };
 
@@ -451,7 +493,8 @@ function QuickEditPanel({
           gender: person.gender === 'male' ? 'female' : 'male',
           dateOfBirth: String(currentYear),
           houseId: null,
-          lastName: ''
+          lastName: '',
+          marriageStatus: 'married'  // Can be 'betrothed' or 'married'
         };
       case 'parent':
         return {
@@ -550,11 +593,15 @@ function QuickEditPanel({
   const createRelationshipForPerson = async (targetPersonId) => {
     switch (addingRelationType) {
       case 'spouse':
+        // Use marriageStatus from form (defaults to 'married', can be 'betrothed')
+        const spouseStatus = addMode === 'new' && newPersonForm?.marriageStatus
+          ? newPersonForm.marriageStatus
+          : 'married';
         await addRelationship({
           person1Id: person.id,
           person2Id: targetPersonId,
           relationshipType: 'spouse',
-          marriageStatus: 'married',  // Default to married when creating via tree
+          marriageStatus: spouseStatus,
           marriageDate: null,
           divorceDate: null
         });
@@ -685,6 +732,14 @@ function QuickEditPanel({
                 {person.legitimacyStatus || 'Legitimate'}
               </span>
             </div>
+            <button
+              onClick={() => navigate(`/manage?editPerson=${person.id}`)}
+              className="quick-edit__full-edit-btn"
+              title="Open full edit form"
+            >
+              <Icon name="external-link" size={14} />
+              <span>Full Edit</span>
+            </button>
           </div>
           <button onClick={onClose} className="quick-edit__close" title="Close panel">
             <Icon name="x" size={24} />
@@ -735,168 +790,9 @@ function QuickEditPanel({
             )}
           </motion.section>
 
-          {/* House Heraldry */}
-          {house && (
-            <HouseHeraldrySection house={house} isDarkTheme={isDarkTheme} />
-          )}
-
-          {/* Personal Arms */}
-          <PersonalArmsSection
-            person={person}
-            house={house}
-            allPeople={people}
-            allRelationships={relationships}
-            isDarkTheme={isDarkTheme}
-          />
-
-          {/* Biography */}
-          <motion.section
-            className="quick-edit__section"
-            variants={SECTION_VARIANTS}
-            initial="hidden"
-            animate="visible"
-            transition={{ delay: 0.1 }}
-          >
-            <h3 className="quick-edit__section-title">
-              <Icon name="book-open" size={14} />
-              <span>Biography</span>
-            </h3>
-
-            {loadingCodex ? (
-              <div className="quick-edit__loading">
-                <Icon name="loader-2" size={16} className="spin" />
-                <span>Loading...</span>
-              </div>
-            ) : (
-              <div className="quick-edit__biography">
-                <div
-                  className={`quick-edit__biography-status quick-edit__biography-status--${biographyStatus.key}`}
-                >
-                  <Icon name={
-                    biographyStatus.key === 'complete' ? 'check-circle' :
-                    biographyStatus.key === 'detailed' ? 'file-text' :
-                    biographyStatus.key === 'basic' ? 'file' :
-                    biographyStatus.key === 'stub' ? 'file-minus' :
-                    'file-question'
-                  } size={18} className="quick-edit__biography-icon" />
-                  <div className="quick-edit__biography-info">
-                    <span className="quick-edit__biography-label">{biographyStatus.label}</span>
-                    <span className="quick-edit__biography-summary">
-                      {getStatusSummary(codexEntry, isDarkTheme)}
-                    </span>
-                  </div>
-                  {(biographyStatus.key === 'empty' || biographyStatus.key === 'stub') && (
-                    <span className="quick-edit__biography-attention">Needs attention</span>
-                  )}
-                </div>
-
-                <div className="quick-edit__biography-actions">
-                  {codexEntry ? (
-                    <>
-                      <ActionButton
-                        icon="book-open"
-                        onClick={() => navigate(`/codex/entry/${codexEntry.id}`)}
-                        variant="secondary"
-                        size="sm"
-                      >
-                        View Biography
-                      </ActionButton>
-                      <ActionButton
-                        icon="pencil"
-                        onClick={() => navigate(`/codex/edit/${codexEntry.id}`)}
-                        variant="ghost"
-                        size="sm"
-                        title="Edit biography"
-                      />
-                    </>
-                  ) : (
-                    <div className="quick-edit__biography-empty">
-                      No Codex entry linked
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </motion.section>
-
-          {/* Titles & Dignities */}
-          <motion.section
-            className="quick-edit__section"
-            variants={SECTION_VARIANTS}
-            initial="hidden"
-            animate="visible"
-            transition={{ delay: 0.15 }}
-          >
-            <h3 className="quick-edit__section-title">
-              <Icon name="crown" size={14} />
-              <span>Titles & Dignities</span>
-              <span className="quick-edit__section-count">({personDignities.length})</span>
-            </h3>
-
-            {loadingDignities ? (
-              <div className="quick-edit__loading">
-                <Icon name="loader-2" size={16} className="spin" />
-                <span>Loading...</span>
-              </div>
-            ) : personDignities.length > 0 ? (
-              <div className="quick-edit__dignities">
-                {personDignities.map(dignity => (
-                  <motion.div
-                    key={dignity.id}
-                    onClick={() => navigate(`/dignities/view/${dignity.id}`)}
-                    className="quick-edit__dignity"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <div className="quick-edit__dignity-main">
-                      <span className="quick-edit__dignity-icon">
-                        {getDignityIcon(dignity) || DIGNITY_CLASSES[dignity.dignityClass]?.icon || ''}
-                      </span>
-                      <span className="quick-edit__dignity-name">
-                        {dignity.shortName || dignity.name}
-                      </span>
-                      <Icon name="chevron-right" size={14} className="quick-edit__dignity-arrow" />
-                    </div>
-                    {dignity.name !== dignity.shortName && dignity.shortName && (
-                      <span className="quick-edit__dignity-full">{dignity.name}</span>
-                    )}
-                  </motion.div>
-                ))}
-              </div>
-            ) : (
-              <div className="quick-edit__empty-state">No titles recorded</div>
-            )}
-
-            <button
-              onClick={() => navigate(`/dignities/create?personId=${person.id}&houseId=${person.houseId || ''}`)}
-              className="quick-edit__add-btn"
-            >
-              <Icon name="plus" size={14} />
-              <span>Add Title</span>
-            </button>
-          </motion.section>
-
-          {/* Epithets */}
-          <motion.section
-            className="quick-edit__section"
-            variants={SECTION_VARIANTS}
-            initial="hidden"
-            animate="visible"
-            transition={{ delay: 0.2 }}
-          >
-            <h3 className="quick-edit__section-title">
-              <Icon name="sparkles" size={14} />
-              <span>Epithets</span>
-              <span className="quick-edit__section-count">({(editedPerson.epithets || []).length})</span>
-            </h3>
-
-            <EpithetsSection
-              epithets={editedPerson.epithets || []}
-              onChange={(newEpithets) => setEditedPerson({ ...editedPerson, epithets: newEpithets })}
-              isDarkTheme={isDarkTheme}
-              compact={true}
-            />
-          </motion.section>
+          {/* ═══════════════════════════════════════════════════════════════
+              FAMILY CONNECTIONS - Moved to top of sidebar
+              ═══════════════════════════════════════════════════════════════ */}
 
           {/* Spouses */}
           <motion.section
@@ -904,7 +800,7 @@ function QuickEditPanel({
             variants={SECTION_VARIANTS}
             initial="hidden"
             animate="visible"
-            transition={{ delay: 0.25 }}
+            transition={{ delay: 0.05 }}
           >
             <h3 className="quick-edit__section-title">
               <Icon name="heart" size={14} />
@@ -924,7 +820,7 @@ function QuickEditPanel({
             variants={SECTION_VARIANTS}
             initial="hidden"
             animate="visible"
-            transition={{ delay: 0.3 }}
+            transition={{ delay: 0.1 }}
           >
             <h3 className="quick-edit__section-title">
               <Icon name="crown" size={14} />
@@ -950,7 +846,7 @@ function QuickEditPanel({
             variants={SECTION_VARIANTS}
             initial="hidden"
             animate="visible"
-            transition={{ delay: 0.35 }}
+            transition={{ delay: 0.15 }}
           >
             <h3 className="quick-edit__section-title">
               <Icon name="users" size={14} />
@@ -976,7 +872,7 @@ function QuickEditPanel({
             variants={SECTION_VARIANTS}
             initial="hidden"
             animate="visible"
-            transition={{ delay: 0.4 }}
+            transition={{ delay: 0.2 }}
           >
             <h3 className="quick-edit__section-title">
               <Icon name="baby" size={14} />
@@ -992,6 +888,267 @@ function QuickEditPanel({
               </div>
             )}
             {renderAddButton('Child', 'child')}
+          </motion.section>
+
+          {/* ═══════════════════════════════════════════════════════════════
+              COLLAPSIBLE SECTIONS - Personal details & metadata
+              ═══════════════════════════════════════════════════════════════ */}
+
+          {/* House Heraldry (not collapsible) */}
+          {house && (
+            <HouseHeraldrySection house={house} isDarkTheme={isDarkTheme} />
+          )}
+
+          {/* Personal Arms - Collapsible */}
+          <motion.section
+            className="quick-edit__section quick-edit__section--collapsible"
+            variants={SECTION_VARIANTS}
+            initial="hidden"
+            animate="visible"
+            transition={{ delay: 0.25 }}
+          >
+            <h3
+              className="quick-edit__section-title quick-edit__section-title--clickable"
+              onClick={() => toggleSection('personalArms')}
+            >
+              <Icon name="shield" size={14} />
+              <span>Personal Arms</span>
+              {personHasArms && <span className="quick-edit__section-indicator">Has Arms</span>}
+              <Icon
+                name={collapsedSections.personalArms ? 'chevron-down' : 'chevron-up'}
+                size={14}
+                className="quick-edit__section-toggle"
+              />
+            </h3>
+            <AnimatePresence>
+              {!collapsedSections.personalArms && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="quick-edit__section-content"
+                >
+                  <PersonalArmsSection
+                    person={person}
+                    house={house}
+                    allPeople={people}
+                    allRelationships={relationships}
+                    isDarkTheme={isDarkTheme}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.section>
+
+          {/* Biography - Collapsible (always starts collapsed) */}
+          <motion.section
+            className="quick-edit__section quick-edit__section--collapsible"
+            variants={SECTION_VARIANTS}
+            initial="hidden"
+            animate="visible"
+            transition={{ delay: 0.3 }}
+          >
+            <h3
+              className="quick-edit__section-title quick-edit__section-title--clickable"
+              onClick={() => toggleSection('biography')}
+            >
+              <Icon name="book-open" size={14} />
+              <span>Biography</span>
+              {codexEntry && <span className="quick-edit__section-indicator">{biographyStatus.label}</span>}
+              <Icon
+                name={collapsedSections.biography ? 'chevron-down' : 'chevron-up'}
+                size={14}
+                className="quick-edit__section-toggle"
+              />
+            </h3>
+            <AnimatePresence>
+              {!collapsedSections.biography && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="quick-edit__section-content"
+                >
+                  {loadingCodex ? (
+                    <div className="quick-edit__loading">
+                      <Icon name="loader-2" size={16} className="spin" />
+                      <span>Loading...</span>
+                    </div>
+                  ) : (
+                    <div className="quick-edit__biography">
+                      <div
+                        className={`quick-edit__biography-status quick-edit__biography-status--${biographyStatus.key}`}
+                      >
+                        <Icon name={
+                          biographyStatus.key === 'complete' ? 'check-circle' :
+                          biographyStatus.key === 'detailed' ? 'file-text' :
+                          biographyStatus.key === 'basic' ? 'file' :
+                          biographyStatus.key === 'stub' ? 'file-minus' :
+                          'file-question'
+                        } size={18} className="quick-edit__biography-icon" />
+                        <div className="quick-edit__biography-info">
+                          <span className="quick-edit__biography-label">{biographyStatus.label}</span>
+                          <span className="quick-edit__biography-summary">
+                            {getStatusSummary(codexEntry, isDarkTheme)}
+                          </span>
+                        </div>
+                        {(biographyStatus.key === 'empty' || biographyStatus.key === 'stub') && (
+                          <span className="quick-edit__biography-attention">Needs attention</span>
+                        )}
+                      </div>
+
+                      <div className="quick-edit__biography-actions">
+                        {codexEntry ? (
+                          <>
+                            <ActionButton
+                              icon="book-open"
+                              onClick={() => navigate(`/codex/entry/${codexEntry.id}`)}
+                              variant="secondary"
+                              size="sm"
+                            >
+                              View Biography
+                            </ActionButton>
+                            <ActionButton
+                              icon="pencil"
+                              onClick={() => navigate(`/codex/edit/${codexEntry.id}`)}
+                              variant="ghost"
+                              size="sm"
+                              title="Edit biography"
+                            />
+                          </>
+                        ) : (
+                          <div className="quick-edit__biography-empty">
+                            No Codex entry linked
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.section>
+
+          {/* Titles & Dignities - Collapsible */}
+          <motion.section
+            className="quick-edit__section quick-edit__section--collapsible"
+            variants={SECTION_VARIANTS}
+            initial="hidden"
+            animate="visible"
+            transition={{ delay: 0.35 }}
+          >
+            <h3
+              className="quick-edit__section-title quick-edit__section-title--clickable"
+              onClick={() => toggleSection('titles')}
+            >
+              <Icon name="crown" size={14} />
+              <span>Titles & Dignities</span>
+              <span className="quick-edit__section-count">({personDignities.length})</span>
+              <Icon
+                name={collapsedSections.titles ? 'chevron-down' : 'chevron-up'}
+                size={14}
+                className="quick-edit__section-toggle"
+              />
+            </h3>
+            <AnimatePresence>
+              {!collapsedSections.titles && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="quick-edit__section-content"
+                >
+                  {loadingDignities ? (
+                    <div className="quick-edit__loading">
+                      <Icon name="loader-2" size={16} className="spin" />
+                      <span>Loading...</span>
+                    </div>
+                  ) : personDignities.length > 0 ? (
+                    <div className="quick-edit__dignities">
+                      {personDignities.map(dignity => (
+                        <motion.div
+                          key={dignity.id}
+                          onClick={() => navigate(`/dignities/view/${dignity.id}`)}
+                          className="quick-edit__dignity"
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          <div className="quick-edit__dignity-main">
+                            <span className="quick-edit__dignity-icon">
+                              {getDignityIcon(dignity) || DIGNITY_CLASSES[dignity.dignityClass]?.icon || ''}
+                            </span>
+                            <span className="quick-edit__dignity-name">
+                              {dignity.shortName || dignity.name}
+                            </span>
+                            <span className={`quick-edit__dignity-nature quick-edit__dignity-nature--${dignity.dignityNature || 'territorial'}`}>
+                              <Icon name={DIGNITY_NATURES[dignity.dignityNature || 'territorial']?.icon || 'castle'} size={10} />
+                            </span>
+                            <Icon name="chevron-right" size={14} className="quick-edit__dignity-arrow" />
+                          </div>
+                          {dignity.name !== dignity.shortName && dignity.shortName && (
+                            <span className="quick-edit__dignity-full">{dignity.name}</span>
+                          )}
+                        </motion.div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="quick-edit__empty-state">No titles recorded</div>
+                  )}
+
+                  <button
+                    onClick={() => navigate(`/dignities/create?personId=${person.id}&houseId=${person.houseId || ''}`)}
+                    className="quick-edit__add-btn"
+                  >
+                    <Icon name="plus" size={14} />
+                    <span>Add Title</span>
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.section>
+
+          {/* Epithets - Collapsible */}
+          <motion.section
+            className="quick-edit__section quick-edit__section--collapsible"
+            variants={SECTION_VARIANTS}
+            initial="hidden"
+            animate="visible"
+            transition={{ delay: 0.4 }}
+          >
+            <h3
+              className="quick-edit__section-title quick-edit__section-title--clickable"
+              onClick={() => toggleSection('epithets')}
+            >
+              <Icon name="sparkles" size={14} />
+              <span>Epithets</span>
+              <span className="quick-edit__section-count">({(editedPerson.epithets || []).length})</span>
+              <Icon
+                name={collapsedSections.epithets ? 'chevron-down' : 'chevron-up'}
+                size={14}
+                className="quick-edit__section-toggle"
+              />
+            </h3>
+            <AnimatePresence>
+              {!collapsedSections.epithets && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="quick-edit__section-content"
+                >
+                  <EpithetsSection
+                    epithets={editedPerson.epithets || []}
+                    onChange={(newEpithets) => setEditedPerson({ ...editedPerson, epithets: newEpithets })}
+                    isDarkTheme={isDarkTheme}
+                    compact={true}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.section>
 
         </div>
@@ -1104,6 +1261,20 @@ function QuickEditPanel({
                             placeholder="Birth surname if different"
                             className="quick-edit-modal__input"
                           />
+                        </div>
+                      )}
+
+                      {addingRelationType === 'spouse' && (
+                        <div className="quick-edit-modal__field">
+                          <label className="quick-edit-modal__label">Relationship Status</label>
+                          <select
+                            value={newPersonForm.marriageStatus || 'married'}
+                            onChange={(e) => setNewPersonForm({ ...newPersonForm, marriageStatus: e.target.value })}
+                            className="quick-edit-modal__select"
+                          >
+                            <option value="betrothed">Betrothed</option>
+                            <option value="married">Married</option>
+                          </select>
                         </div>
                       )}
 

@@ -50,6 +50,7 @@ const TYPE_ICONS = {
   location: 'map',
   event: 'book-open',
   mysteria: 'sparkles',
+  concept: 'scroll-text',
   heraldry: 'shield',
   custom: 'file-text'
 };
@@ -372,16 +373,38 @@ function CodexEntryForm() {
             <section className="codex-entry-form__section">
               <label className="codex-entry-form__label" htmlFor="category">
                 <Icon name="folder" size={16} />
-                <span>Category</span>
+                <span>{(formData.type === 'heraldry' || formData.type === 'concept') ? 'Subsection' : 'Category'}</span>
               </label>
-              <input
-                id="category"
-                type="text"
-                className="codex-entry-form__input"
-                placeholder="e.g., Nobility, Religion..."
-                value={formData.category}
-                onChange={(e) => handleInputChange('category', e.target.value)}
-              />
+              {formData.type === 'heraldry' ? (
+                <select
+                  id="category"
+                  className="codex-entry-form__select"
+                  value={formData.category}
+                  onChange={(e) => handleInputChange('category', e.target.value)}
+                >
+                  <option value="">Heraldry</option>
+                  <option value="titles">Dignities & Titles</option>
+                </select>
+              ) : formData.type === 'concept' ? (
+                <select
+                  id="category"
+                  className="codex-entry-form__select"
+                  value={formData.category}
+                  onChange={(e) => handleInputChange('category', e.target.value)}
+                >
+                  <option value="">Concepts</option>
+                  <option value="laws">Laws</option>
+                </select>
+              ) : (
+                <input
+                  id="category"
+                  type="text"
+                  className="codex-entry-form__input"
+                  placeholder="e.g., Nobility, Religion..."
+                  value={formData.category}
+                  onChange={(e) => handleInputChange('category', e.target.value)}
+                />
+              )}
             </section>
           </motion.div>
 
@@ -494,6 +517,7 @@ const ENTRY_TYPES = [
   { value: 'location', label: 'Location' },
   { value: 'event', label: 'Event' },
   { value: 'mysteria', label: 'Mysteria' },
+  { value: 'concept', label: 'Concept' },
   { value: 'heraldry', label: 'Heraldry' },
   { value: 'custom', label: 'Custom' }
 ];

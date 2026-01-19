@@ -26,6 +26,7 @@ import {
   deleteDignity,
   DIGNITY_CLASSES,
   DIGNITY_RANKS,
+  DIGNITY_NATURES,
   getDignityIcon
 } from '../services/dignityService';
 import { getAllHouses, getAllPeople } from '../services/database';
@@ -33,6 +34,9 @@ import Navigation from '../components/Navigation';
 import Icon from '../components/icons';
 import { LoadingState, EmptyState, SectionHeader, Card, ActionButton } from '../components/shared';
 import { AnalysisSummary, SuggestionsPanel } from '../components/suggestions';
+import DignityEducationPanel from '../components/DignityEducationPanel';
+import DignityTerm, { LearningModeToggle } from '../components/DignityTerm';
+import { RankPips } from '../components/DignityVisuals';
 import { useDignityAnalysis } from '../hooks';
 import './DignitiesLanding.css';
 
@@ -89,8 +93,11 @@ function DignitiesLanding() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterClass, setFilterClass] = useState('all');
   const [filterRank, setFilterRank] = useState('all');
+  const [filterNature, setFilterNature] = useState('all');
   const [sortBy, setSortBy] = useState('name');
   const [viewMode, setViewMode] = useState('hierarchy');
+  const [showPersonalHonours, setShowPersonalHonours] = useState(true);
+  const [selectedDignity, setSelectedDignity] = useState(null); // For shared layout preview
 
   // Dignity analysis hook
   const {
@@ -201,6 +208,11 @@ function DignitiesLanding() {
       filtered = filtered.filter(d => d.dignityRank === filterRank);
     }
 
+    // Nature filter
+    if (filterNature !== 'all') {
+      filtered = filtered.filter(d => (d.dignityNature || 'territorial') === filterNature);
+    }
+
     // Sort
     filtered.sort((a, b) => {
       switch (sortBy) {
@@ -227,18 +239,31 @@ function DignitiesLanding() {
     });
 
     return filtered;
-  }, [dignities, searchTerm, filterClass, filterRank, sortBy, getPersonName, getHouseName]);
+  }, [dignities, searchTerm, filterClass, filterRank, filterNature, sortBy, getPersonName, getHouseName]);
 
-  // Build hierarchy tree for hierarchy view
+  // Build hierarchy tree for hierarchy view (uses filteredDignities so search/filter works)
   const hierarchyTree = useMemo(() => {
     if (viewMode !== 'hierarchy') return [];
 
-    const rootDignities = dignities.filter(d =>
-      !d.swornToId || d.dignityClass === 'crown'
+    // Optionally filter out personal honours
+    let hierarchyDignities = filteredDignities;
+    if (!showPersonalHonours) {
+      hierarchyDignities = filteredDignities.filter(d =>
+        (d.dignityNature || 'territorial') !== 'personal-honour'
+      );
+    }
+
+    // Create a Set of filtered dignity IDs for quick lookup
+    const filteredIds = new Set(hierarchyDignities.map(d => d.id));
+
+    // Root dignities: those without a sworn relationship, OR whose sworn target isn't in filtered results
+    const rootDignities = hierarchyDignities.filter(d =>
+      !d.swornToId || !filteredIds.has(d.swornToId) || d.dignityClass === 'crown'
     );
 
     function buildNode(dignity) {
-      const subordinates = dignities.filter(d => d.swornToId === dignity.id);
+      // Only include subordinates that are in the filtered list
+      const subordinates = hierarchyDignities.filter(d => d.swornToId === dignity.id);
       return {
         dignity,
         subordinates: subordinates.map(sub => buildNode(sub))
@@ -246,7 +271,7 @@ function DignitiesLanding() {
     }
 
     return rootDignities.map(d => buildNode(d));
-  }, [dignities, viewMode]);
+  }, [filteredDignities, viewMode, showPersonalHonours]);
 
   // Handlers
   const handleCreateDignity = useCallback(() => {
@@ -289,6 +314,7 @@ function DignitiesLanding() {
     setSearchTerm('');
     setFilterClass('all');
     setFilterRank('all');
+    setFilterNature('all');
   }, []);
 
   // Helper functions
@@ -354,7 +380,8 @@ function DignitiesLanding() {
           </div>
 
           <span className="dignities-hierarchy__rank">
-            {getRankDisplayName(dignity.dignityClass, dignity.dignityRank)}
+            <DignityTerm rank={dignity.dignityRank} dignityClass={dignity.dignityClass} />
+            <RankPips rank={dignity.dignityRank} dignityClass={dignity.dignityClass} size="sm" />
           </span>
         </motion.div>
 
@@ -386,6 +413,9 @@ function DignitiesLanding() {
       <Navigation />
       <div className="dignities-page">
         <div className="dignities-container">
+          {/* Education Panel Sidebar */}
+          <DignityEducationPanel />
+
           <motion.div
             className="dignities-content"
             initial={{ opacity: 0 }}
@@ -452,48 +482,6 @@ function DignitiesLanding() {
               </motion.section>
             )}
 
-            {/* Data Quality Analysis */}
-            <motion.section
-              className="dignities-analysis"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.15 }}
-            >
-              <AnalysisSummary
-                stats={analysisStats}
-                lastAnalyzed={lastAnalyzed}
-                dataSnapshot={{
-                  peopleCount: people.length,
-                  housesCount: houses.length,
-                  dignitiesCount: dignities.length
-                }}
-                loading={analysisLoading}
-                onRunAnalysis={runAnalysis}
-                compact
-              />
-              {suggestions.length > 0 && (
-                <SuggestionsPanel
-                  suggestions={suggestions.slice(0, 5)}
-                  onApply={applySuggestion}
-                  onDismiss={dismissSuggestion}
-                  compact
-                  maxVisible={3}
-                />
-              )}
-              {(analysisStats || suggestions.length > 0) && (
-                <div className="dignities-analysis__link">
-                  <ActionButton
-                    icon="external-link"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => navigate('/dignities/analysis')}
-                  >
-                    View Full Analysis Dashboard
-                  </ActionButton>
-                </div>
-              )}
-            </motion.section>
-
             {/* Search & Controls */}
             <motion.section
               className="dignities-controls"
@@ -549,6 +537,20 @@ function DignitiesLanding() {
                 </div>
 
                 <div className="dignities-filters__select-wrapper">
+                  <Icon name="sparkles" size={16} className="dignities-filters__select-icon" />
+                  <select
+                    className="dignities-filters__select"
+                    value={filterNature}
+                    onChange={(e) => setFilterNature(e.target.value)}
+                  >
+                    <option value="all">All Natures</option>
+                    {Object.entries(DIGNITY_NATURES).map(([key, info]) => (
+                      <option key={key} value={key}>{info.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="dignities-filters__select-wrapper">
                   <Icon name="arrow-up-down" size={16} className="dignities-filters__select-icon" />
                   <select
                     className="dignities-filters__select"
@@ -579,6 +581,9 @@ function DignitiesLanding() {
                     <Icon name="git-branch" size={18} />
                   </button>
                 </div>
+
+                {/* Learning Mode Toggle */}
+                <LearningModeToggle />
               </div>
             </motion.section>
 
@@ -635,110 +640,126 @@ function DignitiesLanding() {
                     </button>
                   </div>
                 ) : (
-                  <div className="dignities-gallery__grid">
-                    {filteredDignities.map((d, index) => {
-                      const classInfo = getClassInfo(d.dignityClass);
-                      const icon = getDignityIcon(d);
-                      const holderName = getPersonName(d.currentHolderId);
-                      const houseName = getHouseName(d.currentHouseId);
-                      const houseColor = getHouseColor(d.currentHouseId);
+                  <motion.div className="dignities-gallery__grid" layout>
+                    <AnimatePresence mode="popLayout">
+                      {filteredDignities.map((d, index) => {
+                        const classInfo = getClassInfo(d.dignityClass);
+                        const icon = getDignityIcon(d);
+                        const holderName = getPersonName(d.currentHolderId);
+                        const houseName = getHouseName(d.currentHouseId);
+                        const houseColor = getHouseColor(d.currentHouseId);
 
-                      return (
-                        <motion.div
-                          key={d.id}
-                          className="dignities-card"
-                          variants={CARD_VARIANTS}
-                          custom={index}
-                          onClick={() => handleViewDignity(d.id)}
-                          whileHover={{ y: -4, transition: { duration: 0.2 } }}
-                        >
-                          {/* Class Badge */}
-                          <div className={`dignities-card__badge dignities-card__badge--${d.dignityClass}`}>
-                            <Icon name={CLASS_ICONS[d.dignityClass] || 'scroll-text'} size={14} />
-                            <span>{classInfo.name}</span>
-                          </div>
-
-                          {/* Icon */}
-                          <div className="dignities-card__icon">
-                            {icon || <Icon name="scroll-text" size={32} strokeWidth={1} />}
-                          </div>
-
-                          {/* Info */}
-                          <div className="dignities-card__info">
-                            <h3 className="dignities-card__name">{d.name}</h3>
-
-                            <div className="dignities-card__rank">
-                              {getRankDisplayName(d.dignityClass, d.dignityRank)}
+                        return (
+                          <motion.div
+                            key={d.id}
+                            layoutId={`dignity-card-${d.id}`}
+                            className="dignities-card"
+                            layout
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.8, transition: { duration: 0.2 } }}
+                            transition={{
+                              duration: 0.3,
+                              layout: { duration: 0.3, type: 'spring', stiffness: 300, damping: 30 }
+                            }}
+                            onClick={() => setSelectedDignity(d)}
+                            whileHover={{ y: -4, transition: { duration: 0.2 } }}
+                          >
+                            {/* Class Badge */}
+                            <div className={`dignities-card__badge dignities-card__badge--${d.dignityClass}`}>
+                              <Icon name={CLASS_ICONS[d.dignityClass] || 'scroll-text'} size={14} />
+                              <span>{classInfo.name}</span>
                             </div>
 
-                            {/* Holder */}
-                            {holderName ? (
-                              <div className="dignities-card__holder">
-                                <span
-                                  className="dignities-card__holder-dot"
-                                  style={{ backgroundColor: houseColor }}
-                                />
-                                <span className="dignities-card__holder-name">{holderName}</span>
-                              </div>
-                            ) : (
-                              <div className="dignities-card__vacant">
-                                <Icon name="circle-alert" size={14} />
-                                <span>Vacant</span>
-                              </div>
-                            )}
-
-                            {/* House */}
-                            {houseName && (
-                              <div className="dignities-card__house">
-                                <span
-                                  className="dignities-card__house-dot"
-                                  style={{ backgroundColor: houseColor }}
-                                />
-                                <span className="dignities-card__house-name">{houseName}</span>
-                              </div>
-                            )}
-
-                            {/* Place */}
-                            {d.placeName && (
-                              <div className="dignities-card__place">
-                                <Icon name="map-pin" size={14} />
-                                {d.placeName}
-                              </div>
-                            )}
-
-                            {/* Footer */}
-                            <div className="dignities-card__footer">
-                              <span className="dignities-card__date">
-                                Added {formatDate(d.created)}
-                              </span>
+                            {/* Nature Badge */}
+                            <div className={`dignities-card__nature dignities-card__nature--${d.dignityNature || 'territorial'}`}>
+                              <Icon name={DIGNITY_NATURES[d.dignityNature || 'territorial']?.icon || 'castle'} size={12} />
+                              <span>{DIGNITY_NATURES[d.dignityNature || 'territorial']?.name || 'Territorial'}</span>
                             </div>
-                          </div>
 
-                          {/* Actions */}
-                          <div className="dignities-card__actions">
-                            <motion.button
-                              className="dignities-card__action dignities-card__action--edit"
-                              onClick={(e) => handleEditDignity(d.id, e)}
-                              title="Edit"
-                              whileHover={{ scale: 1.1 }}
-                              whileTap={{ scale: 0.95 }}
-                            >
-                              <Icon name="pencil" size={16} />
-                            </motion.button>
-                            <motion.button
-                              className="dignities-card__action dignities-card__action--delete"
-                              onClick={(e) => handleDeleteDignity(d.id, d.name, e)}
-                              title="Delete"
-                              whileHover={{ scale: 1.1 }}
-                              whileTap={{ scale: 0.95 }}
-                            >
-                              <Icon name="trash-2" size={16} />
-                            </motion.button>
-                          </div>
-                        </motion.div>
-                      );
-                    })}
-                  </div>
+                            {/* Icon */}
+                            <div className="dignities-card__icon">
+                              {icon || <Icon name="scroll-text" size={32} strokeWidth={1} />}
+                            </div>
+
+                            {/* Info */}
+                            <div className="dignities-card__info">
+                              <h3 className="dignities-card__name">{d.name}</h3>
+
+                              <div className="dignities-card__rank">
+                                <DignityTerm rank={d.dignityRank} dignityClass={d.dignityClass} />
+                                <RankPips rank={d.dignityRank} dignityClass={d.dignityClass} size="sm" />
+                              </div>
+
+                              {/* Holder */}
+                              {holderName ? (
+                                <div className="dignities-card__holder">
+                                  <span
+                                    className="dignities-card__holder-dot"
+                                    style={{ backgroundColor: houseColor }}
+                                  />
+                                  <span className="dignities-card__holder-name">{holderName}</span>
+                                </div>
+                              ) : (
+                                <div className="dignities-card__vacant">
+                                  <Icon name="circle-alert" size={14} />
+                                  <span>Vacant</span>
+                                </div>
+                              )}
+
+                              {/* House */}
+                              {houseName && (
+                                <div className="dignities-card__house">
+                                  <span
+                                    className="dignities-card__house-dot"
+                                    style={{ backgroundColor: houseColor }}
+                                  />
+                                  <span className="dignities-card__house-name">{houseName}</span>
+                                </div>
+                              )}
+
+                              {/* Place */}
+                              {d.placeName && (
+                                <div className="dignities-card__place">
+                                  <Icon name="map-pin" size={14} />
+                                  {d.placeName}
+                                </div>
+                              )}
+
+                              {/* Footer */}
+                              <div className="dignities-card__footer">
+                                <span className="dignities-card__date">
+                                  Added {formatDate(d.created)}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="dignities-card__actions">
+                              <motion.button
+                                className="dignities-card__action dignities-card__action--edit"
+                                onClick={(e) => handleEditDignity(d.id, e)}
+                                title="Edit"
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.95 }}
+                              >
+                                <Icon name="pencil" size={16} />
+                              </motion.button>
+                              <motion.button
+                                className="dignities-card__action dignities-card__action--delete"
+                                onClick={(e) => handleDeleteDignity(d.id, d.name, e)}
+                                title="Delete"
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.95 }}
+                              >
+                                <Icon name="trash-2" size={16} />
+                              </motion.button>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                    </AnimatePresence>
+                  </motion.div>
                 )}
               </motion.section>
             ) : (
@@ -751,9 +772,19 @@ function DignitiesLanding() {
               >
                 <div className="dignities-hierarchy__header">
                   <SectionHeader icon="git-branch" title="Feudal Hierarchy" size="md" />
-                  <ActionButton icon="plus" variant="primary" onClick={handleCreateDignity}>
-                    Create New
-                  </ActionButton>
+                  <div className="dignities-hierarchy__controls">
+                    <label className="dignities-hierarchy__toggle">
+                      <input
+                        type="checkbox"
+                        checked={showPersonalHonours}
+                        onChange={(e) => setShowPersonalHonours(e.target.checked)}
+                      />
+                      <span>Show Personal Honours</span>
+                    </label>
+                    <ActionButton icon="plus" variant="primary" onClick={handleCreateDignity}>
+                      Create New
+                    </ActionButton>
+                  </div>
                 </div>
 
                 <Card className="dignities-hierarchy__tree" padding="md">
@@ -802,6 +833,48 @@ function DignitiesLanding() {
               </div>
             </motion.section>
 
+            {/* Data Quality Analysis */}
+            <motion.section
+              className="dignities-analysis"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.45 }}
+            >
+              <AnalysisSummary
+                stats={analysisStats}
+                lastAnalyzed={lastAnalyzed}
+                dataSnapshot={{
+                  peopleCount: people.length,
+                  housesCount: houses.length,
+                  dignitiesCount: dignities.length
+                }}
+                loading={analysisLoading}
+                onRunAnalysis={runAnalysis}
+                compact
+              />
+              {suggestions.length > 0 && (
+                <SuggestionsPanel
+                  suggestions={suggestions.slice(0, 5)}
+                  onApply={applySuggestion}
+                  onDismiss={dismissSuggestion}
+                  compact
+                  maxVisible={3}
+                />
+              )}
+              {(analysisStats || suggestions.length > 0) && (
+                <div className="dignities-analysis__link">
+                  <ActionButton
+                    icon="external-link"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => navigate('/dignities/analysis')}
+                  >
+                    View Full Analysis Dashboard
+                  </ActionButton>
+                </div>
+              )}
+            </motion.section>
+
             {/* Action Buttons */}
             <motion.section
               className="dignities-actions"
@@ -833,6 +906,144 @@ function DignitiesLanding() {
           </motion.div>
         </div>
       </div>
+
+      {/* Shared Layout Preview Modal */}
+      <AnimatePresence>
+        {selectedDignity && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              className="dignities-preview__backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedDignity(null)}
+            />
+
+            {/* Preview Card */}
+            <motion.div
+              layoutId={`dignity-card-${selectedDignity.id}`}
+              className="dignities-preview__card"
+              transition={{ duration: 0.3, type: 'spring', stiffness: 300, damping: 30 }}
+            >
+              {/* Close Button */}
+              <motion.button
+                className="dignities-preview__close"
+                onClick={() => setSelectedDignity(null)}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1, transition: { delay: 0.2 } }}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Icon name="x" size={20} />
+              </motion.button>
+
+              {/* Badges */}
+              <div className="dignities-preview__badges">
+                {/* Class Badge */}
+                <div className={`dignities-card__badge dignities-card__badge--${selectedDignity.dignityClass}`}>
+                  <Icon name={CLASS_ICONS[selectedDignity.dignityClass] || 'scroll-text'} size={14} />
+                  <span>{getClassInfo(selectedDignity.dignityClass).name}</span>
+                </div>
+
+                {/* Nature Badge */}
+                <div className={`dignities-card__nature dignities-card__nature--${selectedDignity.dignityNature || 'territorial'}`}>
+                  <Icon name={DIGNITY_NATURES[selectedDignity.dignityNature || 'territorial']?.icon || 'castle'} size={12} />
+                  <span>{DIGNITY_NATURES[selectedDignity.dignityNature || 'territorial']?.name || 'Territorial'}</span>
+                </div>
+              </div>
+
+              {/* Icon */}
+              <div className="dignities-preview__icon">
+                {getDignityIcon(selectedDignity) || <Icon name="scroll-text" size={48} strokeWidth={1} />}
+              </div>
+
+              {/* Title */}
+              <h2 className="dignities-preview__name">{selectedDignity.name}</h2>
+
+              <div className="dignities-preview__rank">
+                <DignityTerm rank={selectedDignity.dignityRank} dignityClass={selectedDignity.dignityClass} />
+              </div>
+
+              {/* Details */}
+              <motion.div
+                className="dignities-preview__details"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0, transition: { delay: 0.15 } }}
+              >
+                {/* Holder */}
+                {getPersonName(selectedDignity.currentHolderId) ? (
+                  <div className="dignities-preview__detail">
+                    <Icon name="user" size={16} />
+                    <span>{getPersonName(selectedDignity.currentHolderId)}</span>
+                  </div>
+                ) : (
+                  <div className="dignities-preview__detail dignities-preview__detail--warning">
+                    <Icon name="circle-alert" size={16} />
+                    <span>Vacant</span>
+                  </div>
+                )}
+
+                {/* House */}
+                {getHouseName(selectedDignity.currentHouseId) && (
+                  <div className="dignities-preview__detail">
+                    <span
+                      className="dignities-preview__house-dot"
+                      style={{ backgroundColor: getHouseColor(selectedDignity.currentHouseId) }}
+                    />
+                    <span>{getHouseName(selectedDignity.currentHouseId)}</span>
+                  </div>
+                )}
+
+                {/* Place */}
+                {selectedDignity.placeName && (
+                  <div className="dignities-preview__detail">
+                    <Icon name="map-pin" size={16} />
+                    <span>{selectedDignity.placeName}</span>
+                  </div>
+                )}
+
+                {/* Seat */}
+                {selectedDignity.seatName && (
+                  <div className="dignities-preview__detail">
+                    <Icon name="castle" size={16} />
+                    <span>{selectedDignity.seatName}</span>
+                  </div>
+                )}
+
+                {/* Description */}
+                {selectedDignity.description && (
+                  <p className="dignities-preview__description">
+                    {selectedDignity.description}
+                  </p>
+                )}
+              </motion.div>
+
+              {/* Actions */}
+              <motion.div
+                className="dignities-preview__actions"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1, transition: { delay: 0.2 } }}
+              >
+                <ActionButton
+                  icon="eye"
+                  variant="primary"
+                  onClick={() => handleViewDignity(selectedDignity.id)}
+                >
+                  View Details
+                </ActionButton>
+                <ActionButton
+                  icon="pencil"
+                  variant="secondary"
+                  onClick={(e) => handleEditDignity(selectedDignity.id, e)}
+                >
+                  Edit
+                </ActionButton>
+              </motion.div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </>
   );
 }

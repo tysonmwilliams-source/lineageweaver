@@ -20,9 +20,12 @@ import {
   getAllDignities,
   DIGNITY_CLASSES,
   DIGNITY_RANKS,
+  DIGNITY_NATURES,
   TENURE_TYPES,
   FEALTY_TYPES,
-  DISPLAY_ICONS
+  DISPLAY_ICONS,
+  natureHasSuccession,
+  natureHasGrantTracking
 } from '../services/dignityService';
 import { getAllHouses, getAllPeople } from '../services/database';
 import Navigation from '../components/Navigation';
@@ -74,6 +77,7 @@ function DignityForm() {
     shortName: '',
     dignityClass: 'driht',
     dignityRank: 'drith',
+    dignityNature: 'territorial',
     tenureType: 'of',
     placeName: '',
     seatName: '',
@@ -82,7 +86,10 @@ function DignityForm() {
     currentHolderId: '',
     currentHouseId: '',
     isVacant: false,
-    isHereditary: true,
+    // Grant tracking (for office/personal-honour)
+    grantedById: '',
+    grantedByDignityId: '',
+    grantDate: '',
     displayIcon: '',
     displayPriority: 0,
     notes: ''
@@ -120,11 +127,24 @@ function DignityForm() {
       if (isEditMode) {
         const dignity = await getDignity(parseInt(id), datasetId);
         if (dignity) {
+          // Determine nature: use stored value, or infer from legacy isHereditary
+          let nature = dignity.dignityNature;
+          if (!nature) {
+            if (dignity.dignityClass === 'sir') {
+              nature = 'personal-honour';
+            } else if (dignity.isHereditary === false) {
+              nature = 'office';
+            } else {
+              nature = 'territorial';
+            }
+          }
+
           setFormData({
             name: dignity.name || '',
             shortName: dignity.shortName || '',
             dignityClass: dignity.dignityClass || 'driht',
             dignityRank: dignity.dignityRank || 'drith',
+            dignityNature: nature,
             tenureType: dignity.tenureType || 'of',
             placeName: dignity.placeName || '',
             seatName: dignity.seatName || '',
@@ -133,7 +153,9 @@ function DignityForm() {
             currentHolderId: dignity.currentHolderId || '',
             currentHouseId: dignity.currentHouseId || '',
             isVacant: dignity.isVacant || false,
-            isHereditary: dignity.isHereditary !== undefined ? dignity.isHereditary : true,
+            grantedById: dignity.grantedById || '',
+            grantedByDignityId: dignity.grantedByDignityId || '',
+            grantDate: dignity.grantDate || '',
             displayIcon: dignity.displayIcon || '',
             displayPriority: dignity.displayPriority || 0,
             notes: dignity.notes || ''
@@ -312,7 +334,16 @@ function DignityForm() {
       const classRanks = DIGNITY_RANKS[value];
       if (classRanks) {
         const firstRank = Object.keys(classRanks)[0];
-        setFormData(prev => ({ ...prev, dignityRank: firstRank }));
+        // Auto-set default nature based on class
+        let defaultNature = 'territorial';
+        if (value === 'sir') {
+          defaultNature = 'personal-honour';
+        }
+        setFormData(prev => ({
+          ...prev,
+          dignityRank: firstRank,
+          dignityNature: defaultNature
+        }));
       }
     }
 
@@ -347,6 +378,12 @@ function DignityForm() {
         swornToId: formData.swornToId ? parseInt(formData.swornToId) : null,
         currentHolderId: formData.currentHolderId ? parseInt(formData.currentHolderId) : null,
         currentHouseId: formData.currentHouseId ? parseInt(formData.currentHouseId) : null,
+        // Derive isHereditary from nature for backward compatibility
+        isHereditary: formData.dignityNature === 'territorial',
+        // Grant tracking
+        grantedById: formData.grantedById ? parseInt(formData.grantedById) : null,
+        grantedByDignityId: formData.grantedByDignityId ? parseInt(formData.grantedByDignityId) : null,
+        grantDate: formData.grantDate.trim() || null,
         displayPriority: parseInt(formData.displayPriority) || 0,
         notes: formData.notes.trim() || null
       };
@@ -490,18 +527,26 @@ function DignityForm() {
             </div>
 
             <div className="dignity-form__row">
-              <div className="dignity-form__group dignity-form__group--checkbox">
-                <label className="dignity-form__checkbox">
-                  <input
-                    type="checkbox"
-                    name="isHereditary"
-                    checked={formData.isHereditary}
-                    onChange={handleChange}
-                  />
-                  <span>Hereditary Title</span>
+              <div className="dignity-form__group">
+                <label htmlFor="dignityNature" className="dignity-form__label">
+                  Dignity Nature *
                 </label>
+                <select
+                  id="dignityNature"
+                  name="dignityNature"
+                  value={formData.dignityNature}
+                  onChange={handleChange}
+                  className="dignity-form__select"
+                  required
+                >
+                  {Object.entries(DIGNITY_NATURES).map(([key, info]) => (
+                    <option key={key} value={key}>
+                      {info.name} - {info.description.split('.')[0]}
+                    </option>
+                  ))}
+                </select>
                 <span className="dignity-form__hint">
-                  Passes by right of blood within the house
+                  {DIGNITY_NATURES[formData.dignityNature]?.description}
                 </span>
               </div>
 
@@ -518,6 +563,30 @@ function DignityForm() {
                 <span className="dignity-form__hint">
                   No current holder of this dignity
                 </span>
+              </div>
+            </div>
+
+            {/* Nature-based info */}
+            <div className="dignity-form__nature-info">
+              <div className="dignity-form__nature-badges">
+                {natureHasSuccession(formData.dignityNature) && (
+                  <span className="dignity-form__nature-badge dignity-form__nature-badge--succession">
+                    <Icon name="git-branch" size={14} />
+                    <span>Has Succession</span>
+                  </span>
+                )}
+                {natureHasGrantTracking(formData.dignityNature) && (
+                  <span className="dignity-form__nature-badge dignity-form__nature-badge--grant">
+                    <Icon name="stamp" size={14} />
+                    <span>Tracks Grantor</span>
+                  </span>
+                )}
+                {!natureHasSuccession(formData.dignityNature) && (
+                  <span className="dignity-form__nature-badge dignity-form__nature-badge--personal">
+                    <Icon name="user" size={14} />
+                    <span>Non-Hereditary</span>
+                  </span>
+                )}
               </div>
             </div>
           </motion.section>
@@ -780,6 +849,105 @@ function DignityForm() {
               </div>
             )}
           </motion.section>
+
+          {/* Grant Tracking Section - Only for office/personal-honour */}
+          <AnimatePresence>
+            {natureHasGrantTracking(formData.dignityNature) && (
+              <motion.section
+                className="dignity-form__section dignity-form__section--grant"
+                variants={SECTION_VARIANTS}
+                initial="hidden"
+                animate="visible"
+                exit="hidden"
+              >
+                <h2 className="dignity-form__section-title">
+                  <Icon name="stamp" size={20} />
+                  <span>Grant Information</span>
+                </h2>
+                <p className="dignity-form__section-desc">
+                  {formData.dignityNature === 'personal-honour'
+                    ? 'Who granted this honour and when'
+                    : 'Who appointed to this office and when'
+                  }
+                </p>
+
+                <div className="dignity-form__row">
+                  <div className="dignity-form__group">
+                    <label htmlFor="grantedById" className="dignity-form__label">
+                      Granted By
+                    </label>
+                    <select
+                      id="grantedById"
+                      name="grantedById"
+                      value={formData.grantedById}
+                      onChange={handleChange}
+                      className="dignity-form__select"
+                    >
+                      <option value="">- Select Grantor -</option>
+                      {people.map(p => (
+                        <option key={p.id} value={p.id}>
+                          {p.firstName} {p.lastName}
+                          {p.houseId && ` (${getHouseName(p.houseId)})`}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="dignity-form__hint">
+                      The person who granted or appointed this dignity
+                    </span>
+                  </div>
+
+                  <div className="dignity-form__group">
+                    <label htmlFor="grantedByDignityId" className="dignity-form__label">
+                      Acting Under (Optional)
+                    </label>
+                    <select
+                      id="grantedByDignityId"
+                      name="grantedByDignityId"
+                      value={formData.grantedByDignityId}
+                      onChange={handleChange}
+                      className="dignity-form__select"
+                      disabled={!formData.grantedById}
+                    >
+                      <option value="">- Select Dignity -</option>
+                      {dignities
+                        .filter(d => {
+                          // Show dignities held by the grantor
+                          if (!formData.grantedById) return true;
+                          return d.currentHolderId === parseInt(formData.grantedById);
+                        })
+                        .map(d => (
+                          <option key={d.id} value={d.id}>{d.name}</option>
+                        ))
+                      }
+                    </select>
+                    <span className="dignity-form__hint">
+                      What dignity were they acting under when granting (e.g., "as King")
+                    </span>
+                  </div>
+                </div>
+
+                <div className="dignity-form__row">
+                  <div className="dignity-form__group">
+                    <label htmlFor="grantDate" className="dignity-form__label">
+                      Grant Date
+                    </label>
+                    <input
+                      type="text"
+                      id="grantDate"
+                      name="grantDate"
+                      value={formData.grantDate}
+                      onChange={handleChange}
+                      placeholder="e.g., 1287, Spring 1287, 15th Day of Summer"
+                      className="dignity-form__input"
+                    />
+                    <span className="dignity-form__hint">
+                      When this dignity was granted (flexible format)
+                    </span>
+                  </div>
+                </div>
+              </motion.section>
+            )}
+          </AnimatePresence>
 
           {/* Display Options Section */}
           <motion.section className="dignity-form__section" variants={SECTION_VARIANTS}>

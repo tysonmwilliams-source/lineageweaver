@@ -97,12 +97,43 @@ function useCountUp(end, duration = 1500, enabled = true) {
 }
 
 /**
+ * Skeleton stat card for loading state
+ */
+function StatCardSkeleton({ delay, features }) {
+  const { staggeredEntrance } = features;
+
+  const cardVariants = useMemo(() => ({
+    ...CARD_VARIANTS,
+    visible: {
+      ...CARD_VARIANTS.visible,
+      transition: {
+        ...CARD_VARIANTS.visible.transition,
+        delay: staggeredEntrance ? delay : 0
+      }
+    }
+  }), [delay, staggeredEntrance]);
+
+  return (
+    <motion.div
+      className="stat-card stat-card--skeleton"
+      variants={staggeredEntrance ? cardVariants : {}}
+      initial={staggeredEntrance ? "hidden" : false}
+      animate={staggeredEntrance ? "visible" : false}
+    >
+      <span className="stat-icon skeleton-pulse" />
+      <span className="stat-value skeleton-pulse skeleton-text" />
+      <span className="stat-label skeleton-pulse skeleton-text-sm" />
+    </motion.div>
+  );
+}
+
+/**
  * Individual stat card component
  */
 function StatCard({ iconName, value, label, delay, features }) {
   const { countUpAnimation, staggeredEntrance, cardAnimations } = features;
   const displayValue = useCountUp(value, 1500, countUpAnimation);
-  
+
   // Add delay to the shared variants
   const cardVariants = useMemo(() => ({
     ...CARD_VARIANTS,
@@ -114,15 +145,15 @@ function StatCard({ iconName, value, label, delay, features }) {
       }
     }
   }), [delay, staggeredEntrance]);
-  
+
   return (
-    <motion.div 
+    <motion.div
       className="stat-card"
       variants={staggeredEntrance ? cardVariants : {}}
       initial={staggeredEntrance ? "hidden" : false}
       animate={staggeredEntrance ? "visible" : false}
-      whileHover={cardAnimations ? { 
-        y: -4, 
+      whileHover={cardAnimations ? {
+        y: -4,
         boxShadow: 'var(--shadow-lg)',
         transition: { duration: 0.2 }
       } : {}}
@@ -138,7 +169,7 @@ function StatCard({ iconName, value, label, delay, features }) {
 
 /**
  * StatsGlance Component
- * 
+ *
  * @param {Object} props
  * @param {Object} props.features - Feature flags
  * @param {Object} props.stats - Statistics object
@@ -147,59 +178,71 @@ function StatCard({ iconName, value, label, delay, features }) {
  * @param {number} props.stats.relationships - Number of relationships
  * @param {number} props.stats.codexEntries - Number of codex entries
  * @param {number} props.stats.heraldry - Number of heraldry records
+ * @param {boolean} props.loading - Whether data is still loading
  */
-export default function StatsGlance({ features, stats }) {
+export default function StatsGlance({ features, stats, loading = false }) {
   const { statsGlance, staggeredEntrance } = features;
-  
+
   // Don't render if feature is disabled
   if (!statsGlance) return null;
-  
-  const { people, houses, relationships, codexEntries, heraldry } = stats;
-  const hasData = people > 0 || houses > 0;
-  const totalItems = people + houses + codexEntries + heraldry;
-  
+
+  const { people, houses, relationships, codexEntries, heraldry } = stats || {};
+  const hasData = (people || 0) > 0 || (houses || 0) > 0;
+  const totalItems = (people || 0) + (houses || 0) + (codexEntries || 0) + (heraldry || 0);
+
   // Define the stats to display with Lucide icon names
   const statItems = [
-    { iconName: 'users', value: people, label: 'People' },
-    { iconName: 'castle', value: houses, label: 'Houses' },
-    { iconName: 'heart', value: relationships, label: 'Bonds' },
-    { iconName: 'book-open', value: codexEntries, label: 'Codex' },
-    { iconName: 'shield', value: heraldry, label: 'Arms' },
+    { iconName: 'users', value: people || 0, label: 'People' },
+    { iconName: 'castle', value: houses || 0, label: 'Houses' },
+    { iconName: 'heart', value: relationships || 0, label: 'Bonds' },
+    { iconName: 'book-open', value: codexEntries || 0, label: 'Codex' },
+    { iconName: 'shield', value: heraldry || 0, label: 'Arms' },
   ];
-  
+
   return (
     <section className="stats-glance">
-      <motion.h2 
+      <motion.h2
         className="stats-title"
         initial={staggeredEntrance ? { opacity: 0, y: -10 } : false}
         animate={staggeredEntrance ? { opacity: 1, y: 0 } : false}
         transition={{ duration: 0.4 }}
       >
         <Icon name="chart" size={24} className="section-title-icon" />
-        {hasData ? 'Your World at a Glance' : 'Begin Your Chronicle'}
+        {loading ? 'Loading Your World...' : hasData ? 'Your World at a Glance' : 'Begin Your Chronicle'}
       </motion.h2>
-      
-      <motion.div 
+
+      <motion.div
         className="stats-grid"
         variants={staggeredEntrance ? CONTAINER_VARIANTS : {}}
         initial={staggeredEntrance ? "hidden" : false}
         animate={staggeredEntrance ? "visible" : false}
       >
-        {statItems.map((stat, index) => (
-          <StatCard
-            key={stat.label}
-            iconName={stat.iconName}
-            value={stat.value}
-            label={stat.label}
-            delay={index * 0.1}
-            features={features}
-          />
-        ))}
+        {loading ? (
+          // Show skeleton cards while loading
+          [...Array(5)].map((_, index) => (
+            <StatCardSkeleton
+              key={index}
+              delay={index * 0.1}
+              features={features}
+            />
+          ))
+        ) : (
+          statItems.map((stat, index) => (
+            <StatCard
+              key={stat.label}
+              iconName={stat.iconName}
+              value={stat.value}
+              label={stat.label}
+              delay={index * 0.1}
+              features={features}
+            />
+          ))
+        )}
       </motion.div>
-      
+
       {/* Encouraging message when empty or sparse */}
-      {!hasData && (
-        <motion.p 
+      {!loading && !hasData && (
+        <motion.p
           className="stats-empty-message"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -208,9 +251,9 @@ export default function StatsGlance({ features, stats }) {
           Your world awaits. Add your first house or character to begin weaving your legacy.
         </motion.p>
       )}
-      
-      {hasData && totalItems < 20 && (
-        <motion.p 
+
+      {!loading && hasData && totalItems < 20 && (
+        <motion.p
           className="stats-encouragement"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

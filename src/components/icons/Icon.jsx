@@ -23,6 +23,7 @@ import {
   TreeDeciduous,
   BookOpen,
   Shield,
+  ShieldCheck,
   Settings,
   Users,
   User,
@@ -42,6 +43,7 @@ import {
   X,
   Check,
   Edit,
+  Pencil,
   Trash2,
   Copy,
   ExternalLink,
@@ -60,6 +62,7 @@ import {
   Scroll,
   Crown,
   Swords,
+  Sword,
   Anvil,
   Cog,
   Network,
@@ -73,6 +76,7 @@ import {
   Rocket,
   Info,
   AlertCircle,
+  CircleAlert,
   HelpCircle,
   RefreshCw,
   // Additional icons for heraldry/forms/data
@@ -122,7 +126,16 @@ import {
   Wrench,
   AlertTriangle,
   Loader,
-  RefreshCcw
+  RefreshCcw,
+  Minus,
+  ArrowUpDown,
+  CheckSquare,
+  LayoutList,
+  // Additional missing icons
+  Baby,
+  ClipboardList,
+  Play,
+  Cloud
 } from 'lucide-react';
 
 /**
@@ -141,6 +154,7 @@ const LUCIDE_ICONS = {
   'book-marked': BookMarked,
   'armory': Shield,
   'shield': Shield,
+  'shield-check': ShieldCheck,
   'forge': Anvil,
   'anvil': Anvil,
   'settings': Settings,
@@ -161,9 +175,12 @@ const LUCIDE_ICONS = {
   // Actions
   'add': Plus,
   'plus': Plus,
+  'minus': Minus,
   'edit': Edit,
+  'pencil': Pencil,
   'delete': Trash2,
   'trash': Trash2,
+  'trash-2': Trash2,
   'copy': Copy,
   'export': Download,
   'download': Download,
@@ -172,6 +189,8 @@ const LUCIDE_ICONS = {
   'search': Search,
   'refresh': RefreshCw,
   'external': ExternalLink,
+  'external-link': ExternalLink,
+  'play': Play,
   
   // Navigation arrows
   'arrow-right': ArrowRight,
@@ -186,6 +205,8 @@ const LUCIDE_ICONS = {
   'x': X,
   'info': Info,
   'alert': AlertCircle,
+  'alert-circle': AlertCircle,
+  'circle-alert': CircleAlert,
   'help': HelpCircle,
   'warning': AlertCircle,
   
@@ -197,6 +218,7 @@ const LUCIDE_ICONS = {
   // Decorative/Thematic
   'crown': Crown,
   'swords': Swords,
+  'sword': Sword,
   'crossed-swords': Swords,
   'scroll': ScrollText,
   'scroll-text': ScrollText,
@@ -271,10 +293,12 @@ const LUCIDE_ICONS = {
   'arrow-up': ArrowUp,
   'arrow-down': ArrowDown,
   'arrow-up-right': ArrowUpRight,
+  'arrow-up-down': ArrowUpDown,
 
   // Feedback icons
   'check-circle': CheckCircle,
   'success': CheckCircle,
+  'check-square': CheckSquare,
   'x-circle': XCircle,
   'error': XCircle,
 
@@ -284,6 +308,7 @@ const LUCIDE_ICONS = {
   'list': List,
   'list-view': List,
   'layout-grid': LayoutGrid,
+  'layout-list': LayoutList,
   'columns': Columns3,
 
   // Transform
@@ -293,6 +318,7 @@ const LUCIDE_ICONS = {
   'fullscreen': Maximize2,
   'minimize': Minimize2,
   'rotate-left': RotateCcw,
+  'rotate-ccw': RotateCcw,
   'rotate-right': RotateCw,
   'zoom-in': ZoomIn,
   'zoom-out': ZoomOut,
@@ -315,7 +341,16 @@ const LUCIDE_ICONS = {
   'alert-triangle': AlertTriangle,
   'loader': Loader,
   'refresh-cw': RefreshCcw,
-  'git-branch': GitBranch
+  'git-branch': GitBranch,
+
+  // People & Life
+  'baby': Baby,
+
+  // Lists & Organization
+  'clipboard-list': ClipboardList,
+
+  // Cloud & Sync
+  'cloud': Cloud
 };
 
 /**

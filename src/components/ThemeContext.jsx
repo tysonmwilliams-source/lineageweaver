@@ -1,11 +1,28 @@
 /**
  * ThemeContext.jsx
- * 
+ *
  * Provides theme management functionality for Lineageweaver.
  * Handles theme switching, localStorage persistence, and theme state.
+ *
+ * PERFORMANCE: Theme CSS is now loaded dynamically on demand instead of
+ * all themes being loaded at startup. This reduces initial CSS parsing.
  */
 
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useRef } from 'react';
+
+// Theme CSS file paths - loaded dynamically
+const THEME_CSS_PATHS = {
+  'royal-parchment': '/src/styles/themes/theme-royal-parchment.css',
+  'light-manuscript': '/src/styles/themes/theme-light-manuscript.css',
+  'emerald-court': '/src/styles/themes/theme-emerald-court.css',
+  'sapphire-dynasty': '/src/styles/themes/theme-sapphire-dynasty.css',
+  'autumn-chronicle': '/src/styles/themes/theme-autumn-chronicle.css',
+  'rose-lineage': '/src/styles/themes/theme-rose-lineage.css',
+  'twilight-realm': '/src/styles/themes/theme-twilight-realm.css'
+};
+
+// Cache for loaded theme stylesheets
+const loadedThemes = new Set();
 
 // Available themes configuration
 export const AVAILABLE_THEMES = [
@@ -81,20 +98,68 @@ export const ThemeProvider = ({ children, defaultTheme = 'royal-parchment' }) =>
     return defaultTheme;
   });
 
+  // Dynamically load theme CSS file
+  const loadThemeCSS = async (themeId) => {
+    // Skip if already loaded
+    if (loadedThemes.has(themeId)) {
+      return;
+    }
+
+    const cssPath = THEME_CSS_PATHS[themeId];
+    if (!cssPath) {
+      console.warn(`No CSS path for theme: ${themeId}`);
+      return;
+    }
+
+    try {
+      // Check if stylesheet already exists in document
+      const existingLink = document.querySelector(`link[data-theme="${themeId}"]`);
+      if (existingLink) {
+        loadedThemes.add(themeId);
+        return;
+      }
+
+      // Create and append stylesheet link
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = cssPath;
+      link.setAttribute('data-theme', themeId);
+
+      // Wait for stylesheet to load
+      await new Promise((resolve, reject) => {
+        link.onload = resolve;
+        link.onerror = reject;
+        document.head.appendChild(link);
+      });
+
+      loadedThemes.add(themeId);
+      console.log(`🎨 Theme CSS loaded: ${themeId}`);
+    } catch (error) {
+      console.error(`Failed to load theme CSS: ${themeId}`, error);
+    }
+  };
+
   // Apply theme to document and save to localStorage whenever it changes
   useEffect(() => {
-    try {
-      // Apply theme attribute to document root
-      document.documentElement.setAttribute('data-theme', theme);
-      
-      // Save to localStorage
-      localStorage.setItem('lineageweaver-theme', theme);
-      
-      // Log theme change (useful for debugging)
-      console.log(`Theme changed to: ${theme}`);
-    } catch (error) {
-      console.error('Failed to apply theme:', error);
-    }
+    const applyTheme = async () => {
+      try {
+        // Load the theme CSS dynamically
+        await loadThemeCSS(theme);
+
+        // Apply theme attribute to document root
+        document.documentElement.setAttribute('data-theme', theme);
+
+        // Save to localStorage
+        localStorage.setItem('lineageweaver-theme', theme);
+
+        // Log theme change (useful for debugging)
+        console.log(`Theme changed to: ${theme}`);
+      } catch (error) {
+        console.error('Failed to apply theme:', error);
+      }
+    };
+
+    applyTheme();
   }, [theme]);
 
   /**

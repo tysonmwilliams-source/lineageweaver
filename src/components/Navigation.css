@@ -314,6 +314,34 @@
 }
 
 /* ============================================
+   AI COUNSELOR BUTTON
+   ============================================ */
+
+.nav__ai-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+  border: none;
+  border-radius: var(--radius-lg);
+  color: var(--bg-primary);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
+  box-shadow: 0 2px 8px rgba(212, 165, 116, 0.3);
+}
+
+.nav__ai-button:hover {
+  box-shadow: 0 4px 12px rgba(212, 165, 116, 0.5);
+  filter: brightness(1.1);
+}
+
+.nav__ai-button:active {
+  transform: scale(0.95);
+}
+
+/* ============================================
    MOBILE MENU BUTTON
    ============================================ */
 

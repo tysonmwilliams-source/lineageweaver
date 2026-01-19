@@ -5,6 +5,8 @@ import { useGenealogy } from '../contexts/GenealogyContext';
 import Navigation from '../components/Navigation';
 import TreeControls from '../components/TreeControls';
 import QuickEditPanel from '../components/QuickEditPanel';
+import BranchView from '../components/BranchView';
+import Icon from '../components/icons';
 import { calculateAllRelationships } from '../utils/RelationshipCalculator';
 import { useTheme } from '../components/ThemeContext';
 import { getAllThemeColors, getHouseColor } from '../utils/themeColors';
@@ -38,7 +40,8 @@ function FamilyTree() {
 
   // ==================== LOCAL UI STATE ====================
   const [selectedHouseId, setSelectedHouseId] = useState(null);
-  const [showCadetHouses, setShowCadetHouses] = useState(true);
+  // Cadet houses are always included (child houses with parentHouseId)
+  const showCadetHouses = true;
   const [zoomLevel, setZoomLevel] = useState(1);
   const svgRef = useRef(null);
   const zoomBehaviorRef = useRef(null);
@@ -57,12 +60,12 @@ function FamilyTree() {
   
   // Controls panel collapse state
   const [controlsPanelExpanded, setControlsPanelExpanded] = useState(false);
-  
-  // Vertical spacing control
-  const [verticalSpacing, setVerticalSpacing] = useState(50);
-  
-  // Fragment gap control
-  const [fragmentGap, setFragmentGap] = useState(0);
+
+  // Branch View - split screen mode for viewing lesser branches
+  const [showBranchView, setShowBranchView] = useState(false);
+
+  // Vertical spacing - fixed at 75px for consistent layouts
+  const verticalSpacing = 75;
 
   // 🧱 FAMILY BLOCK LAYOUT - experimental spacing based on descendant tree width
   // Block layout is now always enabled with fixed spacing
@@ -72,9 +75,13 @@ function FamilyTree() {
   // 👑 DIGNITIES
   const [dignities, setDignities] = useState([]);
   const [dignitiesByPerson, setDignitiesByPerson] = useState(new Map());
-  
+
   // 🎯 HIGHLIGHTED PERSON
   const [highlightedPersonId, setHighlightedPersonId] = useState(null);
+
+  // 🧩 FRAGMENT NAVIGATION
+  const fragmentBoundsRef = useRef([]);
+  const [fragmentNavExpanded, setFragmentNavExpanded] = useState(false);
 
   // ==================== HOUSE VIEW CONTROLS ====================
   const [centreOnPersonId, setCentreOnPersonId] = useState('auto');
@@ -84,6 +91,12 @@ function FamilyTree() {
   const CARD_HEIGHT = 70;
   const SPACING = 35;
   const GROUP_SPACING = 50;
+
+  // Fragment gap - FIXED 60px visible gap between disconnected fragments
+  // The actual value is CARD_HEIGHT + VISIBLE_GAP because the last generation
+  // doesn't include card height in currentGenPos calculation
+  const FRAGMENT_VISIBLE_GAP = 60;
+  const fragmentGap = CARD_HEIGHT + FRAGMENT_VISIBLE_GAP; // 70 + 60 = 130px total offset
   
   // Anchor and start positions
   const ANCHOR_X = 1500;
@@ -538,8 +551,6 @@ function FamilyTree() {
     };
   }, [selectedHouseId, people, houses, relationships, showCadetHouses]);
 
-  const [showFragmentPanel, setShowFragmentPanel] = useState(true);
-
   const [fragmentSeparatorStyle, setFragmentSeparatorStyle] = useState(() => {
     const saved = localStorage.getItem('lineageweaver-fragment-style');
     return saved || 'separator';
@@ -548,6 +559,37 @@ function FamilyTree() {
   const handleFragmentStyleChange = (style) => {
     setFragmentSeparatorStyle(style);
     localStorage.setItem('lineageweaver-fragment-style', style);
+  };
+
+  // Navigate to a specific fragment by zooming/panning to its bounds
+  const navigateToFragment = (fragmentIndex) => {
+    const bounds = fragmentBoundsRef.current.find(b => b.index === fragmentIndex);
+    if (!bounds || !zoomBehaviorRef.current || !svgRef.current) return;
+
+    const svg = d3.select(svgRef.current);
+    const containerWidth = svgRef.current.clientWidth || 800;
+    const containerHeight = svgRef.current.clientHeight || 600;
+
+    // Calculate center of the fragment
+    const centerX = (bounds.minX + bounds.maxX) / 2;
+    const centerY = (bounds.minY + bounds.maxY) / 2;
+
+    // Calculate scale to fit fragment with padding
+    const scaleX = containerWidth / (bounds.width + 200);
+    const scaleY = containerHeight / (bounds.height + 200);
+    const scale = Math.min(scaleX, scaleY, 1.2); // Max scale 1.2
+
+    // Calculate translation to center the fragment
+    const translateX = containerWidth / 2 - centerX * scale;
+    const translateY = containerHeight / 2 - centerY * scale;
+
+    // Apply the transform with animation
+    svg.transition()
+      .duration(500)
+      .call(zoomBehaviorRef.current.transform, d3.zoomIdentity.translate(translateX, translateY).scale(scale));
+
+    // Close the nav panel after navigation
+    setFragmentNavExpanded(false);
   };
 
   // EFFECTS
@@ -620,8 +662,9 @@ function FamilyTree() {
 
   // Redraw tree when data changes
   useEffect(() => {
-    if (selectedHouseId && people.length > 0) drawTree();
-  }, [selectedHouseId, people, houses, relationships, showCadetHouses, theme, searchResults, relationshipMap, verticalSpacing, dataVersion, centreOnPersonId, fragmentSeparatorStyle, dignitiesByPerson, fragmentGap, highlightedPersonId, isManualMode, effectivePositions, useBlockLayout, branchSpacing]);
+    // Only draw tree when not in branch view
+    if (selectedHouseId && people.length > 0 && !showBranchView) drawTree();
+  }, [selectedHouseId, people, houses, relationships, showCadetHouses, theme, searchResults, relationshipMap, verticalSpacing, dataVersion, centreOnPersonId, fragmentSeparatorStyle, dignitiesByPerson, highlightedPersonId, isManualMode, effectivePositions, useBlockLayout, branchSpacing, showBranchView]);
 
   const handleSearchResults = (results) => {
     setSearchResults(results);
@@ -645,7 +688,7 @@ function FamilyTree() {
 
   const detectGenerations = (peopleById, parentMap, childrenMap, spouseMap, overrideRootId = null) => {
     let rootPerson;
-    
+
     if (overrideRootId && peopleById.has(overrideRootId)) {
       rootPerson = peopleById.get(overrideRootId);
       console.log(`Using override root: ${rootPerson.firstName} ${rootPerson.lastName}`);
@@ -653,63 +696,66 @@ function FamilyTree() {
       const gen0People = Array.from(peopleById.values())
         .filter(p => !parentMap.has(p.id))
         .sort((a, b) => parseInt(a.dateOfBirth) - parseInt(b.dateOfBirth));
-      
+
       if (gen0People.length === 0) {
         console.warn('No root people found (everyone has parents)');
         return [];
       }
-      
+
       console.log('Root candidates (no parents):', gen0People.map(p => `${p.firstName} ${p.lastName} (b.${p.dateOfBirth})`));
-      
+
       rootPerson = gen0People[0];
     }
-    
+
     console.log(`Root (Gen 0): ${rootPerson.firstName} ${rootPerson.lastName}`);
-    
+
     const generations = [];
     const processedIds = new Set();
-    
+
     generations.push([rootPerson.id]);
     processedIds.add(rootPerson.id);
-    
+
     const rootSpouseId = spouseMap.get(rootPerson.id);
     if (rootSpouseId) {
       processedIds.add(rootSpouseId);
     }
-    
+
     let currentGenIndex = 0;
     while (currentGenIndex < generations.length) {
       const currentGen = generations[currentGenIndex];
       const nextGenIds = new Set();
-      
+
       currentGen.forEach(personId => {
         const children = childrenMap.get(personId) || [];
         children.forEach(childId => {
-          if (!processedIds.has(childId)) {
+          // CRITICAL: Only include children that are IN this fragment (peopleById)
+          // This prevents generation detection from following relationships outside the fragment
+          if (!processedIds.has(childId) && peopleById.has(childId)) {
             nextGenIds.add(childId);
             processedIds.add(childId);
           }
         });
-        
+
         const spouseId = spouseMap.get(personId);
         if (spouseId && peopleById.has(spouseId)) {
           const spouseChildren = childrenMap.get(spouseId) || [];
           spouseChildren.forEach(childId => {
-            if (!processedIds.has(childId)) {
+            // CRITICAL: Only include children that are IN this fragment (peopleById)
+            if (!processedIds.has(childId) && peopleById.has(childId)) {
               nextGenIds.add(childId);
               processedIds.add(childId);
             }
           });
         }
       });
-      
+
       if (nextGenIds.size > 0) {
         generations.push(Array.from(nextGenIds));
       }
-      
+
       currentGenIndex++;
     }
-    
+
     console.log('Generations detected:', generations.map((g, i) => `Gen ${i}: ${g.length} people`));
     return generations;
   };
@@ -1369,8 +1415,10 @@ function FamilyTree() {
     
     fragmentsToDraw.forEach((fragment, fragmentIndex) => {
       if (fragmentIndex > 0) {
+        // Add consistent 60px visible gap between fragments
+        // (fragmentGap = CARD_HEIGHT + 60px to account for last gen not updating currentGenPos)
         currentGenPos += fragmentGap;
-        console.log(`📏 Added ${fragmentGap}px gap before fragment ${fragmentIndex + 1}`);
+        console.log(`📏 Fragment ${fragmentIndex + 1}: Added ${FRAGMENT_VISIBLE_GAP}px gap (offset: ${fragmentGap}px)`);
       }
       
       const fragmentPeopleById = new Map();
@@ -1876,7 +1924,10 @@ function FamilyTree() {
       }).filter(b => b !== null);
       
       fragmentBounds.sort((a, b) => a.minY - b.minY);
-      
+
+      // Store fragment bounds for navigation
+      fragmentBoundsRef.current = fragmentBounds;
+
       const fragmentColors = isDarkTheme() 
         ? ['rgba(139, 90, 43, 0.08)', 'rgba(70, 90, 110, 0.08)', 'rgba(90, 70, 90, 0.08)', 'rgba(60, 90, 60, 0.08)']
         : ['rgba(210, 180, 140, 0.12)', 'rgba(180, 200, 220, 0.12)', 'rgba(220, 200, 220, 0.12)', 'rgba(200, 220, 200, 0.12)'];
@@ -2155,41 +2206,6 @@ function FamilyTree() {
             <label className="flex items-center cursor-pointer transition-opacity hover:opacity-80" style={{ color: 'var(--text-primary)' }}>
               <input
                 type="checkbox"
-                checked={showCadetHouses}
-                onChange={(e) => setShowCadetHouses(e.target.checked)}
-                className="mr-2 w-4 h-4"
-              />
-              <span className="text-sm">Include Cadet Branches</span>
-            </label>
-          </div>
-
-          <div className="mt-4 pt-4" style={{ borderTopWidth: '1px', borderColor: 'var(--border-primary)' }}>
-            <label className="block mb-2 text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Generation Spacing:</label>
-            <select 
-              value={verticalSpacing} 
-              onChange={(e) => setVerticalSpacing(Number(e.target.value))}
-              className="w-48 p-2 rounded transition"
-              style={{
-                backgroundColor: 'var(--bg-tertiary)',
-                color: 'var(--text-primary)',
-                borderWidth: '1px',
-                borderColor: 'var(--border-primary)',
-                borderRadius: 'var(--radius-md)'
-              }}
-            >
-              <option value={100}>100px (Spacious)</option>
-              <option value={80}>80px</option>
-              <option value={60}>60px</option>
-              <option value={50}>50px (Default)</option>
-              <option value={40}>40px</option>
-              <option value={30}>30px (Compact)</option>
-            </select>
-          </div>
-
-          <div className="mt-4 pt-4" style={{ borderTopWidth: '1px', borderColor: 'var(--border-primary)' }}>
-            <label className="flex items-center cursor-pointer transition-opacity hover:opacity-80" style={{ color: 'var(--text-primary)' }}>
-              <input
-                type="checkbox"
                 checked={showRelationships}
                 onChange={(e) => {
                   const checked = e.target.checked;
@@ -2205,88 +2221,123 @@ function FamilyTree() {
               <span className="text-sm">Show Relationships</span>
             </label>
           </div>
+
+          {/* Branch View - split screen mode for viewing lesser branches */}
+          {fragmentInfo.hasMultipleFragments && (
+            <div className="mt-4 pt-4" style={{ borderTopWidth: '1px', borderColor: 'var(--border-primary)' }}>
+              <label className="flex items-center cursor-pointer transition-opacity hover:opacity-80" style={{ color: 'var(--text-primary)' }}>
+                <input
+                  type="checkbox"
+                  checked={showBranchView}
+                  onChange={(e) => setShowBranchView(e.target.checked)}
+                  className="mr-2 w-4 h-4"
+                />
+                <span className="text-sm">View Other Branches</span>
+              </label>
+              {showBranchView && (
+                <p className="mt-2 text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                  Split-screen branch view coming soon
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
       <TreeControls
         svgRef={svgRef}
         zoomBehaviorRef={zoomBehaviorRef}
-        showCadetHouses={showCadetHouses}
-        onToggleCadetHouses={(checked) => setShowCadetHouses(checked)}
         zoomLevel={zoomLevel}
         onZoomChange={(level) => setZoomLevel(level)}
         isDarkTheme={isDarkTheme()}
       />
 
-      {fragmentInfo.hasMultipleFragments && showFragmentPanel && (
-        <div 
-          className="fixed bottom-6 left-6 z-10 max-w-sm"
-          style={{
-            backgroundColor: 'var(--bg-secondary)',
-            borderWidth: '2px',
-            borderColor: 'var(--accent-primary)',
-            borderRadius: 'var(--radius-lg)',
-            boxShadow: 'var(--shadow-lg)',
-            padding: '1rem'
-          }}
+      {/* Fragment Navigator - Minimal pill in top-left */}
+      {fragmentInfo.hasMultipleFragments && !showBranchView && (
+        <div
+          className="fixed top-20 left-6 z-10"
+          onMouseEnter={() => setFragmentNavExpanded(true)}
+          onMouseLeave={() => setFragmentNavExpanded(false)}
         >
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">🧩</span>
-              <h3 className="font-semibold" style={{ color: 'var(--text-primary)' }}>
-                Disconnected Fragments
-              </h3>
-            </div>
-            <button
-              onClick={() => setShowFragmentPanel(false)}
-              className="p-1 rounded hover:opacity-70 transition"
-              style={{ color: 'var(--text-secondary)' }}
+          {/* Collapsed pill */}
+          <div
+            className="flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all duration-200"
+            style={{
+              backgroundColor: 'var(--bg-secondary)',
+              borderWidth: '1px',
+              borderColor: 'var(--border-primary)',
+              boxShadow: 'var(--shadow-md)'
+            }}
+          >
+            <Icon name="git-branch" size={16} style={{ color: 'var(--accent-primary)' }} />
+            <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+              {fragmentInfo.fragments.length} Branches
+            </span>
+          </div>
+
+          {/* Expanded dropdown */}
+          {fragmentNavExpanded && (
+            <div
+              className="absolute top-full left-0 mt-1 min-w-48 rounded-lg overflow-hidden"
+              style={{
+                backgroundColor: 'var(--bg-secondary)',
+                borderWidth: '1px',
+                borderColor: 'var(--border-primary)',
+                boxShadow: 'var(--shadow-lg)'
+              }}
             >
-              ✕
-            </button>
-          </div>
-          
-          <div className="space-y-2">
-            {fragmentInfo.fragments.map((fragment, index) => (
-              <div 
-                key={index}
-                className="p-2 rounded cursor-pointer transition hover:opacity-80"
-                style={{
-                  backgroundColor: index === 0 ? 'var(--accent-primary-transparent)' : 'var(--bg-tertiary)',
-                  borderWidth: '1px',
-                  borderColor: index === 0 ? 'var(--accent-primary)' : 'var(--border-primary)'
-                }}
-                onClick={() => setCentreOnPersonId(fragment.rootPerson.id)}
-              >
-                <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                  {fragment.rootPerson.firstName} {fragment.rootPerson.lastName}
-                </span>
-              </div>
-            ))}
-          </div>
+              {fragmentInfo.fragments.map((fragment, index) => (
+                <button
+                  key={index}
+                  className="w-full px-3 py-2 text-left transition-colors hover:bg-opacity-80 flex items-center gap-2"
+                  style={{
+                    backgroundColor: 'transparent',
+                    color: 'var(--text-primary)'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                  onClick={() => navigateToFragment(index)}
+                >
+                  <Icon name="user" size={14} style={{ color: 'var(--text-secondary)' }} />
+                  <span className="text-sm">
+                    {fragment.rootPerson.firstName} {fragment.rootPerson.lastName}
+                  </span>
+                  <span className="text-xs ml-auto" style={{ color: 'var(--text-tertiary)' }}>
+                    {fragment.memberCount}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
-      
-      {fragmentInfo.hasMultipleFragments && !showFragmentPanel && (
-        <button
-          onClick={() => setShowFragmentPanel(true)}
-          className="fixed bottom-6 left-6 z-10 flex items-center gap-2 px-3 py-2 rounded-lg transition hover:opacity-80"
-          style={{
-            backgroundColor: 'var(--accent-primary)',
-            color: 'white',
-            boxShadow: 'var(--shadow-md)'
-          }}
-        >
-          <span>🧩</span>
-          <span className="text-sm font-medium">
-            {fragmentInfo.fragments.length} Fragments
-          </span>
-        </button>
-      )}
 
-      <div className="relative w-full h-screen overflow-hidden" style={{ backgroundColor: 'var(--bg-primary)' }}>
-        <svg ref={svgRef} className="tree-svg"></svg>
-      </div>
+      {/* Main Tree View or Branch View */}
+      {showBranchView && fragmentInfo.hasMultipleFragments ? (
+        (() => {
+          const maps = buildRelationshipMaps();
+          return (
+            <BranchView
+              fragments={fragmentInfo.fragments}
+              peopleById={maps.peopleById}
+              parentMap={maps.parentMap}
+              childrenMap={maps.childrenMap}
+              spouseMap={maps.spouseMap}
+              spouseRelationshipMap={maps.spouseRelationshipMap}
+              housesById={maps.housesById}
+              detectGenerations={detectGenerations}
+              dignitiesByPerson={dignitiesByPerson}
+              getDignityIcon={getDignityIcon}
+              getPrimaryEpithet={getPrimaryEpithet}
+              onExit={() => setShowBranchView(false)}
+            />
+          );
+        })()
+      ) : (
+        <div className="relative w-full h-screen overflow-hidden" style={{ backgroundColor: 'var(--bg-primary)' }}>
+          <svg ref={svgRef} className="tree-svg"></svg>
+        </div>
+      )}
 
       {selectedPerson && (
         <QuickEditPanel

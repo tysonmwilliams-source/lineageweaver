@@ -195,6 +195,29 @@
   color: var(--text-tertiary);
 }
 
+.codex-entry-form__select {
+  padding: var(--space-3) var(--space-4);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
+  width: 100%;
+}
+
+.codex-entry-form__select:hover {
+  border-color: var(--accent-primary);
+}
+
+.codex-entry-form__select:focus {
+  outline: none;
+  border-color: var(--focus-ring);
+  box-shadow: 0 0 0 3px var(--focus-ring-alpha, rgba(212, 175, 55, 0.2));
+}
+
 .codex-entry-form__textarea {
   padding: var(--space-4);
   font-family: var(--font-body);

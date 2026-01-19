@@ -1,0 +1,179 @@
+/**
+ * BranchView.css - Split-screen branch view styles
+ *
+ * Supports 2-4 panel layouts for viewing lesser branches
+ * of a noble house simultaneously.
+ */
+
+.branch-view-container {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+}
+
+.branch-view {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  gap: 2px;
+  background-color: var(--border-primary);
+}
+
+/* 2 panels - side by side */
+.branch-view--panels-2 {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr;
+}
+
+/* 3 panels - 2 on top, 1 spanning bottom */
+.branch-view--panels-3 {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+.branch-view--panels-3 .branch-panel:nth-child(3) {
+  grid-column: span 2;
+}
+
+/* 4 panels - 2x2 grid */
+.branch-view--panels-4 {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+/* Individual panel */
+.branch-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-primary);
+  overflow: hidden;
+}
+
+/* Panel header */
+.branch-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1rem;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-primary);
+  min-height: 40px;
+}
+
+.branch-panel__title {
+  font-family: var(--font-display), 'Georgia', serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.branch-panel__subtitle {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.branch-panel__info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.branch-panel__badge {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  background-color: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+/* Panel content (SVG container) */
+.branch-panel__content {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+.branch-panel__svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Panel controls */
+.branch-panel__controls {
+  position: absolute;
+  bottom: 0.5rem;
+  right: 0.5rem;
+  display: flex;
+  gap: 0.25rem;
+  z-index: 10;
+}
+
+.branch-panel__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.branch-panel__btn:hover {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+/* Exit branch view button - positioned in bottom center */
+.branch-view__exit {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: var(--shadow-lg);
+  transition: all 0.15s ease;
+}
+
+.branch-view__exit:hover {
+  background-color: var(--accent-primary);
+  color: var(--bg-primary);
+  box-shadow: var(--shadow-xl);
+}
+
+/* Fragment indicator colors */
+.branch-panel--fragment-1 .branch-panel__header {
+  border-top: 3px solid var(--accent-primary);
+}
+
+.branch-panel--fragment-2 .branch-panel__header {
+  border-top: 3px solid var(--accent-secondary);
+}
+
+.branch-panel--fragment-3 .branch-panel__header {
+  border-top: 3px solid var(--accent-codex);
+}
+
+.branch-panel--fragment-4 .branch-panel__header {
+  border-top: 3px solid var(--accent-armory);
+}

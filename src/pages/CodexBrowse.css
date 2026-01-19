@@ -17,9 +17,46 @@
   padding: var(--space-6) var(--space-4) var(--space-16);
 }
 
-.browse-container {
-  max-width: 1200px;
+.browse-layout {
+  display: flex;
+  gap: var(--space-6);
+  max-width: 1400px;
   margin: 0 auto;
+  align-items: flex-start;
+}
+
+.browse-container {
+  flex: 1;
+  min-width: 0;
+  max-width: 1200px;
+}
+
+/* Education panel - sticky sidebar pattern */
+.browse-layout > .dignity-education {
+  position: sticky;
+  top: 380px; /* Aligns flush with top of search bar box */
+  flex-shrink: 0;
+  align-self: flex-start;
+  max-height: calc(100vh - 400px);
+  overflow-y: auto;
+  order: -1;
+}
+
+/* On smaller screens, panel stacks above content */
+@media (max-width: 1200px) {
+  .browse-layout {
+    flex-direction: column;
+  }
+
+  .browse-layout > .dignity-education {
+    position: relative;
+    top: auto;
+    width: 100%;
+    max-height: none;
+    overflow-y: visible;
+    order: 0;
+    margin-bottom: var(--space-4);
+  }
 }
 
 /* ============================================
@@ -561,6 +598,92 @@
   transform: translateX(-8px);
   transition: all var(--duration-fast) var(--ease-standard);
   flex-shrink: 0;
+}
+
+/* ============================================
+   SUBSECTIONS (Heraldry & Titles)
+   ============================================ */
+
+.browse-list--grouped {
+  background: transparent;
+  border: none;
+  gap: var(--space-4);
+}
+
+.browse-subsection {
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-primary);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+}
+
+.browse-subsection-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-4) var(--space-5);
+  background: var(--bg-tertiary);
+  border: none;
+  border-bottom: 1px solid var(--border-secondary);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-standard);
+}
+
+.browse-subsection-header:hover {
+  background: var(--bg-hover);
+}
+
+.browse-subsection-header__chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+}
+
+.browse-subsection-header__icon {
+  color: var(--accent-primary);
+}
+
+.browse-subsection-header__label {
+  font-family: var(--font-heading);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+}
+
+.browse-subsection-header__count {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.browse-subsection__content {
+  overflow: hidden;
+}
+
+.browse-subsection__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-8);
+  color: var(--text-tertiary);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-style: italic;
+}
+
+.browse-subsection__empty svg {
+  opacity: 0.5;
+}
+
+/* Subsection items inherit browse-list__item styles */
+.browse-subsection__content .browse-list__item:last-child {
+  border-bottom: none;
 }
 
 /* ============================================

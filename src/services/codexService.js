@@ -249,6 +249,22 @@ export async function getAllEntries(datasetId) {
 }
 
 /**
+ * Get count of codex entries without loading all data
+ * More efficient than getAllEntries().length for stats
+ * @param {string} [datasetId] - Dataset ID (optional)
+ * @returns {Promise<number>} Count of entries
+ */
+export async function getEntriesCount(datasetId) {
+  try {
+    const db = getDatabase(datasetId);
+    return await db.codexEntries.count();
+  } catch (error) {
+    console.error('Error getting codex entries count:', error);
+    return 0;
+  }
+}
+
+/**
  * Get entries by type
  * @param {string} type - Entry type (personage, house, location, event, mysteria, custom)
  * @param {string} [datasetId] - Dataset ID (optional)
@@ -604,6 +620,181 @@ export async function getCodexStatistics(datasetId) {
   }
 }
 
+/**
+ * Migrate mysteria entries to the Heraldry & Titles section
+ *
+ * This moves all entries with type 'mysteria' to type 'heraldry'
+ * with category 'titles', placing them in the Dignities & Titles subsection.
+ *
+ * @param {string} [datasetId] - Dataset ID (optional)
+ * @returns {Promise<Object>} Migration results with count of migrated entries
+ */
+export async function migrateMysteriaToDignities(datasetId) {
+  try {
+    const db = getDatabase(datasetId);
+
+    // Get all mysteria entries
+    const mysteriaEntries = await db.codexEntries
+      .filter(entry => entry.type === 'mysteria')
+      .toArray();
+
+    let migratedCount = 0;
+    const errors = [];
+
+    for (const entry of mysteriaEntries) {
+      try {
+        // Update entry to be heraldry type with titles category
+        await db.codexEntries.update(entry.id, {
+          type: 'heraldry',
+          category: 'titles',
+          updated: new Date().toISOString()
+        });
+        migratedCount++;
+      } catch (err) {
+        errors.push({ id: entry.id, title: entry.title, error: err.message });
+      }
+    }
+
+    console.log(`Migrated ${migratedCount} mysteria entries to Dignities & Titles`);
+
+    return {
+      success: errors.length === 0,
+      total: mysteriaEntries.length,
+      migrated: migratedCount,
+      errors
+    };
+  } catch (error) {
+    console.error('Error migrating mysteria entries:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get count of mysteria entries that can be migrated
+ * Excludes entries marked with skipMigration flag
+ * @param {string} [datasetId] - Dataset ID (optional)
+ * @returns {Promise<number>} Count of mysteria entries
+ */
+export async function getMysteriaMigrationCount(datasetId) {
+  try {
+    const db = getDatabase(datasetId);
+    const count = await db.codexEntries
+      .filter(entry => entry.type === 'mysteria' && !entry.skipMigration)
+      .count();
+    return count;
+  } catch (error) {
+    console.error('Error getting mysteria count:', error);
+    return 0;
+  }
+}
+
+/**
+ * Get all mysteria entries that can be migrated
+ * Excludes entries marked with skipMigration flag
+ * @param {string} [datasetId] - Dataset ID (optional)
+ * @returns {Promise<Array>} Array of mysteria entries
+ */
+export async function getMysteriaMigrationEntries(datasetId) {
+  try {
+    const db = getDatabase(datasetId);
+    const entries = await db.codexEntries
+      .filter(entry => entry.type === 'mysteria' && !entry.skipMigration)
+      .toArray();
+    return entries;
+  } catch (error) {
+    console.error('Error getting mysteria entries:', error);
+    return [];
+  }
+}
+
+/**
+ * Migrate selected mysteria entries to Dignities & Titles
+ * @param {Array<number>} entryIds - Array of entry IDs to migrate
+ * @param {string} [datasetId] - Dataset ID (optional)
+ * @returns {Promise<Object>} Migration results
+ */
+export async function migrateSelectedMysteria(entryIds, datasetId) {
+  try {
+    const db = getDatabase(datasetId);
+
+    let migratedCount = 0;
+    const errors = [];
+
+    for (const id of entryIds) {
+      try {
+        // Get entry to verify it exists and is mysteria type
+        const entry = await db.codexEntries.get(id);
+        if (!entry || entry.type !== 'mysteria') {
+          errors.push({ id, title: entry?.title || 'Unknown', error: 'Entry not found or not mysteria type' });
+          continue;
+        }
+
+        // Update entry to be heraldry type with titles category
+        await db.codexEntries.update(id, {
+          type: 'heraldry',
+          category: 'titles',
+          modified: new Date().toISOString()
+        });
+        migratedCount++;
+      } catch (err) {
+        errors.push({ id, title: 'Unknown', error: err.message });
+      }
+    }
+
+    console.log(`Migrated ${migratedCount} selected mysteria entries to Dignities & Titles`);
+
+    return {
+      success: errors.length === 0,
+      total: entryIds.length,
+      migrated: migratedCount,
+      errors
+    };
+  } catch (error) {
+    console.error('Error migrating selected mysteria entries:', error);
+    throw error;
+  }
+}
+
+/**
+ * Mark mysteria entries to skip migration
+ * These entries will no longer appear in the migration list
+ * @param {Array<number>} entryIds - Array of entry IDs to mark
+ * @param {string} [datasetId] - Dataset ID (optional)
+ * @returns {Promise<Object>} Result with count of marked entries
+ */
+export async function markMysteriaSkipMigration(entryIds, datasetId) {
+  try {
+    const db = getDatabase(datasetId);
+
+    let markedCount = 0;
+    const errors = [];
+
+    for (const id of entryIds) {
+      try {
+        await db.codexEntries.update(id, {
+          skipMigration: true,
+          modified: new Date().toISOString()
+        });
+        markedCount++;
+      } catch (err) {
+        errors.push({ id, error: err.message });
+      }
+    }
+
+    console.log(`Marked ${markedCount} entries to skip migration`);
+
+    return {
+      success: errors.length === 0,
+      total: entryIds.length,
+      marked: markedCount,
+      errors
+    };
+  } catch (error) {
+    console.error('Error marking entries to skip migration:', error);
+    throw error;
+  }
+}
+
 export default {
   // Entry operations
   createEntry,
@@ -632,5 +823,12 @@ export default {
   deleteLink,
   
   // Statistics
-  getCodexStatistics
+  getCodexStatistics,
+
+  // Migration utilities
+  migrateMysteriaToDignities,
+  getMysteriaMigrationCount,
+  getMysteriaMigrationEntries,
+  migrateSelectedMysteria,
+  markMysteriaSkipMigration
 };

@@ -65,8 +65,8 @@ const CATEGORIES = [
   { type: 'location', label: 'Locations', icon: 'map-pin', color: 'success' },
   { type: 'event', label: 'Events', icon: 'swords', color: 'error' },
   { type: 'mysteria', label: 'Mysteria', icon: 'sparkles', color: 'primary' },
-  { type: 'concept', label: 'Concepts', icon: 'scroll-text', color: 'info' },
-  { type: 'heraldry', label: 'Heraldry', icon: 'shield', color: 'warning' },
+  { type: 'concept', label: 'Concepts & Laws', icon: 'scroll-text', color: 'info' },
+  { type: 'heraldry', label: 'Heraldry & Titles', icon: 'shield', color: 'warning' },
   { type: 'custom', label: 'Custom', icon: 'file', color: 'success' }
 ];
 

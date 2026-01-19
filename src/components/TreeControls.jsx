@@ -42,8 +42,6 @@ const HINT_VARIANTS = {
 function TreeControls({
   svgRef,
   zoomBehaviorRef,
-  showCadetHouses,
-  onToggleCadetHouses,
   zoomLevel,
   onZoomChange
 }) {

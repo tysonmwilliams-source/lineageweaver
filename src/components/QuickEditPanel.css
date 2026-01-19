@@ -162,6 +162,87 @@
 }
 
 /* ============================================
+   FULL EDIT BUTTON
+   ============================================ */
+
+.quick-edit__full-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  margin-top: var(--space-2);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--accent-primary);
+  background: transparent;
+  border: 1px solid var(--accent-primary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.quick-edit__full-edit-btn:hover {
+  background: var(--accent-primary);
+  color: var(--bg-primary);
+}
+
+.quick-edit__full-edit-btn svg {
+  flex-shrink: 0;
+}
+
+/* ============================================
+   COLLAPSIBLE SECTIONS
+   ============================================ */
+
+.quick-edit__section--collapsible {
+  border-top: 1px solid var(--border-primary);
+  padding-top: var(--space-3);
+}
+
+.quick-edit__section-title--clickable {
+  cursor: pointer;
+  user-select: none;
+  margin-bottom: 0;
+  padding: var(--space-2) 0;
+  border-radius: var(--radius-sm);
+  transition: background var(--duration-fast) var(--ease-standard);
+}
+
+.quick-edit__section-title--clickable:hover {
+  background: var(--bg-tertiary);
+  padding-left: var(--space-2);
+  padding-right: var(--space-2);
+  margin-left: calc(-1 * var(--space-2));
+  margin-right: calc(-1 * var(--space-2));
+}
+
+.quick-edit__section-toggle {
+  margin-left: auto;
+  opacity: 0.6;
+  transition: transform var(--duration-fast) var(--ease-standard);
+}
+
+.quick-edit__section-title--clickable:hover .quick-edit__section-toggle {
+  opacity: 1;
+}
+
+.quick-edit__section-indicator {
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--accent-primary);
+  background: var(--bg-tertiary);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.quick-edit__section-content {
+  overflow: hidden;
+  padding-top: var(--space-3);
+}
+
+/* ============================================
    FORM FIELDS
    ============================================ */
 
@@ -381,6 +462,38 @@
 
 .quick-edit__dignity-arrow {
   color: var(--text-tertiary);
+}
+
+.quick-edit__dignity-nature {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-full);
+  margin-left: auto;
+  margin-right: var(--space-1);
+  flex-shrink: 0;
+}
+
+.quick-edit__dignity-nature--territorial {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+}
+
+.quick-edit__dignity-nature--office {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+}
+
+.quick-edit__dignity-nature--personal-honour {
+  background: rgba(168, 85, 247, 0.15);
+  color: #a855f7;
+}
+
+.quick-edit__dignity-nature--courtesy {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
 }
 
 .quick-edit__dignity-full {

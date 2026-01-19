@@ -81,8 +81,12 @@ const RELATIONSHIP_CONFIG = {
   spouse: {
     icon: 'heart',
     color: 'rose',
-    getDescription: (p1, p2, rel) =>
-      `${p1} and ${p2} are ${rel.marriageStatus || 'married'}`
+    getDescription: (p1, p2, rel) => {
+      if (rel.marriageStatus === 'betrothed') {
+        return `${p1} is betrothed to ${p2}`;
+      }
+      return `${p1} and ${p2} are ${rel.marriageStatus || 'married'}`;
+    }
   },
   'adopted-parent': {
     icon: 'link',
@@ -314,8 +318,14 @@ function RelationshipList({ relationships, people, onEdit, onDelete }) {
                   </p>
 
                   {/* Additional details for spouse relationships */}
-                  {rel.relationshipType === 'spouse' && (rel.marriageDate || rel.divorceDate) && (
+                  {rel.relationshipType === 'spouse' && (rel.betrothalDate || rel.marriageDate || rel.divorceDate) && (
                     <div className="relationship-list__meta">
+                      {rel.betrothalDate && (
+                        <span className="relationship-list__meta-item">
+                          <Icon name="calendar" size={14} />
+                          <span>Betrothed: {rel.betrothalDate}</span>
+                        </span>
+                      )}
                       {rel.marriageDate && (
                         <span className="relationship-list__meta-item">
                           <Icon name="calendar" size={14} />

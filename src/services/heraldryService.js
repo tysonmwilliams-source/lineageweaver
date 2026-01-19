@@ -143,6 +143,22 @@ export async function getAllHeraldry(datasetId = null) {
 }
 
 /**
+ * Get count of heraldry records without loading all data
+ * More efficient than getAllHeraldry().length for stats
+ * @param {string} [datasetId] - Dataset ID (optional)
+ * @returns {Promise<number>} Count of heraldry records
+ */
+export async function getHeraldryCount(datasetId = null) {
+  try {
+    const db = getDatabase(datasetId);
+    return await db.heraldry.count();
+  } catch (error) {
+    console.error('❌ Error getting heraldry count:', error);
+    return 0;
+  }
+}
+
+/**
  * Update an existing heraldry record
  *
  * @param {number} id - The heraldry ID to update

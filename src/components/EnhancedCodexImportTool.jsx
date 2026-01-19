@@ -3,7 +3,7 @@
  * 
  * Flexible UI for importing codex data from multiple sources.
  * Supports the original House Wilfrey data, Veritists expansion,
- * Charter data, and any custom data following the same format.
+ * Charter data, Alliance data, and any custom data following the same format.
  * 
  * STYLED TO MATCH: Medieval manuscript aesthetic using theme CSS variables
  */
@@ -12,22 +12,27 @@ import React, { useState } from 'react';
 import { importCodexData, clearCodex, getImportPreview } from '../utils/enhanced-codex-import.js';
 import CODEX_SEED_DATA from '../data/codex-seed-data.js';
 import { useAuth } from '../contexts/AuthContext';
+import { useDataset } from '../contexts/DatasetContext';
+import { forceUploadToCloud } from '../services/dataSyncService';
 import './EnhancedCodexImportTool.css';
 
-export default function EnhancedCodexImportTool({ veritistsData = null, charterData = null }) {
+export default function EnhancedCodexImportTool({ veritistsData = null, charterData = null, allianceData = null, bastardyData = null }) {
   const [importing, setImporting] = useState(false);
   const [results, setResults] = useState(null);
   const [error, setError] = useState(null);
   const [progress, setProgress] = useState(null);
   const [selectedSource, setSelectedSource] = useState('house-wilfrey');
   
-  // ☁️ Get current user for cloud sync
+  // ☁️ Get current user and dataset for cloud sync
   const { user } = useAuth();
+  const { activeDataset } = useDataset();
   
   // Get previews for available sources
   const wilfryPreview = getImportPreview(CODEX_SEED_DATA);
   const veritistsPreview = veritistsData ? getImportPreview(veritistsData) : null;
   const charterPreview = charterData ? getImportPreview(charterData) : null;
+  const alliancePreview = allianceData ? getImportPreview(allianceData) : null;
+  const bastardyPreview = bastardyData ? getImportPreview(bastardyData) : null;
   
   const handleImport = async (clearFirst = false) => {
     let dataToImport;
@@ -50,6 +55,20 @@ export default function EnhancedCodexImportTool({ veritistsData = null, charterD
       }
       dataToImport = charterData;
       confirmMessage = `Import ${charterPreview.total} Charter entries?`;
+    } else if (selectedSource === 'alliance') {
+      if (!allianceData) {
+        setError('Alliance data not available. Please ensure it is imported in the component.');
+        return;
+      }
+      dataToImport = allianceData;
+      confirmMessage = `Import ${alliancePreview.total} Breakmount-Riverhead Alliance entries?`;
+    } else if (selectedSource === 'bastardy') {
+      if (!bastardyData) {
+        setError('Bastardy Naming data not available. Please ensure it is imported in the component.');
+        return;
+      }
+      dataToImport = bastardyData;
+      confirmMessage = `Import ${bastardyPreview.total} Bastardy Naming Law entries?`;
     } else if (selectedSource === 'all') {
       confirmMessage = `Import ALL available entries?`;
     }
@@ -86,20 +105,40 @@ export default function EnhancedCodexImportTool({ veritistsData = null, charterD
           timing: { start: Date.now(), end: 0, duration: 0 }
         };
         
-        setProgress({ current: 'House Wilfrey data...', processed: 0, total: 3 });
+        const totalSources = 1 + (veritistsData ? 1 : 0) + (charterData ? 1 : 0) + (allianceData ? 1 : 0) + (bastardyData ? 1 : 0);
+        let processedSources = 0;
+        
+        setProgress({ current: 'House Wilfrey data...', processed: processedSources, total: totalSources });
         const wilfryResults = await importCodexData(CODEX_SEED_DATA, { userId: user?.uid });
         mergeResults(allResults, wilfryResults);
+        processedSources++;
         
         if (veritistsData) {
-          setProgress({ current: 'Veritists data...', processed: 1, total: 3 });
+          setProgress({ current: 'Veritists data...', processed: processedSources, total: totalSources });
           const veritistsResults = await importCodexData(veritistsData, { userId: user?.uid });
           mergeResults(allResults, veritistsResults);
+          processedSources++;
         }
         
         if (charterData) {
-          setProgress({ current: 'Charter data...', processed: 2, total: 3 });
+          setProgress({ current: 'Charter data...', processed: processedSources, total: totalSources });
           const charterResults = await importCodexData(charterData, { userId: user?.uid });
           mergeResults(allResults, charterResults);
+          processedSources++;
+        }
+        
+        if (allianceData) {
+          setProgress({ current: 'Alliance data...', processed: processedSources, total: totalSources });
+          const allianceResults = await importCodexData(allianceData, { userId: user?.uid });
+          mergeResults(allResults, allianceResults);
+          processedSources++;
+        }
+        
+        if (bastardyData) {
+          setProgress({ current: 'Bastardy Naming Laws...', processed: processedSources, total: totalSources });
+          const bastardyResults = await importCodexData(bastardyData, { userId: user?.uid });
+          mergeResults(allResults, bastardyResults);
+          processedSources++;
         }
         
         allResults.timing.end = Date.now();
@@ -113,6 +152,19 @@ export default function EnhancedCodexImportTool({ veritistsData = null, charterD
       }
       
       setResults(importResults);
+
+      // CRITICAL: Force upload to cloud to prevent data loss
+      // Without this, imported data could be lost on next sync
+      if (user && activeDataset) {
+        setProgress({ current: 'Syncing to cloud...' });
+        try {
+          await forceUploadToCloud(user.uid, activeDataset.id);
+          console.log('✅ Codex import data synced to cloud');
+        } catch (syncErr) {
+          console.warn('⚠️ Could not sync to cloud:', syncErr);
+        }
+      }
+
       setProgress(null);
     } catch (err) {
       setError(err.message);
@@ -135,7 +187,9 @@ export default function EnhancedCodexImportTool({ veritistsData = null, charterD
   
   const allTotal = wilfryPreview.total + 
     (veritistsPreview?.total || 0) + 
-    (charterPreview?.total || 0);
+    (charterPreview?.total || 0) +
+    (alliancePreview?.total || 0) +
+    (bastardyPreview?.total || 0);
   
   return (
     <div className="import-tool">
@@ -229,8 +283,55 @@ export default function EnhancedCodexImportTool({ veritistsData = null, charterD
           </label>
         )}
         
+        {/* Alliance */}
+        {allianceData && alliancePreview && (
+          <label className={`import-tool__option ${selectedSource === 'alliance' ? 'import-tool__option--selected' : ''}`}>
+            <input
+              type="radio"
+              name="dataSource"
+              value="alliance"
+              checked={selectedSource === 'alliance'}
+              onChange={(e) => setSelectedSource(e.target.value)}
+            />
+            <div className="import-tool__option-content">
+              <strong>⚔️ Breakmount-Riverhead Alliance</strong>
+              <span className="import-tool__option-count">{alliancePreview.total} entries</span>
+            </div>
+            <div className="import-tool__option-details">
+              Concepts: {alliancePreview.counts.concepts || 0} | 
+              Events: {alliancePreview.counts.events || 0}
+            </div>
+            <div className="import-tool__option-subtitle">
+              Faraday's service, three alliance marriages, military campaigns
+            </div>
+          </label>
+        )}
+        
+        {/* Bastardy Naming Laws */}
+        {bastardyData && bastardyPreview && (
+          <label className={`import-tool__option ${selectedSource === 'bastardy' ? 'import-tool__option--selected' : ''}`}>
+            <input
+              type="radio"
+              name="dataSource"
+              value="bastardy"
+              checked={selectedSource === 'bastardy'}
+              onChange={(e) => setSelectedSource(e.target.value)}
+            />
+            <div className="import-tool__option-content">
+              <strong>👶 Bastardy Naming Laws</strong>
+              <span className="import-tool__option-count">{bastardyPreview.total} entries</span>
+            </div>
+            <div className="import-tool__option-details">
+              Concepts: {bastardyPreview.counts.concepts || 0}
+            </div>
+            <div className="import-tool__option-subtitle">
+              Dun/Dum naming conventions, legitimization, bastard rights
+            </div>
+          </label>
+        )}
+        
         {/* All */}
-        {(veritistsData || charterData) && (
+        {(veritistsData || charterData || allianceData || bastardyData) && (
           <label className={`import-tool__option ${selectedSource === 'all' ? 'import-tool__option--selected' : ''}`}>
             <input
               type="radio"
@@ -244,7 +345,7 @@ export default function EnhancedCodexImportTool({ veritistsData = null, charterD
               <span className="import-tool__option-count">{allTotal} entries</span>
             </div>
             <div className="import-tool__option-details">
-              House Wilfrey + {veritistsData ? 'Veritists + ' : ''}{charterData ? 'Charter' : ''}
+              House Wilfrey{veritistsData ? ' + Veritists' : ''}{charterData ? ' + Charter' : ''}{allianceData ? ' + Alliance' : ''}{bastardyData ? ' + Bastardy Laws' : ''}
             </div>
           </label>
         )}

@@ -17,14 +17,46 @@
 }
 
 .manage-container {
-  max-width: 1200px;
+  display: flex;
+  gap: var(--space-6);
+  max-width: 1400px;
   margin: 0 auto;
   padding: var(--space-8) var(--space-4) var(--space-16);
+  align-items: flex-start;
 }
 
 .manage-content {
+  flex: 1;
+  min-width: 0;
   max-width: 1000px;
-  margin: 0 auto;
+}
+
+/* Education panel - sticky sidebar pattern */
+.manage-container > .dignity-education {
+  position: sticky;
+  top: 439px; /* Aligns flush with top of tabs row */
+  flex-shrink: 0;
+  align-self: flex-start;
+  max-height: calc(100vh - 459px);
+  overflow-y: auto;
+  order: -1;
+}
+
+/* On smaller screens, panel stacks above content */
+@media (max-width: 1200px) {
+  .manage-container {
+    flex-direction: column;
+  }
+
+  .manage-container > .dignity-education {
+    position: relative;
+    top: auto;
+    width: 100%;
+    max-height: none;
+    overflow-y: visible;
+    order: 0;
+    margin-bottom: var(--space-4);
+  }
 }
 
 /* ============================================

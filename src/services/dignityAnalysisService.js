@@ -14,7 +14,7 @@
  */
 
 import { getAllPeople, getAllHouses, getAllRelationships } from './database';
-import { getAllDignities, getTenuresForDignity } from './dignityService';
+import { getAllDignities, getTenuresForDignity, natureHasSuccession, natureHasTenureHistory } from './dignityService';
 import { SUGGESTION_TYPES, ACTION_TYPES } from '../data/suggestionTypes';
 
 // ==================== UTILITY FUNCTIONS ====================
@@ -261,6 +261,10 @@ function analyzeDeceasedHolders(dignities, maps) {
     const holder = maps.peopleById.get(dignity.currentHolderId);
     if (!holder || !isDeceased(holder)) continue;
 
+    // Skip personal-honours - they're expected to die with the person
+    const nature = dignity.dignityNature || 'territorial';
+    if (nature === 'personal-honour') continue;
+
     // This is a critical issue - deceased person still holds title
     const suggestion = {
       id: generateSuggestionId(),
@@ -333,6 +337,10 @@ function analyzeNoTenureRecords(dignities, tenuresByDignity, maps) {
   for (const dignity of dignities) {
     if (!dignity.currentHolderId) continue;
 
+    // Skip dignities that don't have tenure history (personal-honour, courtesy)
+    const nature = dignity.dignityNature || 'territorial';
+    if (!natureHasTenureHistory(nature)) continue;
+
     const tenures = tenuresByDignity.get(dignity.id) || [];
     if (tenures.length > 0) continue;
 
@@ -393,7 +401,12 @@ function analyzeTenureGaps(dignities, tenuresByDignity, maps) {
   const suggestions = [];
 
   for (const dignity of dignities) {
-    if (!dignity.currentHouseId || !dignity.isHereditary) continue;
+    // Skip if no house or if nature doesn't have tenure history
+    const nature = dignity.dignityNature || 'territorial';
+    if (!dignity.currentHouseId || !natureHasTenureHistory(nature)) continue;
+
+    // For tenure chain analysis, we also need succession (territorial dignities)
+    if (!natureHasSuccession(nature)) continue;
 
     const tenures = tenuresByDignity.get(dignity.id) || [];
     const memberIds = maps.houseMembersMap.get(dignity.currentHouseId) || [];

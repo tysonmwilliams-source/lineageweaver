@@ -422,6 +422,20 @@ export async function getAllPeople(datasetId) {
   }
 }
 
+/**
+ * Get count of people without loading all data
+ * More efficient than getAllPeople().length for stats
+ */
+export async function getPeopleCount(datasetId) {
+  try {
+    const database = getDatabase(datasetId);
+    return await database.people.count();
+  } catch (error) {
+    console.error('Error getting people count:', error);
+    return 0;
+  }
+}
+
 export async function getPeopleByHouse(houseId, datasetId) {
   try {
     const database = getDatabase(datasetId);
@@ -448,8 +462,24 @@ export async function updatePerson(id, updates, datasetId) {
 export async function deletePerson(id, datasetId) {
   try {
     const database = getDatabase(datasetId);
+
+    // CASCADE DELETE: Remove all relationships involving this person
+    // This prevents orphaned relationships when a person is deleted
+    const relationshipsToDelete = await database.relationships
+      .filter(rel => rel.person1Id === id || rel.person2Id === id)
+      .toArray();
+
+    if (relationshipsToDelete.length > 0) {
+      const relationshipIds = relationshipsToDelete.map(r => r.id);
+      await database.relationships.bulkDelete(relationshipIds);
+      console.log(`Cascade deleted ${relationshipIds.length} relationships for person ${id}`);
+    }
+
+    // Now delete the person
     await database.people.delete(id);
     console.log('Person deleted:', id);
+
+    return { deletedRelationships: relationshipsToDelete.length };
   } catch (error) {
     console.error('Error deleting person:', error);
     throw error;
@@ -529,6 +559,20 @@ export async function getAllHouses(datasetId) {
   }
 }
 
+/**
+ * Get count of houses without loading all data
+ * More efficient than getAllHouses().length for stats
+ */
+export async function getHousesCount(datasetId) {
+  try {
+    const database = getDatabase(datasetId);
+    return await database.houses.count();
+  } catch (error) {
+    console.error('Error getting houses count:', error);
+    return 0;
+  }
+}
+
 export async function getCadetHouses(parentHouseId, datasetId) {
   try {
     const database = getDatabase(datasetId);
@@ -556,17 +600,32 @@ export async function updateHouse(id, updates, datasetId) {
 }
 
 /**
- * Delete a house with cascade delete of associated Codex entry
+ * Delete a house with cascade handling
  *
  * @param {number} id - House ID to delete
  * @param {Object} [options] - Options for deletion
  * @param {boolean} [options.skipCodexDeletion=false] - Skip cascade deletion of Codex entry
  * @param {string} [options.datasetId] - Dataset ID (optional, defaults to 'default')
- * @returns {Promise<void>}
+ * @returns {Promise<Object>} Info about cascade operations
  */
 export async function deleteHouse(id, options = {}) {
   try {
     const database = getDatabase(options.datasetId);
+    let clearedPeopleCount = 0;
+
+    // Clear houseId for all people belonging to this house
+    // This prevents orphaned references when a house is deleted
+    const peopleInHouse = await database.people
+      .filter(p => p.houseId === id)
+      .toArray();
+
+    if (peopleInHouse.length > 0) {
+      for (const person of peopleInHouse) {
+        await database.people.update(person.id, { houseId: null });
+      }
+      clearedPeopleCount = peopleInHouse.length;
+      console.log(`Cleared houseId for ${clearedPeopleCount} people from house ${id}`);
+    }
 
     // Cascade delete Codex entry if it exists (unless explicitly skipped)
     if (!options.skipCodexDeletion) {
@@ -588,6 +647,8 @@ export async function deleteHouse(id, options = {}) {
 
     await database.houses.delete(id);
     console.log('House deleted:', id);
+
+    return { clearedPeopleCount };
   } catch (error) {
     console.error('Error deleting house:', error);
     throw error;
@@ -630,6 +691,20 @@ export async function getAllRelationships(datasetId) {
   } catch (error) {
     console.error('Error getting all relationships:', error);
     throw error;
+  }
+}
+
+/**
+ * Get count of relationships without loading all data
+ * More efficient than getAllRelationships().length for stats
+ */
+export async function getRelationshipsCount(datasetId) {
+  try {
+    const database = getDatabase(datasetId);
+    return await database.relationships.count();
+  } catch (error) {
+    console.error('Error getting relationships count:', error);
+    return 0;
   }
 }
 

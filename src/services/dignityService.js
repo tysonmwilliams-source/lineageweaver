@@ -401,6 +401,53 @@ export const INTERREGNUM_REASONS = {
 };
 
 /**
+ * Dignity Natures - Fundamental categorization of how a dignity works
+ * This determines succession behavior, grant tracking, and UI display
+ */
+export const DIGNITY_NATURES = {
+  territorial: {
+    id: 'territorial',
+    name: 'Territorial',
+    description: 'Attached to land/domain, hereditary. Passes to heirs.',
+    icon: 'castle',
+    hasSuccession: true,
+    hasTenureHistory: true,
+    hasGrantTracking: false, // Optional for original grant
+    examples: 'Lord of Breakmount, Warden of the North'
+  },
+  office: {
+    id: 'office',
+    name: 'Office',
+    description: 'Appointed/elected position, non-hereditary. Tracks who served.',
+    icon: 'briefcase',
+    hasSuccession: false,
+    hasTenureHistory: true,
+    hasGrantTracking: true, // Who appointed them
+    examples: 'Master of Coin, High Septon, Castellan'
+  },
+  'personal-honour': {
+    id: 'personal-honour',
+    name: 'Personal Honour',
+    description: 'Recognition given to an individual. Dies with them.',
+    icon: 'medal',
+    hasSuccession: false,
+    hasTenureHistory: false, // Just grant date
+    hasGrantTracking: true, // Who granted the honour
+    examples: 'Knighthood, "Defender of the Realm", "Hero of Breakmount"'
+  },
+  courtesy: {
+    id: 'courtesy',
+    name: 'Courtesy',
+    description: 'Derived from relationship to a title holder. Not independently held.',
+    icon: 'heart-handshake',
+    hasSuccession: false,
+    hasTenureHistory: false,
+    hasGrantTracking: false, // Derived, not granted
+    examples: 'Dowager Lady, Prince Consort, Lady Mother'
+  }
+};
+
+/**
  * Display Icons by rank
  * For visual indicators on tree cards
  */
@@ -412,6 +459,69 @@ export const DISPLAY_ICONS = {
   star: { id: 'star', icon: '★', name: 'Star' },
   shield: { id: 'shield', icon: '🔰', name: 'Shield' }
 };
+
+// ==================== HELPER FUNCTIONS ====================
+
+/**
+ * Infer dignity nature from other fields when not explicitly set
+ * Used during creation and migration
+ *
+ * @param {Object} dignityData - The dignity data
+ * @returns {string} The inferred nature
+ */
+function inferDignityNature(dignityData) {
+  // If nature is explicitly set, use it
+  if (dignityData.dignityNature) {
+    return dignityData.dignityNature;
+  }
+
+  // Infer from class and isHereditary
+  const dignityClass = dignityData.dignityClass || 'driht';
+
+  // Knights are typically personal honours
+  if (dignityClass === 'sir') {
+    return 'personal-honour';
+  }
+
+  // If explicitly marked non-hereditary, it's likely an office
+  if (dignityData.isHereditary === false) {
+    return 'office';
+  }
+
+  // Default: territorial for driht, ward, crown
+  // These are typically hereditary land-based titles
+  return 'territorial';
+}
+
+/**
+ * Check if a dignity nature supports succession
+ *
+ * @param {string} nature - The dignity nature
+ * @returns {boolean} Whether succession applies
+ */
+export function natureHasSuccession(nature) {
+  return DIGNITY_NATURES[nature]?.hasSuccession ?? false;
+}
+
+/**
+ * Check if a dignity nature supports grant tracking
+ *
+ * @param {string} nature - The dignity nature
+ * @returns {boolean} Whether grant tracking applies
+ */
+export function natureHasGrantTracking(nature) {
+  return DIGNITY_NATURES[nature]?.hasGrantTracking ?? false;
+}
+
+/**
+ * Check if a dignity nature supports tenure history
+ *
+ * @param {string} nature - The dignity nature
+ * @returns {boolean} Whether tenure history applies
+ */
+export function natureHasTenureHistory(nature) {
+  return DIGNITY_NATURES[nature]?.hasTenureHistory ?? false;
+}
 
 // ==================== DIGNITY CRUD OPERATIONS ====================
 
@@ -474,8 +584,22 @@ export async function createDignity(dignityData, userId = null, datasetId = null
       currentHolderId: dignityData.currentHolderId || null,
       currentHouseId: dignityData.currentHouseId || null,
       isVacant: dignityData.isVacant || false,
-      isHereditary: dignityData.isHereditary !== undefined ? dignityData.isHereditary : true,
-      
+
+      // === DIGNITY NATURE ===
+      // Determines behavior: succession, tenure tracking, grant tracking
+      dignityNature: dignityData.dignityNature || inferDignityNature(dignityData),
+
+      // Backward compatibility: derive isHereditary from nature
+      isHereditary: dignityData.dignityNature
+        ? dignityData.dignityNature === 'territorial'
+        : (dignityData.isHereditary !== undefined ? dignityData.isHereditary : true),
+
+      // === GRANT TRACKING ===
+      // For office/personal-honour: who granted this and when
+      grantedById: dignityData.grantedById || null,           // Person ID who granted
+      grantedByDignityId: dignityData.grantedByDignityId || null, // Dignity they acted under (optional)
+      grantDate: dignityData.grantDate || null,               // When granted (ISO date or year string)
+
       // === SUCCESSION SYSTEM ===
       successionType: dignityData.successionType || 'male-primogeniture',
       successionRules: dignityData.successionRules || {
@@ -1113,14 +1237,14 @@ export async function getDignityStatistics(datasetId = null) {
     const db = getDatabase(datasetId);
     const all = await db.dignities.toArray();
     const tenures = await db.dignityTenures.toArray();
-    
+
     // Count by class
     const byClass = {};
     all.forEach(d => {
       const cls = d.dignityClass || 'other';
       byClass[cls] = (byClass[cls] || 0) + 1;
     });
-    
+
     // Count by rank
     const byRank = {};
     all.forEach(d => {
@@ -1128,20 +1252,36 @@ export async function getDignityStatistics(datasetId = null) {
         byRank[d.dignityRank] = (byRank[d.dignityRank] || 0) + 1;
       }
     });
-    
+
+    // Count by nature
+    const byNature = {};
+    all.forEach(d => {
+      // Use stored nature, or infer from isHereditary for legacy data
+      const nature = d.dignityNature || (d.isHereditary === false ? 'office' : 'territorial');
+      byNature[nature] = (byNature[nature] || 0) + 1;
+    });
+
     // Count vacant
     const vacant = all.filter(d => d.isVacant || !d.currentHolderId).length;
-    
-    // Count hereditary vs personal
-    const hereditary = all.filter(d => d.isHereditary).length;
-    
+
+    // Count hereditary vs personal (legacy, derived from nature now)
+    const hereditary = all.filter(d =>
+      d.dignityNature === 'territorial' ||
+      (d.dignityNature === undefined && d.isHereditary !== false)
+    ).length;
+
+    // Count with grant tracking
+    const withGrantor = all.filter(d => d.grantedById).length;
+
     return {
       total: all.length,
       byClass,
       byRank,
+      byNature,
       vacant,
       hereditary,
       personal: all.length - hereditary,
+      withGrantor,
       totalTenures: tenures.length,
       withCodexEntry: all.filter(d => d.codexEntryId).length
     };
@@ -1912,12 +2052,13 @@ export default {
   // Reference Data
   DIGNITY_CLASSES,
   DIGNITY_RANKS,
+  DIGNITY_NATURES,
   TENURE_TYPES,
   FEALTY_TYPES,
   ACQUISITION_TYPES,
   END_TYPES,
   DISPLAY_ICONS,
-  
+
   // Succession Reference Data
   SUCCESSION_TYPES,
   SUCCESSION_STATUS,
@@ -1925,6 +2066,11 @@ export default {
   CLAIM_STRENGTHS,
   DISPUTE_RESOLUTIONS,
   INTERREGNUM_REASONS,
+
+  // Nature Helpers
+  natureHasSuccession,
+  natureHasGrantTracking,
+  natureHasTenureHistory,
   
   // CRUD - Dignities
   createDignity,

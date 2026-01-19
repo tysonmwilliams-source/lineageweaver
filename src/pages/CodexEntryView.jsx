@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getEntry, getAllLinksForEntry, getEntry as getBacklinkEntry } from '../services/codexService';
+import { getEntry, getAllLinksForEntry, getEntry as getBacklinkEntry, updateEntry } from '../services/codexService';
 import { getHeraldry } from '../services/heraldryService';
 import { getDatabase } from '../services/database';
 import { useDataset } from '../contexts/DatasetContext';
@@ -60,6 +60,7 @@ const TYPE_CONFIG = {
   location: { icon: 'map-pin', label: 'Location' },
   event: { icon: 'swords', label: 'Event' },
   mysteria: { icon: 'sparkles', label: 'Mysteria' },
+  concept: { icon: 'scroll-text', label: 'Concept' },
   heraldry: { icon: 'shield', label: 'Heraldry' },
   custom: { icon: 'scroll-text', label: 'Entry' }
 };
@@ -230,6 +231,34 @@ function CodexEntryView() {
       navigate(`/heraldry/edit/${entry.heraldryId}`);
     }
   }, [navigate, entry?.heraldryId]);
+
+  // Move mysteria entry to Dignities & Titles subsection
+  const handleMoveToTitles = useCallback(async () => {
+    if (!entry || entry.type !== 'mysteria') return;
+
+    if (!window.confirm(`Move "${entry.title}" to Dignities & Titles?\n\nThis will move this entry from Mysteria to the Dignities & Titles subsection under Heraldry & Titles.`)) {
+      return;
+    }
+
+    try {
+      await updateEntry(parseInt(id), {
+        type: 'heraldry',
+        category: 'titles'
+      }, activeDataset?.id);
+
+      // Update local state to reflect the change
+      setEntry(prev => ({
+        ...prev,
+        type: 'heraldry',
+        category: 'titles'
+      }));
+
+      alert('Entry moved to Dignities & Titles successfully!');
+    } catch (err) {
+      console.error('Error moving entry:', err);
+      alert('Failed to move entry: ' + err.message);
+    }
+  }, [entry, id, activeDataset?.id]);
 
   const handleViewBacklink = useCallback((backlinkId) => {
     navigate(`/codex/entry/${backlinkId}`);
@@ -475,6 +504,16 @@ function CodexEntryView() {
                     variant="secondary"
                   >
                     View in Armory
+                  </ActionButton>
+                )}
+
+                {entry.type === 'mysteria' && (
+                  <ActionButton
+                    icon="crown"
+                    onClick={handleMoveToTitles}
+                    variant="secondary"
+                  >
+                    Move to Dignities & Titles
                   </ActionButton>
                 )}
               </div>

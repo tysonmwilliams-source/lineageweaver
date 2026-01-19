@@ -25,8 +25,8 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import Navigation from '../components/Navigation';
 import { useGenealogy } from '../contexts/GenealogyContext';
-import { getAllEntries } from '../services/codexService';
-import { getAllHeraldry } from '../services/heraldryService';
+import { getEntriesCount } from '../services/codexService';
+import { getHeraldryCount } from '../services/heraldryService';
 
 // Import home page components
 import {
@@ -46,41 +46,43 @@ import './Home.css';
  */
 export default function Home() {
   // ==================== STATE ====================
-  
+
   // Feature flags for toggling sections
   const [features, setFeatures] = useState(loadFeatures);
-  
-  // Additional data not in GenealogyContext
-  const [codexEntries, setCodexEntries] = useState([]);
+
+  // Additional data not in GenealogyContext (counts only for performance)
+  const [codexEntriesCount, setCodexEntriesCount] = useState(0);
   const [heraldryCount, setHeraldryCount] = useState(0);
   const [isLoadingExtra, setIsLoadingExtra] = useState(true);
-  
+
   // Get core data from context
   const { people, houses, relationships, loading: coreLoading } = useGenealogy();
-  
+
   // ==================== DATA LOADING ====================
-  
-  // Load codex and heraldry data (not in GenealogyContext)
+
+  // Load codex and heraldry COUNTS only (not full data) for performance
+  // This avoids loading potentially thousands of records just for displaying counts
   useEffect(() => {
     let cancelled = false;
-    
-    async function loadExtraData() {
+
+    async function loadExtraCounts() {
       try {
         setIsLoadingExtra(true);
-        
-        const [entries, heraldry] = await Promise.all([
-          getAllEntries(),
-          getAllHeraldry()
+
+        // Use count functions instead of loading all data
+        const [entriesCount, heraldryCountResult] = await Promise.all([
+          getEntriesCount(),
+          getHeraldryCount()
         ]);
-        
+
         // Only update state if component is still mounted
         if (!cancelled) {
-          setCodexEntries(entries || []);
-          setHeraldryCount(heraldry?.length || 0);
+          setCodexEntriesCount(entriesCount || 0);
+          setHeraldryCount(heraldryCountResult || 0);
         }
       } catch (error) {
         if (!cancelled && import.meta.env.DEV) {
-          console.error('Error loading extra data for home page:', error);
+          console.error('Error loading extra counts for home page:', error);
         }
       } finally {
         if (!cancelled) {
@@ -88,27 +90,27 @@ export default function Home() {
         }
       }
     }
-    
-    loadExtraData();
-    
+
+    loadExtraCounts();
+
     // Cleanup function to prevent state updates on unmounted component
     return () => { cancelled = true; };
   }, []);
   
   // ==================== COMPUTED VALUES ====================
-  
+
   // Statistics for the dashboard
   const stats = useMemo(() => ({
     people: people.length,
     houses: houses.length,
     relationships: relationships.length,
-    codexEntries: codexEntries.length,
+    codexEntries: codexEntriesCount,
     heraldry: heraldryCount
-  }), [people.length, houses.length, relationships.length, codexEntries.length, heraldryCount]);
-  
+  }), [people.length, houses.length, relationships.length, codexEntriesCount, heraldryCount]);
+
   // Whether user has any data at all
   const hasData = stats.people > 0 || stats.houses > 0;
-  
+
   // Loading state
   const isLoading = coreLoading || isLoadingExtra;
   
@@ -166,22 +168,21 @@ export default function Home() {
           >
             {/* Hero Section */}
             <HeroSection features={features} />
-            
-            {/* Stats Dashboard */}
-            {!isLoading && (
-              <StatsGlance features={features} stats={stats} />
-            )}
-            
+
+            {/* Stats Dashboard - Shows skeletons while loading for better perceived performance */}
+            <StatsGlance features={features} stats={stats} loading={isLoading} />
+
             {/* Quick Actions */}
             <QuickActions features={features} />
             
             {/* Recent Activity / Onboarding */}
+            {/* Note: codexEntries is empty array for performance - only counts are loaded */}
             {!isLoading && (
-              <RecentActivity 
+              <RecentActivity
                 features={features}
                 people={people}
                 houses={houses}
-                codexEntries={codexEntries}
+                codexEntries={[]}
                 hasData={hasData}
               />
             )}

@@ -26,6 +26,7 @@ import { UserMenu, SyncStatusIndicator } from './auth';
 import { SuggestionsBadge } from './suggestions';
 import { useDignityAnalysis } from '../hooks';
 import { useDatasetManager } from '../App';
+import AIAssistant from './AIAssistant';
 import './Navigation.css';
 
 // Navigation link configuration
@@ -76,6 +77,7 @@ function Navigation({
   const location = useLocation();
   const { isDarkTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showAIAssistant, setShowAIAssistant] = useState(false);
   const { openDatasetManager } = useDatasetManager();
 
   // Get critical suggestion count for nav badge
@@ -176,6 +178,17 @@ function Navigation({
             {/* User Menu */}
             <UserMenu onOpenDatasetManager={openDatasetManager} />
 
+            {/* AI Counselor Button */}
+            <motion.button
+              className="nav__ai-button"
+              onClick={() => setShowAIAssistant(true)}
+              title="AI Counselor"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Icon name="sparkles" size={20} strokeWidth={1.5} />
+            </motion.button>
+
             {/* Mobile Menu Toggle */}
             <motion.button
               className="nav__mobile-toggle"
@@ -228,6 +241,14 @@ function Navigation({
           )}
         </AnimatePresence>
       </div>
+
+      {/* AI Assistant Modal */}
+      {showAIAssistant && (
+        <AIAssistant
+          onClose={() => setShowAIAssistant(false)}
+          context={{}}
+        />
+      )}
     </nav>
   );
 }

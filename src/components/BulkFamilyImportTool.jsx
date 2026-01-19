@@ -19,11 +19,13 @@ import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGenealogy } from '../contexts/GenealogyContext';
 import { useDataset } from '../contexts/DatasetContext';
-import { 
-  validateTemplate, 
-  processFamilyImport, 
-  generateImportReport 
+import { useAuth } from '../contexts/AuthContext';
+import {
+  validateTemplate,
+  processFamilyImport,
+  generateImportReport
 } from '../utils/bulkFamilyImport';
+import { forceUploadToCloud } from '../services/dataSyncService';
 import Icon from './icons';
 import './BulkFamilyImportTool.css';
 
@@ -48,6 +50,7 @@ const ALERT_VARIANTS = {
 
 function BulkFamilyImportTool() {
   const { refreshData } = useGenealogy();
+  const { user } = useAuth();
   const { activeDataset } = useDataset();
   
   // File and template state
@@ -135,10 +138,22 @@ function BulkFamilyImportTool() {
       });
       
       setImportResult(result);
-      
+
       // Refresh the context data if successful
       if (result.success) {
         await refreshData();
+
+        // CRITICAL: Force upload to cloud to prevent data loss
+        // Without this, imported data could be lost on next sync
+        if (user && activeDataset) {
+          setProgress({ step: 'syncing', message: 'Syncing to cloud...' });
+          try {
+            await forceUploadToCloud(user.uid, activeDataset.id);
+            console.log('✅ Import data synced to cloud');
+          } catch (syncErr) {
+            console.warn('⚠️ Could not sync to cloud:', syncErr);
+          }
+        }
       }
       
     } catch (err) {

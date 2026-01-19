@@ -63,6 +63,7 @@ import { GenealogyProvider } from './contexts/GenealogyContext';
 import { BugTrackerProvider } from './contexts/BugContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { DatasetProvider, useDataset } from './contexts/DatasetContext';
+import { LearningModeProvider } from './contexts/LearningModeContext';
 import { ProtectedRoute } from './components/auth';
 import BugReporterButton from './components/bugs/BugReporterButton';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -125,10 +126,14 @@ function AppContent() {
         console.log('Initializing database...');
 
         // Run dataset migration check for existing users
+        // Uses version caching to skip expensive checks on subsequent loads
         if (user) {
           console.log('📂 Checking dataset migration...');
-          const migrationResult = await runDatasetMigration(user.uid);
-          if (migrationResult.firestore?.documentsMovedTotal > 0) {
+          const datasetId = activeDataset?.id || 'default';
+          const migrationResult = await runDatasetMigration(user.uid, datasetId);
+          if (migrationResult.skipped) {
+            console.log('📂 Migration check skipped (already up to date)');
+          } else if (migrationResult.firestore?.documentsMovedTotal > 0) {
             console.log('📂 Dataset migration completed, moved', migrationResult.firestore.documentsMovedTotal, 'documents');
           }
         }
@@ -419,11 +424,13 @@ function App() {
   return (
     <AuthProvider>
       <ThemeProvider defaultTheme="royal-parchment">
-        <ProtectedRoute>
-          <DatasetProvider>
-            <AppContent />
-          </DatasetProvider>
-        </ProtectedRoute>
+        <LearningModeProvider>
+          <ProtectedRoute>
+            <DatasetProvider>
+              <AppContent />
+            </DatasetProvider>
+          </ProtectedRoute>
+        </LearningModeProvider>
       </ThemeProvider>
     </AuthProvider>
   );

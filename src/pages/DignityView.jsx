@@ -21,6 +21,7 @@ import {
   endInterregnum,
   DIGNITY_CLASSES,
   DIGNITY_RANKS,
+  DIGNITY_NATURES,
   TENURE_TYPES,
   FEALTY_TYPES,
   ACQUISITION_TYPES,
@@ -30,7 +31,10 @@ import {
   CLAIM_TYPES,
   CLAIM_STRENGTHS,
   DISPUTE_RESOLUTIONS,
-  INTERREGNUM_REASONS
+  INTERREGNUM_REASONS,
+  natureHasSuccession,
+  natureHasGrantTracking,
+  natureHasTenureHistory
 } from '../services/dignityService';
 import { getAllHouses, getAllPeople, getAllRelationships } from '../services/database';
 import Navigation from '../components/Navigation';
@@ -39,6 +43,8 @@ import LoadingState from '../components/shared/LoadingState';
 import EmptyState from '../components/shared/EmptyState';
 import ActionButton from '../components/shared/ActionButton';
 import { SuggestionCard } from '../components/suggestions';
+import DignityTerm, { LearningModeToggle } from '../components/DignityTerm';
+import { RankPips, ChainOfCommand, HierarchyPosition, ClassBadge } from '../components/DignityVisuals';
 import { useDignityAnalysis } from '../hooks';
 import './DignityView.css';
 
@@ -741,7 +747,11 @@ function DignityView() {
               </h1>
 
               {rankInfo && (
-                <p className="dignity-view-header__rank">{rankInfo.name} — {rankInfo.description}</p>
+                <p className="dignity-view-header__rank">
+                  <DignityTerm rank={dignity.dignityRank} dignityClass={dignity.dignityClass} showTooltip={false} />
+                  <RankPips rank={dignity.dignityRank} dignityClass={dignity.dignityClass} size="md" />
+                  <span> — {rankInfo.description}</span>
+                </p>
               )}
 
               {dignity.isVacant && (
@@ -753,6 +763,7 @@ function DignityView() {
             </div>
 
             <div className="dignity-view-header__actions">
+              <LearningModeToggle compact />
               <ActionButton icon="edit-3" onClick={handleEdit} variant="primary" size="sm">
                 Edit
               </ActionButton>
@@ -807,6 +818,11 @@ function DignityView() {
                   <Icon name="swords" size={18} />
                   <span>Feudal Hierarchy</span>
                 </h2>
+
+                {/* Chain of Command Visualization */}
+                <div className="dignity-chain-visualization">
+                  <ChainOfCommand rank={dignity.dignityRank} dignityClass={dignity.dignityClass} />
+                </div>
 
                 {/* Sworn To */}
                 {swornToDignity ? (
@@ -888,7 +904,8 @@ function DignityView() {
                 )}
               </motion.section>
 
-              {/* Succession Section */}
+              {/* Succession Section - Only for territorial dignities */}
+              {natureHasSuccession(dignity.dignityNature || 'territorial') && (
               <motion.section className="dignity-section dignity-section--succession" variants={CARD_VARIANTS}>
                 <h2 className="dignity-section__title">
                   <Icon name="crown" size={18} />
@@ -1112,12 +1129,69 @@ function DignityView() {
                   )}
                 </div>
               </motion.section>
+              )}
 
-              {/* Tenure History Section */}
+              {/* Granted By Section - Only for office and personal-honour */}
+              {natureHasGrantTracking(dignity.dignityNature) && (
+              <motion.section className="dignity-section dignity-section--grant" variants={CARD_VARIANTS}>
+                <h2 className="dignity-section__title">
+                  <Icon name="user-check" size={18} />
+                  <span>Grant Details</span>
+                </h2>
+
+                <div className="dignity-grant">
+                  {dignity.grantedById || dignity.grantedByDignityId || dignity.grantDate ? (
+                    <dl className="dignity-grant__details">
+                      {dignity.grantedById && (
+                        <div className="dignity-grant__item">
+                          <dt>Granted By</dt>
+                          <dd>
+                            <Icon name="user" size={14} />
+                            <span>{getPersonName(dignity.grantedById)}</span>
+                          </dd>
+                        </div>
+                      )}
+                      {dignity.grantedByDignityId && (
+                        <div className="dignity-grant__item">
+                          <dt>Acting As</dt>
+                          <dd>
+                            <button
+                              className="dignity-grant__dignity-link"
+                              onClick={() => handleNavigateToDignity(dignity.grantedByDignityId)}
+                            >
+                              <Icon name="scroll-text" size={14} />
+                              <span>View Granting Dignity</span>
+                              <Icon name="arrow-right" size={12} />
+                            </button>
+                          </dd>
+                        </div>
+                      )}
+                      {dignity.grantDate && (
+                        <div className="dignity-grant__item">
+                          <dt>Date Granted</dt>
+                          <dd>
+                            <Icon name="calendar" size={14} />
+                            <span>{formatDate(dignity.grantDate)}</span>
+                          </dd>
+                        </div>
+                      )}
+                    </dl>
+                  ) : (
+                    <div className="dignity-grant__empty">
+                      <Icon name="info" size={16} />
+                      <p>No grant details recorded. Edit this dignity to add who granted this honour or office.</p>
+                    </div>
+                  )}
+                </div>
+              </motion.section>
+              )}
+
+              {/* Tenure History Section - For territorial and office dignities */}
+              {natureHasTenureHistory(dignity.dignityNature || 'territorial') && (
               <motion.section className="dignity-section" variants={CARD_VARIANTS}>
                 <h2 className="dignity-section__title">
                   <Icon name="scroll-text" size={18} />
-                  <span>Tenure History</span>
+                  <span>{dignity.dignityNature === 'office' ? 'Who Has Served' : 'Tenure History'}</span>
                 </h2>
 
                 <div className="dignity-tenure__actions">
@@ -1192,6 +1266,7 @@ function DignityView() {
                   </div>
                 )}
               </motion.section>
+              )}
             </div>
 
             {/* Right Column - Sidebar */}
@@ -1203,17 +1278,24 @@ function DignityView() {
                   <div className="dignity-sidebar-facts__item">
                     <dt>Class</dt>
                     <dd>
-                      <Icon name={classIcon} size={14} />
-                      <span>{classInfo?.name}</span>
+                      <ClassBadge dignityClass={dignity.dignityClass} size="sm" />
                     </dd>
                   </div>
                   <div className="dignity-sidebar-facts__item">
                     <dt>Rank</dt>
-                    <dd>{rankInfo?.name || 'Unknown'}</dd>
+                    <dd>
+                      <span>{rankInfo?.name || 'Unknown'}</span>
+                      <RankPips rank={dignity.dignityRank} dignityClass={dignity.dignityClass} size="sm" />
+                    </dd>
                   </div>
-                  <div className="dignity-sidebar-facts__item">
-                    <dt>Type</dt>
-                    <dd>{dignity.isHereditary ? 'Hereditary' : 'Personal/Appointed'}</dd>
+                  <div className="dignity-sidebar-facts__item dignity-sidebar-facts__item--nature">
+                    <dt>Nature</dt>
+                    <dd>
+                      <span className={`dignity-nature-badge dignity-nature-badge--${dignity.dignityNature || 'territorial'}`}>
+                        <Icon name={DIGNITY_NATURES[dignity.dignityNature || 'territorial']?.icon || 'scroll-text'} size={12} />
+                        <span>{DIGNITY_NATURES[dignity.dignityNature || 'territorial']?.name || 'Unknown'}</span>
+                      </span>
+                    </dd>
                   </div>
                   <div className="dignity-sidebar-facts__item">
                     <dt>Status</dt>
@@ -1232,6 +1314,12 @@ function DignityView() {
                     </dd>
                   </div>
                 </dl>
+              </div>
+
+              {/* Hierarchy Position */}
+              <div className="dignity-sidebar-section">
+                <h3 className="dignity-sidebar-section__title">Rank Position</h3>
+                <HierarchyPosition rank={dignity.dignityRank} dignityClass={dignity.dignityClass} />
               </div>
 
               {/* Location */}

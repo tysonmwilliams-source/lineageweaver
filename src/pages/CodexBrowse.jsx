@@ -9,6 +9,7 @@ import Icon from '../components/icons/Icon';
 import LoadingState from '../components/shared/LoadingState';
 import EmptyState from '../components/shared/EmptyState';
 import ActionButton from '../components/shared/ActionButton';
+import DignityEducationPanel from '../components/DignityEducationPanel';
 import './CodexBrowse.css';
 
 /**
@@ -56,7 +57,8 @@ const TYPE_CONFIG = {
   location: { icon: 'map-pin', label: 'Locations', singular: 'Location' },
   event: { icon: 'swords', label: 'Events', singular: 'Event' },
   mysteria: { icon: 'sparkles', label: 'Mysteria', singular: 'Mysteria' },
-  heraldry: { icon: 'shield', label: 'Heraldry', singular: 'Heraldry' },
+  concept: { icon: 'scroll-text', label: 'Concepts & Laws', singular: 'Entry' },
+  heraldry: { icon: 'shield', label: 'Heraldry & Titles', singular: 'Entry' },
   custom: { icon: 'scroll-text', label: 'Entries', singular: 'Entry' }
 };
 
@@ -90,6 +92,9 @@ function CodexBrowse() {
 
   // Heraldry cache for displaying actual shields
   const [heraldryCache, setHeraldryCache] = useState({});
+
+  // Subsection collapse state (for heraldry & titles)
+  const [collapsedSubsections, setCollapsedSubsections] = useState(new Set());
 
   // Get type configuration
   const typeConfig = useMemo(() => {
@@ -244,6 +249,36 @@ function CodexBrowse() {
     setSortBy('updated');
   }, []);
 
+  // Toggle subsection collapse (for heraldry & titles)
+  const toggleSubsection = useCallback((subsection) => {
+    setCollapsedSubsections(prev => {
+      const next = new Set(prev);
+      if (next.has(subsection)) {
+        next.delete(subsection);
+      } else {
+        next.add(subsection);
+      }
+      return next;
+    });
+  }, []);
+
+  // Group entries by subsection (for heraldry and concept types)
+  const groupedEntries = useMemo(() => {
+    if (type === 'heraldry') {
+      return {
+        heraldry: filteredEntries.filter(e => e.category !== 'titles'),
+        titles: filteredEntries.filter(e => e.category === 'titles')
+      };
+    }
+    if (type === 'concept') {
+      return {
+        concepts: filteredEntries.filter(e => e.category !== 'laws'),
+        laws: filteredEntries.filter(e => e.category === 'laws')
+      };
+    }
+    return null;
+  }, [type, filteredEntries]);
+
   // Format date for display
   const formatDate = useCallback((isoString) => {
     const date = new Date(isoString);
@@ -271,6 +306,114 @@ function CodexBrowse() {
   const totalPages = Math.ceil(filteredEntries.length / entriesPerPage);
   const hasFilters = searchTerm || selectedTags.length > 0 || selectedEra;
 
+  // Subsection header component for heraldry & titles
+  const SubsectionHeader = useCallback(({ label, icon, count, collapsed, onToggle }) => (
+    <motion.button
+      className="browse-subsection-header"
+      onClick={onToggle}
+      whileHover={{ backgroundColor: 'var(--bg-hover)' }}
+      whileTap={{ scale: 0.99 }}
+    >
+      <motion.div
+        className="browse-subsection-header__chevron"
+        animate={{ rotate: collapsed ? -90 : 0 }}
+        transition={{ duration: 0.2 }}
+      >
+        <Icon name="chevron-down" size={18} />
+      </motion.div>
+      <Icon name={icon} size={18} className="browse-subsection-header__icon" />
+      <span className="browse-subsection-header__label">{label}</span>
+      <span className="browse-subsection-header__count">({count})</span>
+    </motion.button>
+  ), []);
+
+  // Render entry item (reusable for both grouped and flat lists)
+  const renderEntryItem = useCallback((entry, index) => (
+    <motion.article
+      key={entry.id}
+      className="browse-list__item"
+      variants={LIST_ITEM_VARIANTS}
+      initial="hidden"
+      animate="visible"
+      transition={{ delay: index * 0.03 }}
+      onClick={() => handleViewEntry(entry.id)}
+      whileHover={{ x: 4 }}
+    >
+      <div className="browse-list__item-main">
+        {/* Show actual heraldry thumbnail for heraldry entries */}
+        {type === 'heraldry' && entry.heraldryId && heraldryCache[entry.heraldryId] ? (
+          <div className="browse-list__item-heraldry">
+            {heraldryCache[entry.heraldryId].heraldrySVG ? (
+              <div
+                className="browse-list__item-heraldry-svg"
+                dangerouslySetInnerHTML={{ __html: heraldryCache[entry.heraldryId].heraldrySVG }}
+              />
+            ) : heraldryCache[entry.heraldryId].heraldryDisplay || heraldryCache[entry.heraldryId].heraldryThumbnail ? (
+              <img
+                src={heraldryCache[entry.heraldryId].heraldryDisplay || heraldryCache[entry.heraldryId].heraldryThumbnail}
+                alt={entry.title}
+              />
+            ) : (
+              <Icon name="shield" size={20} />
+            )}
+          </div>
+        ) : (
+          <div className="browse-list__item-icon">
+            <Icon name={entry.category === 'titles' ? 'crown' : typeConfig.icon} size={20} />
+          </div>
+        )}
+        <div className="browse-list__item-content">
+          <h3 className="browse-list__item-title">{entry.title}</h3>
+          {entry.subtitle && (
+            <p className="browse-list__item-subtitle">{entry.subtitle}</p>
+          )}
+          {entry.tags && entry.tags.length > 0 && (
+            <div className="browse-list__item-tags">
+              {entry.tags.slice(0, 3).map((tag, idx) => (
+                <span key={idx} className="browse-list__item-tag">
+                  {tag}
+                </span>
+              ))}
+              {entry.tags.length > 3 && (
+                <span className="browse-list__item-tag-more">
+                  +{entry.tags.length - 3}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="browse-list__item-meta">
+        <span className="browse-list__item-meta-item">
+          <Icon name="file-text" size={12} />
+          <span>{entry.wordCount || 0} words</span>
+        </span>
+        <span className="browse-list__item-meta-separator">
+          <Icon name="circle" size={4} />
+        </span>
+        <span className="browse-list__item-meta-item">
+          <Icon name="clock" size={12} />
+          <span>{formatDate(entry.updated)}</span>
+        </span>
+        {entry.era && (
+          <>
+            <span className="browse-list__item-meta-separator">
+              <Icon name="circle" size={4} />
+            </span>
+            <span className="browse-list__item-meta-item browse-list__item-meta-era">
+              {entry.era}
+            </span>
+          </>
+        )}
+      </div>
+
+      <div className="browse-list__item-arrow">
+        <Icon name="arrow-right" size={18} />
+      </div>
+    </motion.article>
+  ), [type, heraldryCache, typeConfig.icon, handleViewEntry, formatDate]);
+
   // Loading state
   if (loading) {
     return (
@@ -290,13 +433,17 @@ function CodexBrowse() {
       <Navigation />
 
       <div className="browse-page">
-        <motion.div
-          className="browse-container"
-          variants={CONTAINER_VARIANTS}
-          initial="hidden"
-          animate="visible"
-        >
-          {/* Breadcrumb */}
+        <div className="browse-layout">
+          {/* Education Panel Sidebar */}
+          <DignityEducationPanel defaultCollapsed={true} />
+
+          <motion.div
+            className="browse-container"
+            variants={CONTAINER_VARIANTS}
+            initial="hidden"
+            animate="visible"
+          >
+            {/* Breadcrumb */}
           <motion.nav className="browse-breadcrumb" variants={ITEM_VARIANTS}>
             <button onClick={handleBackToCodex} className="browse-breadcrumb__link">
               <Icon name="book-open" size={14} />
@@ -439,7 +586,7 @@ function CodexBrowse() {
 
           {/* Entries List */}
           <AnimatePresence mode="wait">
-            {displayedEntries.length === 0 ? (
+            {filteredEntries.length === 0 ? (
               <motion.div
                 key="empty"
                 initial={{ opacity: 0 }}
@@ -461,7 +608,150 @@ function CodexBrowse() {
                   } : undefined}
                 />
               </motion.div>
+            ) : type === 'heraldry' && groupedEntries ? (
+              /* Grouped view for Heraldry & Titles */
+              <motion.section
+                key="grouped-list"
+                className="browse-list browse-list--grouped"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                {/* Heraldry Subsection */}
+                <div className="browse-subsection">
+                  <SubsectionHeader
+                    label="Heraldry"
+                    icon="shield"
+                    count={groupedEntries.heraldry.length}
+                    collapsed={collapsedSubsections.has('heraldry')}
+                    onToggle={() => toggleSubsection('heraldry')}
+                  />
+                  <AnimatePresence>
+                    {!collapsedSubsections.has('heraldry') && (
+                      <motion.div
+                        className="browse-subsection__content"
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3, ease: 'easeOut' }}
+                      >
+                        {groupedEntries.heraldry.length > 0 ? (
+                          groupedEntries.heraldry.map((entry, index) => renderEntryItem(entry, index))
+                        ) : (
+                          <div className="browse-subsection__empty">
+                            <Icon name="shield" size={20} />
+                            <span>No heraldry entries yet</span>
+                          </div>
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* Dignities & Titles Subsection */}
+                <div className="browse-subsection">
+                  <SubsectionHeader
+                    label="Dignities & Titles"
+                    icon="crown"
+                    count={groupedEntries.titles.length}
+                    collapsed={collapsedSubsections.has('titles')}
+                    onToggle={() => toggleSubsection('titles')}
+                  />
+                  <AnimatePresence>
+                    {!collapsedSubsections.has('titles') && (
+                      <motion.div
+                        className="browse-subsection__content"
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3, ease: 'easeOut' }}
+                      >
+                        {groupedEntries.titles.length > 0 ? (
+                          groupedEntries.titles.map((entry, index) => renderEntryItem(entry, index))
+                        ) : (
+                          <div className="browse-subsection__empty">
+                            <Icon name="crown" size={20} />
+                            <span>No titles entries yet</span>
+                          </div>
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </motion.section>
+            ) : type === 'concept' && groupedEntries ? (
+              /* Grouped view for Concepts & Laws */
+              <motion.section
+                key="grouped-list-concepts"
+                className="browse-list browse-list--grouped"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                {/* Concepts Subsection */}
+                <div className="browse-subsection">
+                  <SubsectionHeader
+                    label="Concepts"
+                    icon="scroll-text"
+                    count={groupedEntries.concepts.length}
+                    collapsed={collapsedSubsections.has('concepts')}
+                    onToggle={() => toggleSubsection('concepts')}
+                  />
+                  <AnimatePresence>
+                    {!collapsedSubsections.has('concepts') && (
+                      <motion.div
+                        className="browse-subsection__content"
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3, ease: 'easeOut' }}
+                      >
+                        {groupedEntries.concepts.length > 0 ? (
+                          groupedEntries.concepts.map((entry, index) => renderEntryItem(entry, index))
+                        ) : (
+                          <div className="browse-subsection__empty">
+                            <Icon name="scroll-text" size={20} />
+                            <span>No concept entries yet</span>
+                          </div>
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* Laws Subsection */}
+                <div className="browse-subsection">
+                  <SubsectionHeader
+                    label="Laws"
+                    icon="scale"
+                    count={groupedEntries.laws.length}
+                    collapsed={collapsedSubsections.has('laws')}
+                    onToggle={() => toggleSubsection('laws')}
+                  />
+                  <AnimatePresence>
+                    {!collapsedSubsections.has('laws') && (
+                      <motion.div
+                        className="browse-subsection__content"
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3, ease: 'easeOut' }}
+                      >
+                        {groupedEntries.laws.length > 0 ? (
+                          groupedEntries.laws.map((entry, index) => renderEntryItem(entry, index))
+                        ) : (
+                          <div className="browse-subsection__empty">
+                            <Icon name="scale" size={20} />
+                            <span>No law entries yet</span>
+                          </div>
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </motion.section>
             ) : (
+              /* Standard flat list for other types */
               <motion.section
                 key="list"
                 className="browse-list"
@@ -469,91 +759,7 @@ function CodexBrowse() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
               >
-                {displayedEntries.map((entry, index) => (
-                  <motion.article
-                    key={entry.id}
-                    className="browse-list__item"
-                    variants={LIST_ITEM_VARIANTS}
-                    initial="hidden"
-                    animate="visible"
-                    transition={{ delay: index * 0.03 }}
-                    onClick={() => handleViewEntry(entry.id)}
-                    whileHover={{ x: 4 }}
-                  >
-                    <div className="browse-list__item-main">
-                      {/* Show actual heraldry thumbnail for heraldry entries */}
-                      {type === 'heraldry' && entry.heraldryId && heraldryCache[entry.heraldryId] ? (
-                        <div className="browse-list__item-heraldry">
-                          {heraldryCache[entry.heraldryId].heraldrySVG ? (
-                            <div
-                              className="browse-list__item-heraldry-svg"
-                              dangerouslySetInnerHTML={{ __html: heraldryCache[entry.heraldryId].heraldrySVG }}
-                            />
-                          ) : heraldryCache[entry.heraldryId].heraldryDisplay || heraldryCache[entry.heraldryId].heraldryThumbnail ? (
-                            <img
-                              src={heraldryCache[entry.heraldryId].heraldryDisplay || heraldryCache[entry.heraldryId].heraldryThumbnail}
-                              alt={entry.title}
-                            />
-                          ) : (
-                            <Icon name="shield" size={20} />
-                          )}
-                        </div>
-                      ) : (
-                        <div className="browse-list__item-icon">
-                          <Icon name={typeConfig.icon} size={20} />
-                        </div>
-                      )}
-                      <div className="browse-list__item-content">
-                        <h3 className="browse-list__item-title">{entry.title}</h3>
-                        {entry.subtitle && (
-                          <p className="browse-list__item-subtitle">{entry.subtitle}</p>
-                        )}
-                        {entry.tags && entry.tags.length > 0 && (
-                          <div className="browse-list__item-tags">
-                            {entry.tags.slice(0, 3).map((tag, idx) => (
-                              <span key={idx} className="browse-list__item-tag">
-                                {tag}
-                              </span>
-                            ))}
-                            {entry.tags.length > 3 && (
-                              <span className="browse-list__item-tag-more">
-                                +{entry.tags.length - 3}
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="browse-list__item-meta">
-                      <span className="browse-list__item-meta-item">
-                        <Icon name="file-text" size={12} />
-                        <span>{entry.wordCount || 0} words</span>
-                      </span>
-                      <span className="browse-list__item-meta-separator">
-                        <Icon name="circle" size={4} />
-                      </span>
-                      <span className="browse-list__item-meta-item">
-                        <Icon name="clock" size={12} />
-                        <span>{formatDate(entry.updated)}</span>
-                      </span>
-                      {entry.era && (
-                        <>
-                          <span className="browse-list__item-meta-separator">
-                            <Icon name="circle" size={4} />
-                          </span>
-                          <span className="browse-list__item-meta-item browse-list__item-meta-era">
-                            {entry.era}
-                          </span>
-                        </>
-                      )}
-                    </div>
-
-                    <div className="browse-list__item-arrow">
-                      <Icon name="arrow-right" size={18} />
-                    </div>
-                  </motion.article>
-                ))}
+                {displayedEntries.map((entry, index) => renderEntryItem(entry, index))}
               </motion.section>
             )}
           </AnimatePresence>
@@ -585,6 +791,7 @@ function CodexBrowse() {
             </motion.section>
           )}
         </motion.div>
+        </div>
       </div>
     </>
   );

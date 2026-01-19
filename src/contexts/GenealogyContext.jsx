@@ -29,7 +29,7 @@
  * - Local-first approach: UI updates instantly, cloud syncs async
  */
 
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import {
   getAllPeople,
   getAllHouses,
@@ -72,7 +72,9 @@ import {
   syncDeleteRelationship,
   syncAddCodexEntry,
   syncDeleteCodexEntry,
-  getSyncStatus
+  getSyncStatus,
+  startPeriodicSync,
+  stopPeriodicSync
 } from '../services/dataSyncService';
 
 import { useAuth } from './AuthContext';
@@ -113,9 +115,15 @@ export function GenealogyProvider({ children }) {
       // User is logged in, initialize sync
       initializeSyncAndLoad();
     } else if (!user) {
-      // User logged out, just load local data
+      // User logged out, stop periodic sync and load local data
+      stopPeriodicSync();
       loadAllData();
     }
+
+    // Cleanup: stop periodic sync when component unmounts
+    return () => {
+      stopPeriodicSync();
+    };
   }, [user, syncInitialized]);
 
   /**
@@ -141,6 +149,9 @@ export function GenealogyProvider({ children }) {
 
       setSyncStatus('synced');
       setSyncInitialized(true);
+
+      // Start periodic sync (every 5 minutes) to prevent data loss
+      startPeriodicSync(user.uid, datasetId);
 
     } catch (err) {
       console.error('❌ Sync initialization failed:', err);
@@ -305,7 +316,7 @@ export function GenealogyProvider({ children }) {
   }, [user, activeDataset]);
 
   /**
-   * Delete a person
+   * Delete a person with CASCADE delete of relationships
    */
   const deletePerson = useCallback(async (id) => {
     try {
@@ -313,13 +324,21 @@ export function GenealogyProvider({ children }) {
       const personToDelete = people.find(p => p.id === id);
       const codexEntryId = personToDelete?.codexEntryId;
 
+      // CRITICAL: Capture relationships BEFORE deleting from local DB
+      // These need to be synced to cloud for deletion
+      const relationshipsToDelete = relationships.filter(
+        rel => rel.person1Id === id || rel.person2Id === id
+      );
+      const relationshipIds = relationshipsToDelete.map(r => r.id);
+
+      // Delete person (and cascade relationships) from local DB
       await dbDeletePerson(id, datasetId);
-      
+
       if (codexEntryId) {
         try {
           await deleteCodexEntry(codexEntryId);
           console.log('📖 Codex entry cascade-deleted:', codexEntryId);
-          
+
           // ☁️ Sync codex deletion to cloud
           if (user && activeDataset) {
             syncDeleteCodexEntry(user.uid, activeDataset.id, codexEntryId);
@@ -335,17 +354,17 @@ export function GenealogyProvider({ children }) {
       ));
       setDataVersion(v => v + 1);
 
-      // ☁️ Sync to cloud
+      // ☁️ Sync to cloud - include relationship IDs for cascade deletion
       if (user && activeDataset) {
-        syncDeletePerson(user.uid, activeDataset.id, id);
+        syncDeletePerson(user.uid, activeDataset.id, id, relationshipIds);
       }
 
-      console.log('✅ Person deleted:', id);
+      console.log('✅ Person deleted:', id, `(cascade: ${relationshipIds.length} relationships)`);
     } catch (err) {
       console.error('❌ Failed to delete person:', err);
       throw err;
     }
-  }, [people, user, activeDataset]);
+  }, [people, relationships, user, activeDataset]);
 
   // ==================== HOUSE OPERATIONS ====================
 
@@ -536,47 +555,76 @@ export function GenealogyProvider({ children }) {
   }, [relationships]);
 
   // ==================== CONTEXT VALUE ====================
-  
-  const contextValue = {
+
+  // Memoize context value to prevent unnecessary re-renders
+  // Only recreate when actual data or state changes
+  const contextValue = useMemo(() => ({
     // Data
     people,
     houses,
     relationships,
-    
+
     // State
     loading,
     error,
     dataVersion,
     syncStatus, // ☁️ New: expose sync status
-    
+
     // Person operations
     addPerson,
     updatePerson,
     deletePerson,
-    
+
     // House operations
     addHouse,
     updateHouse,
     deleteHouse,
-    
+
     // Relationship operations
     addRelationship,
     updateRelationship,
     deleteRelationship,
-    
+
     // Special operations
     foundCadetHouse,
     deleteAllData,
-    
+
     // Helpers
     getPersonById,
     getHouseById,
     getPeopleByHouse,
     getRelationshipsForPerson,
-    
+
     // Manual refresh
     refreshData: loadAllData
-  };
+  }), [
+    // Data dependencies
+    people,
+    houses,
+    relationships,
+    // State dependencies
+    loading,
+    error,
+    dataVersion,
+    syncStatus,
+    // Operation dependencies (these are useCallback-wrapped)
+    addPerson,
+    updatePerson,
+    deletePerson,
+    addHouse,
+    updateHouse,
+    deleteHouse,
+    addRelationship,
+    updateRelationship,
+    deleteRelationship,
+    foundCadetHouse,
+    deleteAllData,
+    getPersonById,
+    getHouseById,
+    getPeopleByHouse,
+    getRelationshipsForPerson,
+    loadAllData
+  ]);
 
   return (
     <GenealogyContext.Provider value={contextValue}>

@@ -1,0 +1,495 @@
+/**
+ * AI Proposal Card Styles
+ *
+ * Styling for proposal cards with severity indicators,
+ * before/after diffs, and approve/reject buttons.
+ */
+
+/* ==================== PROPOSAL LIST ==================== */
+
+.ai-proposal-list {
+  margin-top: 1rem;
+  border-top: 1px solid var(--border-secondary);
+  padding-top: 1rem;
+}
+
+.proposal-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  padding: 0 0.5rem;
+}
+
+.proposal-list-header h3 {
+  margin: 0;
+  font-family: var(--font-display, 'Cinzel', serif);
+  font-size: 1rem;
+  color: var(--accent-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.proposal-count {
+  background: var(--accent-primary);
+  color: var(--bg-primary);
+  font-size: 0.75rem;
+  padding: 0.125rem 0.5rem;
+  border-radius: 10px;
+  font-family: var(--font-body);
+}
+
+.batch-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.batch-btn {
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--border-primary);
+  border-radius: 4px;
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+}
+
+.batch-btn.approve-all {
+  border-color: var(--color-success, #4a9);
+  color: var(--color-success, #4a9);
+}
+
+.batch-btn.approve-all:hover {
+  background: var(--color-success, #4a9);
+  color: var(--bg-primary);
+}
+
+.batch-btn.reject-all {
+  border-color: var(--color-error, #b97c7c);
+  color: var(--color-error, #b97c7c);
+}
+
+.batch-btn.reject-all:hover {
+  background: var(--color-error, #b97c7c);
+  color: var(--bg-primary);
+}
+
+.proposal-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* ==================== PROPOSAL CARD ==================== */
+
+.ai-proposal-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-secondary);
+  border-radius: 6px;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+
+.ai-proposal-card:hover {
+  border-color: var(--border-primary);
+}
+
+/* Severity variants */
+.ai-proposal-card.severity-info {
+  border-left: 3px solid var(--color-info, #5b8bd4);
+}
+
+.ai-proposal-card.severity-warning {
+  border-left: 3px solid var(--color-warning, #d4a55b);
+}
+
+.ai-proposal-card.severity-critical {
+  border-left: 3px solid var(--color-error, #b97c7c);
+}
+
+/* Status variants */
+.ai-proposal-card.status-executed {
+  opacity: 0.7;
+  background: rgba(74, 153, 153, 0.1);
+}
+
+.ai-proposal-card.status-rejected {
+  opacity: 0.5;
+  background: rgba(128, 128, 128, 0.1);
+}
+
+.ai-proposal-card.status-failed {
+  opacity: 0.8;
+  background: rgba(185, 124, 124, 0.1);
+}
+
+/* ==================== PROPOSAL HEADER ==================== */
+
+.proposal-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.proposal-header:hover {
+  background: var(--bg-tertiary);
+}
+
+.proposal-type-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 3px;
+  font-size: 0.75rem;
+  color: white;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.proposal-type-badge[style*="green"] {
+  background: var(--color-success, #4a9) !important;
+}
+
+.proposal-type-badge[style*="blue"] {
+  background: var(--color-info, #5b8bd4) !important;
+}
+
+.proposal-type-badge[style*="red"] {
+  background: var(--color-error, #b97c7c) !important;
+}
+
+.proposal-type-badge[style*="purple"] {
+  background: #8b5cf6 !important;
+}
+
+.proposal-type-icon {
+  font-weight: bold;
+}
+
+.proposal-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.entity-icon {
+  flex-shrink: 0;
+}
+
+.proposal-action {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.entity-id {
+  font-family: monospace;
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  background: var(--bg-tertiary);
+  padding: 0.1rem 0.3rem;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.proposal-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.severity-badge {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.proposal-status {
+  font-size: 0.7rem;
+  padding: 0.15rem 0.4rem;
+  border-radius: 3px;
+  font-weight: 500;
+}
+
+.proposal-status.executing {
+  background: var(--color-warning, #d4a55b);
+  color: white;
+  animation: pulse 1s infinite;
+}
+
+.proposal-status.completed {
+  background: var(--color-success, #4a9);
+  color: white;
+}
+
+.proposal-status.failed {
+  background: var(--color-error, #b97c7c);
+  color: white;
+}
+
+.proposal-status.rejected {
+  background: var(--text-tertiary);
+  color: var(--bg-primary);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.expand-toggle {
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: 0.25rem;
+  font-size: 0.75rem;
+  transition: color 0.2s;
+}
+
+.expand-toggle:hover {
+  color: var(--text-primary);
+}
+
+/* ==================== PROPOSAL REASON ==================== */
+
+.proposal-reason {
+  padding: 0 0.75rem 0.5rem;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  font-style: italic;
+  border-bottom: 1px solid var(--border-secondary);
+}
+
+/* ==================== PROPOSAL DETAILS ==================== */
+
+.proposal-details {
+  padding: 0.75rem;
+  background: var(--bg-tertiary);
+  border-top: 1px solid var(--border-secondary);
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 500px;
+  }
+}
+
+.proposal-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.preview-before,
+.preview-after {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  padding: 0.5rem;
+  border-radius: 4px;
+}
+
+.preview-before {
+  background: rgba(185, 124, 124, 0.1);
+  border: 1px dashed var(--color-error, #b97c7c);
+}
+
+.preview-after {
+  background: rgba(74, 153, 153, 0.1);
+  border: 1px dashed var(--color-success, #4a9);
+}
+
+.preview-label {
+  font-weight: 600;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.preview-value {
+  color: var(--text-primary);
+  font-family: var(--font-body);
+}
+
+.proposal-data {
+  margin-bottom: 0.75rem;
+}
+
+.data-label {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.35rem;
+}
+
+.data-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.35rem;
+}
+
+.data-field {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  padding: 0.25rem 0.5rem;
+  background: var(--bg-primary);
+  border-radius: 3px;
+}
+
+.field-name {
+  color: var(--text-tertiary);
+  font-weight: 500;
+}
+
+.field-value {
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.delete-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: rgba(185, 124, 124, 0.15);
+  border: 1px solid var(--color-error, #b97c7c);
+  border-radius: 4px;
+  margin-bottom: 0.75rem;
+}
+
+.warning-icon {
+  flex-shrink: 0;
+  font-size: 1rem;
+}
+
+.warning-text {
+  font-size: 0.85rem;
+  color: var(--color-error, #b97c7c);
+  line-height: 1.4;
+}
+
+.proposal-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: rgba(185, 124, 124, 0.1);
+  border-radius: 4px;
+  margin-top: 0.5rem;
+}
+
+.error-icon {
+  flex-shrink: 0;
+}
+
+.error-text {
+  font-size: 0.8rem;
+  color: var(--color-error, #b97c7c);
+}
+
+/* ==================== PROPOSAL ACTIONS ==================== */
+
+.proposal-actions {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-top: 1px solid var(--border-secondary);
+  background: var(--bg-secondary);
+}
+
+.proposal-btn {
+  flex: 1;
+  padding: 0.5rem 1rem;
+  border: 1px solid;
+  border-radius: 4px;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+}
+
+.proposal-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.proposal-btn.approve {
+  background: transparent;
+  border-color: var(--color-success, #4a9);
+  color: var(--color-success, #4a9);
+}
+
+.proposal-btn.approve:hover:not(:disabled) {
+  background: var(--color-success, #4a9);
+  color: white;
+}
+
+.proposal-btn.reject {
+  background: transparent;
+  border-color: var(--color-error, #b97c7c);
+  color: var(--color-error, #b97c7c);
+}
+
+.proposal-btn.reject:hover:not(:disabled) {
+  background: var(--color-error, #b97c7c);
+  color: white;
+}
+
+/* ==================== RESPONSIVE ==================== */
+
+@media (max-width: 480px) {
+  .proposal-header {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .proposal-title {
+    order: 2;
+    width: 100%;
+  }
+
+  .proposal-meta {
+    order: 1;
+    margin-left: auto;
+  }
+
+  .batch-actions {
+    flex-direction: column;
+  }
+
+  .proposal-actions {
+    flex-direction: column;
+  }
+
+  .data-fields {
+    grid-template-columns: 1fr;
+  }
+}

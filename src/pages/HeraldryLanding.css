@@ -17,14 +17,46 @@
 }
 
 .armory-container {
-  max-width: 1200px;
+  display: flex;
+  gap: var(--space-6);
+  max-width: 1400px;
   margin: 0 auto;
   padding: var(--space-8) var(--space-4) var(--space-16);
+  align-items: flex-start;
 }
 
 .armory-content {
+  flex: 1;
+  min-width: 0;
   max-width: 1000px;
-  margin: 0 auto;
+}
+
+/* Education panel - sticky sidebar pattern */
+.armory-container > .dignity-education {
+  position: sticky;
+  top: 471px; /* Aligns flush with top of search bar box */
+  flex-shrink: 0;
+  align-self: flex-start;
+  max-height: calc(100vh - 491px);
+  overflow-y: auto;
+  order: -1;
+}
+
+/* On smaller screens, panel stacks above content */
+@media (max-width: 1200px) {
+  .armory-container {
+    flex-direction: column;
+  }
+
+  .armory-container > .dignity-education {
+    position: relative;
+    top: auto;
+    width: 100%;
+    max-height: none;
+    overflow-y: visible;
+    order: 0;
+    margin-bottom: var(--space-4);
+  }
 }
 
 /* ============================================
