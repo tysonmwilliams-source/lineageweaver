@@ -1936,7 +1936,12 @@ function FamilyTree() {
         })()
       ) : (
         <div className="relative w-full h-screen overflow-hidden" style={{ backgroundColor: 'var(--bg-primary)' }}>
-          <svg ref={svgRef} className="tree-svg"></svg>
+          <svg
+            ref={svgRef}
+            className="tree-svg"
+            role="img"
+            aria-label="Family tree visualization showing genealogical relationships"
+          ></svg>
         </div>
       )}
 

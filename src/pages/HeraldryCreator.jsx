@@ -1755,7 +1755,12 @@ function HeraldryCreator() {
                     <p>Generating...</p>
                   </div>
                 ) : previewSVG ? (
-                  <div className="shield-display" dangerouslySetInnerHTML={{ __html: sanitizeSVG(previewSVG) }} />
+                  <div
+                    className="shield-display"
+                    role="img"
+                    aria-label={blazon || 'Heraldic shield design preview'}
+                    dangerouslySetInnerHTML={{ __html: sanitizeSVG(previewSVG) }}
+                  />
                 ) : (
                   <div className="preview-placeholder">
                     <span>🛡️</span>
