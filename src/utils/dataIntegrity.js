@@ -102,9 +102,9 @@ export function validateParentChildRelationship(parentId, childId, relationships
   }
 
   // Check for circular ancestry
-  // Note: We check if the child is already an ancestor of the proposed parent
-  // by seeing if adding parent → child would create a loop
-  const circularCheck = detectCircularAncestry(parentId, childId, relationships);
+  // We check if adding parentId as parent of childId would create a loop
+  // (i.e., if childId is already an ancestor of parentId)
+  const circularCheck = detectCircularAncestry(childId, parentId, relationships);
 
   if (circularCheck.isCircular) {
     const pathStr = circularCheck.path.join(' → ');
@@ -194,11 +194,21 @@ export function findOrphanedRecords(data) {
  */
 export function validateBidirectionalRelationships(relationships) {
   const inconsistencies = [];
+  const checkedPairs = new Set();
 
   // Marriage relationships should be bidirectional
   const marriageRelationships = relationships.filter(r => r.relationshipType === 'marriage');
 
   for (const marriage of marriageRelationships) {
+    // Create a unique key for this pair (order-independent)
+    const pairKey = [marriage.person1Id, marriage.person2Id].sort().join('-');
+
+    // Skip if we've already checked this pair
+    if (checkedPairs.has(pairKey)) {
+      continue;
+    }
+    checkedPairs.add(pairKey);
+
     // Check if reverse relationship exists
     const reverse = marriageRelationships.find(
       m => m.person1Id === marriage.person2Id && m.person2Id === marriage.person1Id
@@ -233,20 +243,50 @@ export function runIntegrityCheck(data) {
   const bidirectionalIssues = validateBidirectionalRelationships(data.relationships || []);
 
   // Check for circular references in parent-child relationships
+  // We detect cycles by checking if any person appears in their own ancestry
   const circularIssues = [];
   const parentChildRels = (data.relationships || []).filter(
     r => r.relationshipType === 'parent-child'
   );
 
+  // Build a map of child -> parents for efficient lookup
+  const parentMap = new Map();
   for (const rel of parentChildRels) {
-    const check = detectCircularAncestry(rel.person1Id, rel.person2Id, data.relationships || []);
-    if (check.isCircular) {
-      circularIssues.push({
-        relationshipId: rel.id,
-        parentId: rel.person1Id,
-        childId: rel.person2Id,
-        path: check.path
-      });
+    const parents = parentMap.get(rel.person2Id) || [];
+    parents.push(rel.person1Id);
+    parentMap.set(rel.person2Id, parents);
+  }
+
+  // For each person who is a child, check if they appear in their own ancestry
+  const checkedPeople = new Set();
+  for (const rel of parentChildRels) {
+    const childId = rel.person2Id;
+    if (checkedPeople.has(childId)) continue;
+    checkedPeople.add(childId);
+
+    const visited = new Set();
+    const path = [];
+    let current = [childId];
+
+    while (current.length > 0) {
+      const next = [];
+      for (const personId of current) {
+        if (visited.has(personId)) {
+          // Found a cycle
+          circularIssues.push({
+            personId: childId,
+            cycleAt: personId,
+            path: [...path, personId]
+          });
+          break;
+        }
+        visited.add(personId);
+        path.push(personId);
+
+        const parents = parentMap.get(personId) || [];
+        next.push(...parents);
+      }
+      current = next;
     }
   }
 
