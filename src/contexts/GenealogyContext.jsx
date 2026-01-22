@@ -80,7 +80,22 @@ import {
 import { useAuth } from './AuthContext';
 import { useDataset } from './DatasetContext';
 
-// Create the context object
+// ═══════════════════════════════════════════════════════════════════════════════
+// CONTEXT OBJECTS
+// ═══════════════════════════════════════════════════════════════════════════════
+// Split into two contexts for better performance:
+// - StateContext: Read-only data (people, houses, relationships, loading, etc.)
+// - DispatchContext: Mutation functions (addPerson, updateHouse, etc.)
+//
+// Components that only display data subscribe to StateContext
+// Components that only perform actions subscribe to DispatchContext
+// Components that need both can use the combined useGenealogy() hook
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const GenealogyStateContext = createContext(null);
+const GenealogyDispatchContext = createContext(null);
+
+// Legacy context for backward compatibility
 const GenealogyContext = createContext(null);
 
 /**
@@ -558,22 +573,45 @@ export function GenealogyProvider({ children }) {
     );
   }, [relationships]);
 
-  // ==================== CONTEXT VALUE ====================
+  // ==================== CONTEXT VALUES ====================
 
-  // Memoize context value to prevent unnecessary re-renders
-  // Only recreate when actual data or state changes
-  const contextValue = useMemo(() => ({
-    // Data
+  // STATE CONTEXT: Read-only data and lookup helpers
+  // Components subscribing to this will re-render when data changes
+  const stateValue = useMemo(() => ({
+    // Data arrays
     people,
     houses,
     relationships,
 
-    // State
+    // UI state
     loading,
     error,
     dataVersion,
-    syncStatus, // ☁️ New: expose sync status
+    syncStatus,
 
+    // Read-only helpers (these don't mutate, just lookup)
+    getPersonById,
+    getHouseById,
+    getPeopleByHouse,
+    getRelationshipsForPerson
+  }), [
+    people,
+    houses,
+    relationships,
+    loading,
+    error,
+    dataVersion,
+    syncStatus,
+    getPersonById,
+    getHouseById,
+    getPeopleByHouse,
+    getRelationshipsForPerson
+  ]);
+
+  // DISPATCH CONTEXT: Mutation functions only
+  // Components subscribing to this will NOT re-render when data changes
+  // (the functions themselves are stable via useCallback)
+  const dispatchValue = useMemo(() => ({
     // Person operations
     addPerson,
     updatePerson,
@@ -593,25 +631,9 @@ export function GenealogyProvider({ children }) {
     foundCadetHouse,
     deleteAllData,
 
-    // Helpers
-    getPersonById,
-    getHouseById,
-    getPeopleByHouse,
-    getRelationshipsForPerson,
-
     // Manual refresh
     refreshData: loadAllData
   }), [
-    // Data dependencies
-    people,
-    houses,
-    relationships,
-    // State dependencies
-    loading,
-    error,
-    dataVersion,
-    syncStatus,
-    // Operation dependencies (these are useCallback-wrapped)
     addPerson,
     updatePerson,
     deletePerson,
@@ -623,34 +645,101 @@ export function GenealogyProvider({ children }) {
     deleteRelationship,
     foundCadetHouse,
     deleteAllData,
-    getPersonById,
-    getHouseById,
-    getPeopleByHouse,
-    getRelationshipsForPerson,
     loadAllData
   ]);
 
+  // COMBINED CONTEXT: For backward compatibility with existing components
+  // New components should prefer useGenealogyState() or useGenealogyDispatch()
+  const combinedValue = useMemo(() => ({
+    ...stateValue,
+    ...dispatchValue
+  }), [stateValue, dispatchValue]);
+
   return (
-    <GenealogyContext.Provider value={contextValue}>
-      {children}
-    </GenealogyContext.Provider>
+    <GenealogyStateContext.Provider value={stateValue}>
+      <GenealogyDispatchContext.Provider value={dispatchValue}>
+        <GenealogyContext.Provider value={combinedValue}>
+          {children}
+        </GenealogyContext.Provider>
+      </GenealogyDispatchContext.Provider>
+    </GenealogyStateContext.Provider>
   );
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// HOOKS
+// ═══════════════════════════════════════════════════════════════════════════════
+
 /**
- * useGenealogy Hook
+ * useGenealogyState Hook
+ *
+ * Use this for components that only need to READ data (display lists, show details).
+ * These components will re-render when data changes.
+ *
+ * Returns: { people, houses, relationships, loading, error, dataVersion, syncStatus,
+ *            getPersonById, getHouseById, getPeopleByHouse, getRelationshipsForPerson }
+ */
+export function useGenealogyState() {
+  const context = useContext(GenealogyStateContext);
+
+  if (context === null) {
+    throw new Error(
+      'useGenealogyState must be used within a GenealogyProvider. ' +
+      'Make sure your component is wrapped in <GenealogyProvider>.'
+    );
+  }
+
+  return context;
+}
+
+/**
+ * useGenealogyDispatch Hook
+ *
+ * Use this for components that only need to MUTATE data (forms, buttons that trigger actions).
+ * These components will NOT re-render when data changes - only when functions change
+ * (which is rare since they're wrapped in useCallback).
+ *
+ * Returns: { addPerson, updatePerson, deletePerson, addHouse, updateHouse, deleteHouse,
+ *            addRelationship, updateRelationship, deleteRelationship, foundCadetHouse,
+ *            deleteAllData, refreshData }
+ */
+export function useGenealogyDispatch() {
+  const context = useContext(GenealogyDispatchContext);
+
+  if (context === null) {
+    throw new Error(
+      'useGenealogyDispatch must be used within a GenealogyProvider. ' +
+      'Make sure your component is wrapped in <GenealogyProvider>.'
+    );
+  }
+
+  return context;
+}
+
+/**
+ * useGenealogy Hook (Combined - Backward Compatible)
+ *
+ * Returns both state and dispatch functions. Use this for:
+ * - Existing components (backward compatibility)
+ * - Components that need both read and write access
+ *
+ * For better performance in new components, prefer:
+ * - useGenealogyState() for read-only components
+ * - useGenealogyDispatch() for action-only components
  */
 export function useGenealogy() {
   const context = useContext(GenealogyContext);
-  
+
   if (context === null) {
     throw new Error(
       'useGenealogy must be used within a GenealogyProvider. ' +
       'Make sure your component is wrapped in <GenealogyProvider>.'
     );
   }
-  
+
   return context;
 }
 
+// Export contexts for advanced use cases (testing, custom providers)
+export { GenealogyStateContext, GenealogyDispatchContext };
 export default GenealogyContext;

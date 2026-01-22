@@ -4,6 +4,8 @@ import * as d3 from 'd3';
 import { useGenealogy } from '../contexts/GenealogyContext';
 import Navigation from '../components/Navigation';
 import TreeControls from '../components/TreeControls';
+import TreeSettingsPanel from '../components/TreeSettingsPanel';
+import FragmentNavigator from '../components/FragmentNavigator';
 import QuickEditPanel from '../components/QuickEditPanel';
 import BranchView from '../components/BranchView';
 import Icon from '../components/icons';
@@ -13,6 +15,17 @@ import { getAllThemeColors, getHouseColor } from '../utils/themeColors';
 import { getPrimaryEpithet } from '../utils/epithetUtils';
 import { getAllDignities, getDignityIcon } from '../services/dignityService';
 import { calculateBlockBasedLayout } from '../utils/familyBlockLayout';
+import {
+  estimateTextWidth,
+  truncateText,
+  truncateName,
+  harmonizeColor as harmonizeColorUtil,
+  getHouseIdsInScope,
+  getHouseScopedPeopleIds,
+  findRootPersonForHouse,
+  detectFragments,
+  getLineageGapConnections
+} from '../utils/treeHelpers';
 
 // 🛠️ DEV LAYOUT TOOLS - PARKED (drag and drop feature available here)
 // import { useDevLayout } from '../hooks/useDevLayout';
@@ -81,7 +94,6 @@ function FamilyTree() {
 
   // 🧩 FRAGMENT NAVIGATION
   const fragmentBoundsRef = useRef([]);
-  const [fragmentNavExpanded, setFragmentNavExpanded] = useState(false);
 
   // ==================== HOUSE VIEW CONTROLS ====================
   const [centreOnPersonId, setCentreOnPersonId] = useState('auto');
@@ -157,326 +169,10 @@ function FamilyTree() {
   const setDraggingPersonId = useCallback(() => {}, []);
   const setPosition = useCallback(() => {}, []);
 
-  // Helper function to harmonize house colors with current theme
-  const harmonizeColor = (hexColor) => {
-    const hex = hexColor.replace('#', '');
-    let r = parseInt(hex.substr(0, 2), 16);
-    let g = parseInt(hex.substr(2, 2), 16);
-    let b = parseInt(hex.substr(4, 2), 16);
-
-    if (isDarkTheme()) {
-      const warmBrown = { r: 120, g: 100, b: 80 };
-      const desaturationAmount = 0.5;
-      r = Math.round(r * (1 - desaturationAmount) + warmBrown.r * desaturationAmount);
-      g = Math.round(g * (1 - desaturationAmount) + warmBrown.g * desaturationAmount);
-      b = Math.round(b * (1 - desaturationAmount) + warmBrown.b * desaturationAmount);
-      const darkenAmount = 0.7;
-      r = Math.round(r * darkenAmount);
-      g = Math.round(g * darkenAmount);
-      b = Math.round(b * darkenAmount);
-    } else {
-      const warmCream = { r: 180, g: 160, b: 140 };
-      const desaturationAmount = 0.4;
-      r = Math.round(r * (1 - desaturationAmount) + warmCream.r * desaturationAmount);
-      g = Math.round(g * (1 - desaturationAmount) + warmCream.g * desaturationAmount);
-      b = Math.round(b * (1 - desaturationAmount) + warmCream.b * desaturationAmount);
-      const adjustAmount = 0.8;
-      r = Math.round(r * adjustAmount);
-      g = Math.round(g * adjustAmount);
-      b = Math.round(b * adjustAmount);
-    }
-
-    const toHex = (n) => {
-      const hex = n.toString(16);
-      return hex.length === 1 ? '0' + hex : hex;
-    };
-    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-  };
-
-  // TEXT TRUNCATION HELPERS
-  const estimateTextWidth = (text, fontSize, isBold = false) => {
-    const avgCharRatio = isBold ? 0.58 : 0.52;
-    return text.length * fontSize * avgCharRatio;
-  };
-
-  const truncateText = (text, maxWidth, fontSize, isBold = false) => {
-    if (!text) return { text: '', truncated: false, fullText: '' };
-
-    const fullText = text;
-    const estimatedWidth = estimateTextWidth(text, fontSize, isBold);
-
-    if (estimatedWidth <= maxWidth) {
-      return { text, truncated: false, fullText };
-    }
-
-    const ellipsis = '…';
-    const ellipsisWidth = estimateTextWidth(ellipsis, fontSize, isBold);
-    const availableWidth = maxWidth - ellipsisWidth;
-    const avgCharWidth = fontSize * (isBold ? 0.58 : 0.52);
-    const maxChars = Math.floor(availableWidth / avgCharWidth);
-
-    const truncated = text.slice(0, Math.max(maxChars, 3)) + ellipsis;
-    return { text: truncated, truncated: true, fullText };
-  };
-
-  const truncateName = (firstName, lastName, maxWidth, fontSize) => {
-    const fullName = `${firstName} ${lastName}`;
-    const fullWidth = estimateTextWidth(fullName, fontSize, true);
-
-    if (fullWidth <= maxWidth) {
-      return { text: fullName, truncated: false, fullText: fullName };
-    }
-
-    const abbreviated = `${firstName} ${lastName.charAt(0)}…`;
-    const abbrevWidth = estimateTextWidth(abbreviated, fontSize, true);
-
-    if (abbrevWidth <= maxWidth) {
-      return { text: abbreviated, truncated: true, fullText: fullName };
-    }
-
-    return truncateText(fullName, maxWidth, fontSize, true);
-  };
-
-  // HOUSE SCOPE HELPERS
-  const getHouseIdsInScope = (targetHouseId, allHouses, includeCadets) => {
-    const houseIds = new Set([targetHouseId]);
-    
-    if (includeCadets) {
-      allHouses.forEach(house => {
-        if (house.parentHouseId === targetHouseId) {
-          houseIds.add(house.id);
-        }
-      });
-    }
-    
-    return houseIds;
-  };
-
-  const getHouseScopedPeopleIds = (
-    targetHouseId,
-    allPeople,
-    allHouses,
-    spouseMap,
-    childrenMap,
-    parentMap,
-    includeCadets
-  ) => {
-    const scopedIds = new Set();
-    const houseIds = getHouseIdsInScope(targetHouseId, allHouses, includeCadets);
-    
-    const peopleById = new Map(allPeople.map(p => [p.id, p]));
-    const isHouseMember = (personId) => {
-      const person = peopleById.get(personId);
-      return person && houseIds.has(person.houseId);
-    };
-    
-    const directMembers = allPeople.filter(p => houseIds.has(p.houseId));
-    directMembers.forEach(p => scopedIds.add(p.id));
-    
-    directMembers.forEach(p => {
-      const spouseId = spouseMap.get(p.id);
-      if (spouseId) {
-        scopedIds.add(spouseId);
-      }
-    });
-    
-    const findAncestors = (personId, visited = new Set()) => {
-      if (visited.has(personId)) return;
-      visited.add(personId);
-      
-      const person = peopleById.get(personId);
-      if (!person) return;
-      
-      const parents = parentMap.get(personId) || [];
-      parents.forEach(parentId => {
-        scopedIds.add(parentId);
-        const parentSpouseId = spouseMap.get(parentId);
-        if (parentSpouseId) {
-          scopedIds.add(parentSpouseId);
-        }
-        if (isHouseMember(parentId)) {
-          findAncestors(parentId, visited);
-        }
-      });
-    };
-    
-    directMembers.forEach(p => findAncestors(p.id));
-    
-    const findDescendants = (personId, visited = new Set()) => {
-      if (visited.has(personId)) return;
-      visited.add(personId);
-      
-      const person = peopleById.get(personId);
-      if (!person) return;
-      
-      if (!isHouseMember(personId)) {
-        return;
-      }
-      
-      const children = childrenMap.get(personId) || [];
-      children.forEach(childId => {
-        scopedIds.add(childId);
-        const childSpouseId = spouseMap.get(childId);
-        if (childSpouseId) {
-          scopedIds.add(childSpouseId);
-        }
-        findDescendants(childId, visited);
-      });
-    };
-    
-    directMembers.forEach(p => findDescendants(p.id));
-    
-    Array.from(scopedIds).forEach(id => {
-      if (isHouseMember(id)) {
-        findDescendants(id);
-      }
-    });
-    
-    return scopedIds;
-  };
-
-  const findRootPersonForHouse = (
-    scopedPeopleIds,
-    peopleById,
-    parentMap,
-    centreOn
-  ) => {
-    if (centreOn !== 'auto' && scopedPeopleIds.has(centreOn)) {
-      return centreOn;
-    }
-    
-    const scopedPeople = Array.from(scopedPeopleIds)
-      .map(id => peopleById.get(id))
-      .filter(p => p);
-    
-    const rootCandidates = scopedPeople.filter(p => !parentMap.has(p.id));
-    
-    if (rootCandidates.length > 0) {
-      rootCandidates.sort((a, b) => parseInt(a.dateOfBirth) - parseInt(b.dateOfBirth));
-      return rootCandidates[0].id;
-    }
-    
-    scopedPeople.sort((a, b) => parseInt(a.dateOfBirth) - parseInt(b.dateOfBirth));
-    return scopedPeople[0]?.id || null;
-  };
-
-  // FRAGMENT DETECTION
-  const detectFragments = (
-    houseMembers,
-    spouseMap,
-    parentMap,
-    childrenMap
-  ) => {
-    if (houseMembers.length === 0) return [];
-    
-    const connections = new Map();
-    
-    houseMembers.forEach(person => {
-      if (!connections.has(person.id)) {
-        connections.set(person.id, new Set());
-      }
-      
-      const spouseId = spouseMap.get(person.id);
-      if (spouseId) {
-        connections.get(person.id).add(spouseId);
-        if (!connections.has(spouseId)) connections.set(spouseId, new Set());
-        connections.get(spouseId).add(person.id);
-      }
-      
-      const parents = parentMap.get(person.id) || [];
-      parents.forEach(parentId => {
-        connections.get(person.id).add(parentId);
-        if (!connections.has(parentId)) connections.set(parentId, new Set());
-        connections.get(parentId).add(person.id);
-      });
-      
-      const children = childrenMap.get(person.id) || [];
-      children.forEach(childId => {
-        connections.get(person.id).add(childId);
-        if (!connections.has(childId)) connections.set(childId, new Set());
-        connections.get(childId).add(person.id);
-      });
-    });
-    
-    const visited = new Set();
-    const fragments = [];
-    
-    houseMembers.forEach(person => {
-      if (visited.has(person.id)) return;
-      
-      const fragment = new Set();
-      const queue = [person.id];
-      
-      while (queue.length > 0) {
-        const currentId = queue.shift();
-        if (visited.has(currentId)) continue;
-        
-        visited.add(currentId);
-        fragment.add(currentId);
-        
-        const connected = connections.get(currentId) || new Set();
-        connected.forEach(connectedId => {
-          if (!visited.has(connectedId)) {
-            queue.push(connectedId);
-          }
-        });
-      }
-      
-      const fragmentPeople = houseMembers.filter(p => fragment.has(p.id));
-      const rootCandidates = fragmentPeople.filter(p => !parentMap.has(p.id));
-      
-      let rootPerson;
-      if (rootCandidates.length > 0) {
-        rootCandidates.sort((a, b) => parseInt(a.dateOfBirth) - parseInt(b.dateOfBirth));
-        rootPerson = rootCandidates[0];
-      } else {
-        fragmentPeople.sort((a, b) => parseInt(a.dateOfBirth) - parseInt(b.dateOfBirth));
-        rootPerson = fragmentPeople[0];
-      }
-      
-      fragments.push({
-        peopleIds: fragment,
-        rootPerson: rootPerson,
-        memberCount: fragment.size,
-        houseMembers: fragmentPeople
-      });
-    });
-    
-    fragments.sort((a, b) => parseInt(a.rootPerson.dateOfBirth) - parseInt(b.rootPerson.dateOfBirth));
-    
-    return fragments;
-  };
-
-  const getLineageGapConnections = (fragments, allRelationships, peopleById) => {
-    const lineageGaps = allRelationships.filter(r => r.relationshipType === 'lineage-gap');
-    const connections = [];
-    
-    lineageGaps.forEach(gap => {
-      const descendant = peopleById.get(gap.person1Id);
-      const ancestor = peopleById.get(gap.person2Id);
-      if (!descendant || !ancestor) return;
-      
-      let descendantFragment = null;
-      let ancestorFragment = null;
-      
-      fragments.forEach((frag, index) => {
-        if (frag.peopleIds.has(gap.person1Id)) descendantFragment = index;
-        if (frag.peopleIds.has(gap.person2Id)) ancestorFragment = index;
-      });
-      
-      if (descendantFragment !== null && ancestorFragment !== null && descendantFragment !== ancestorFragment) {
-        connections.push({
-          ...gap,
-          descendant,
-          ancestor,
-          descendantFragmentIndex: descendantFragment,
-          ancestorFragmentIndex: ancestorFragment
-        });
-      }
-    });
-    
-    return connections;
-  };
+  // Wrapper for harmonizeColor that uses the current theme
+  const harmonizeColor = useCallback((hexColor) => {
+    return harmonizeColorUtil(hexColor, isDarkTheme());
+  }, [isDarkTheme]);
 
   const getHouseNotablePeople = useMemo(() => {
     if (!selectedHouseId || people.length === 0) return [];
@@ -2179,105 +1875,27 @@ function FamilyTree() {
       />
       */}
 
-      <div className="fixed top-20 right-6 z-10">
-        <div
-          className="rounded-lg shadow-lg transition-all duration-300 ease-in-out overflow-hidden"
-          style={{
-            backgroundColor: 'var(--bg-secondary)',
-            borderWidth: '1px',
-            borderColor: 'var(--border-primary)',
-            borderRadius: 'var(--radius-lg)',
-            boxShadow: 'var(--shadow-lg)',
-            maxHeight: controlsPanelExpanded ? '600px' : '0',
-            opacity: controlsPanelExpanded ? '1' : '0',
-            padding: controlsPanelExpanded ? '1rem' : '0 1rem'
-          }}
-        >
-          <label className="block mb-2 font-medium" style={{ color: 'var(--text-primary)' }}>View House:</label>
-          <select 
-            value={selectedHouseId || ''} 
-            onChange={(e) => handleHouseChange(Number(e.target.value))}
-            className="w-48 p-2 rounded transition"
-            style={{
-              backgroundColor: 'var(--bg-tertiary)',
-              color: 'var(--text-primary)',
-              borderWidth: '1px',
-              borderColor: 'var(--border-primary)',
-              borderRadius: 'var(--radius-md)'
-            }}
-          >
-            {houses.map(house => (
-              <option key={house.id} value={house.id}>
-                {house.houseName}
-                {house.houseType === 'cadet' ? ' (Cadet)' : ''}
-              </option>
-            ))}
-          </select>
-
-          <div className="mt-4 pt-4" style={{ borderTopWidth: '1px', borderColor: 'var(--border-primary)' }}>
-            <label className="block mb-2 text-sm font-medium" style={{ color: 'var(--text-primary)' }}>Centre On:</label>
-            <select 
-              value={centreOnPersonId} 
-              onChange={(e) => setCentreOnPersonId(e.target.value === 'auto' ? 'auto' : Number(e.target.value))}
-              className="w-48 p-2 rounded transition"
-              style={{
-                backgroundColor: 'var(--bg-tertiary)',
-                color: 'var(--text-primary)',
-                borderWidth: '1px',
-                borderColor: 'var(--border-primary)',
-                borderRadius: 'var(--radius-md)'
-              }}
-            >
-              <option value="auto">Oldest Member</option>
-              {getHouseNotablePeople.map(person => (
-                <option key={person.id} value={person.id}>
-                  {person.firstName} {person.lastName} (b. {person.dateOfBirth})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="mt-4 pt-4" style={{ borderTopWidth: '1px', borderColor: 'var(--border-primary)' }}>
-            <label className="flex items-center cursor-pointer transition-opacity hover:opacity-80" style={{ color: 'var(--text-primary)' }}>
-              <input
-                type="checkbox"
-                checked={showRelationships}
-                onChange={(e) => {
-                  const checked = e.target.checked;
-                  setShowRelationships(checked);
-                  showRelationshipsRef.current = checked;
-                  if (!checked) {
-                    setReferencePerson(null);
-                    setRelationshipMap(new Map());
-                  }
-                }}
-                className="mr-2 w-4 h-4"
-              />
-              <span className="text-sm">Show Relationships</span>
-            </label>
-          </div>
-
-          {/* Branch View - split screen mode for viewing lesser branches */}
-          {fragmentInfo.hasMultipleFragments && (
-            <div className="mt-4 pt-4" style={{ borderTopWidth: '1px', borderColor: 'var(--border-primary)' }}>
-              <label className="flex items-center cursor-pointer transition-opacity hover:opacity-80" style={{ color: 'var(--text-primary)' }}>
-                <input
-                  type="checkbox"
-                  checked={showBranchView}
-                  onChange={(e) => setShowBranchView(e.target.checked)}
-                  className="mr-2 w-4 h-4"
-                />
-                <span className="text-sm">View Other Branches</span>
-              </label>
-              {showBranchView && (
-                <p className="mt-2 text-xs" style={{ color: 'var(--text-tertiary)' }}>
-                  Split-screen branch view coming soon
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
+      <TreeSettingsPanel
+        isExpanded={controlsPanelExpanded}
+        houses={houses}
+        selectedHouseId={selectedHouseId}
+        onHouseChange={handleHouseChange}
+        centreOnPersonId={centreOnPersonId}
+        onCentreOnChange={setCentreOnPersonId}
+        notablePeople={getHouseNotablePeople}
+        showRelationships={showRelationships}
+        onShowRelationshipsChange={(checked) => {
+          setShowRelationships(checked);
+          showRelationshipsRef.current = checked;
+          if (!checked) {
+            setReferencePerson(null);
+            setRelationshipMap(new Map());
+          }
+        }}
+        showBranchView={showBranchView}
+        onShowBranchViewChange={setShowBranchView}
+        hasMultipleFragments={fragmentInfo.hasMultipleFragments}
+      />
 
       <TreeControls
         svgRef={svgRef}
@@ -2289,62 +1907,10 @@ function FamilyTree() {
 
       {/* Fragment Navigator - Minimal pill in top-left */}
       {fragmentInfo.hasMultipleFragments && !showBranchView && (
-        <div
-          className="fixed top-20 left-6 z-10"
-          onMouseEnter={() => setFragmentNavExpanded(true)}
-          onMouseLeave={() => setFragmentNavExpanded(false)}
-        >
-          {/* Collapsed pill */}
-          <div
-            className="flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-all duration-200"
-            style={{
-              backgroundColor: 'var(--bg-secondary)',
-              borderWidth: '1px',
-              borderColor: 'var(--border-primary)',
-              boxShadow: 'var(--shadow-md)'
-            }}
-          >
-            <Icon name="git-branch" size={16} style={{ color: 'var(--accent-primary)' }} />
-            <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-              {fragmentInfo.fragments.length} Branches
-            </span>
-          </div>
-
-          {/* Expanded dropdown */}
-          {fragmentNavExpanded && (
-            <div
-              className="absolute top-full left-0 mt-1 min-w-48 rounded-lg overflow-hidden"
-              style={{
-                backgroundColor: 'var(--bg-secondary)',
-                borderWidth: '1px',
-                borderColor: 'var(--border-primary)',
-                boxShadow: 'var(--shadow-lg)'
-              }}
-            >
-              {fragmentInfo.fragments.map((fragment, index) => (
-                <button
-                  key={index}
-                  className="w-full px-3 py-2 text-left transition-colors hover:bg-opacity-80 flex items-center gap-2"
-                  style={{
-                    backgroundColor: 'transparent',
-                    color: 'var(--text-primary)'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                  onClick={() => navigateToFragment(index)}
-                >
-                  <Icon name="user" size={14} style={{ color: 'var(--text-secondary)' }} />
-                  <span className="text-sm">
-                    {fragment.rootPerson.firstName} {fragment.rootPerson.lastName}
-                  </span>
-                  <span className="text-xs ml-auto" style={{ color: 'var(--text-tertiary)' }}>
-                    {fragment.memberCount}
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        <FragmentNavigator
+          fragments={fragmentInfo.fragments}
+          onNavigateToFragment={navigateToFragment}
+        />
       )}
 
       {/* Main Tree View or Branch View */}

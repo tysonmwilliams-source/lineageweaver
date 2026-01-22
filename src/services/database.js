@@ -31,6 +31,33 @@ function createDatabaseInstance(datasetId) {
 
   const db = new Dexie(dbName);
 
+  // Handle blocked database upgrades (multi-tab scenarios)
+  // This fires when a database upgrade is needed but another tab has the DB open
+  db.on('blocked', () => {
+    console.warn('⚠️ Database upgrade blocked by another tab');
+    // Notify the user to close other tabs
+    // This uses a custom event that the UI can listen for
+    window.dispatchEvent(new CustomEvent('lineageweaver:db-blocked', {
+      detail: {
+        message: 'Please close other Lineageweaver tabs to complete the database upgrade.',
+        database: dbName
+      }
+    }));
+  });
+
+  // Handle when this tab is blocking another tab's upgrade
+  db.on('versionchange', (event) => {
+    console.log('📦 Database version change detected, closing connection...');
+    db.close();
+    // Notify the user that a reload is needed
+    window.dispatchEvent(new CustomEvent('lineageweaver:db-versionchange', {
+      detail: {
+        message: 'Database updated in another tab. Please refresh to continue.',
+        database: dbName
+      }
+    }));
+  });
+
   // Apply all schema versions to this database instance
   applySchema(db);
 
