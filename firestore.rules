@@ -1,0 +1,234 @@
+rules_version = '2';
+
+/**
+ * Firestore Security Rules for Lineageweaver
+ *
+ * SECURITY MODEL:
+ * - Each user can only access their own data
+ * - Data is organized as: /users/{userId}/datasets/{datasetId}/{collection}
+ * - All operations require authentication
+ * - Users cannot access other users' data
+ *
+ * DEPLOYMENT:
+ * firebase deploy --only firestore:rules
+ *
+ * TESTING:
+ * Use Firebase Console's Rules Simulator to test these rules
+ */
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // =====================================================
+    // HELPER FUNCTIONS
+    // =====================================================
+
+    // Check if the user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Check if the authenticated user owns this path
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Check if the data being written has valid required fields
+    function hasRequiredFields(requiredFields) {
+      return request.resource.data.keys().hasAll(requiredFields);
+    }
+
+    // Check timestamp is recent (within 5 minutes) - prevents replay attacks
+    function isRecentTimestamp(timestamp) {
+      return timestamp is timestamp &&
+             timestamp <= request.time &&
+             timestamp > request.time - duration.value(5, 'm');
+    }
+
+    // =====================================================
+    // USER DATA RULES
+    // =====================================================
+
+    // Root user document - minimal access
+    match /users/{userId} {
+      // Users can only read/write their own root document
+      allow read, write: if isOwner(userId);
+
+      // =====================================================
+      // DATASETS - Main data container
+      // =====================================================
+      match /datasets/{datasetId} {
+        // Users can manage their own datasets
+        allow read, write: if isOwner(userId);
+
+        // =====================================================
+        // CORE GENEALOGY COLLECTIONS
+        // =====================================================
+
+        // People collection
+        match /people/{personId} {
+          allow read: if isOwner(userId);
+          allow create: if isOwner(userId)
+                        && request.resource.data.firstName is string
+                        && request.resource.data.lastName is string;
+          allow update: if isOwner(userId);
+          allow delete: if isOwner(userId);
+        }
+
+        // Houses collection
+        match /houses/{houseId} {
+          allow read: if isOwner(userId);
+          allow create: if isOwner(userId)
+                        && request.resource.data.houseName is string;
+          allow update: if isOwner(userId);
+          allow delete: if isOwner(userId);
+        }
+
+        // Relationships collection
+        match /relationships/{relationshipId} {
+          allow read: if isOwner(userId);
+          allow create: if isOwner(userId)
+                        && request.resource.data.person1Id != null
+                        && request.resource.data.person2Id != null
+                        && request.resource.data.relationshipType is string;
+          allow update: if isOwner(userId);
+          allow delete: if isOwner(userId);
+        }
+
+        // =====================================================
+        // CODEX (Encyclopedia) COLLECTIONS
+        // =====================================================
+
+        // Codex entries
+        match /codexEntries/{entryId} {
+          allow read: if isOwner(userId);
+          allow create: if isOwner(userId)
+                        && request.resource.data.title is string
+                        && request.resource.data.type is string;
+          allow update: if isOwner(userId);
+          allow delete: if isOwner(userId);
+        }
+
+        // Codex links (cross-references)
+        match /codexLinks/{linkId} {
+          allow read: if isOwner(userId);
+          allow create: if isOwner(userId)
+                        && request.resource.data.sourceId != null
+                        && request.resource.data.targetId != null;
+          allow update: if isOwner(userId);
+          allow delete: if isOwner(userId);
+        }
+
+        // =====================================================
+        // HERALDRY COLLECTIONS
+        // =====================================================
+
+        // Heraldry designs
+        match /heraldry/{heraldryId} {
+          allow read: if isOwner(userId);
+          allow create: if isOwner(userId)
+                        && request.resource.data.name is string;
+          allow update: if isOwner(userId);
+          allow delete: if isOwner(userId);
+        }
+
+        // Heraldry links (to houses, people)
+        match /heraldryLinks/{linkId} {
+          allow read: if isOwner(userId);
+          allow create: if isOwner(userId)
+                        && request.resource.data.heraldryId != null
+                        && request.resource.data.entityType is string
+                        && request.resource.data.entityId != null;
+          allow update: if isOwner(userId);
+          allow delete: if isOwner(userId);
+        }
+
+        // =====================================================
+        // DIGNITIES (Titles) COLLECTIONS
+        // =====================================================
+
+        // Dignities
+        match /dignities/{dignityId} {
+          allow read: if isOwner(userId);
+          allow create: if isOwner(userId)
+                        && request.resource.data.name is string;
+          allow update: if isOwner(userId);
+          allow delete: if isOwner(userId);
+        }
+
+        // Dignity tenures (who held what title when)
+        match /dignityTenures/{tenureId} {
+          allow read: if isOwner(userId);
+          allow create: if isOwner(userId)
+                        && request.resource.data.dignityId != null
+                        && request.resource.data.personId != null;
+          allow update: if isOwner(userId);
+          allow delete: if isOwner(userId);
+        }
+
+        // Dignity links
+        match /dignityLinks/{linkId} {
+          allow read: if isOwner(userId);
+          allow create, update, delete: if isOwner(userId);
+        }
+
+        // =====================================================
+        // HOUSEHOLD ROLES
+        // =====================================================
+
+        match /householdRoles/{roleId} {
+          allow read: if isOwner(userId);
+          allow create: if isOwner(userId)
+                        && request.resource.data.roleType is string
+                        && request.resource.data.houseId != null;
+          allow update: if isOwner(userId);
+          allow delete: if isOwner(userId);
+        }
+
+        // =====================================================
+        // WRITINGS COLLECTIONS
+        // =====================================================
+
+        // Writing projects
+        match /writings/{writingId} {
+          allow read: if isOwner(userId);
+          allow create: if isOwner(userId)
+                        && request.resource.data.title is string;
+          allow update: if isOwner(userId);
+          allow delete: if isOwner(userId);
+        }
+
+        // Chapters
+        match /chapters/{chapterId} {
+          allow read: if isOwner(userId);
+          allow create: if isOwner(userId)
+                        && request.resource.data.writingId != null;
+          allow update: if isOwner(userId);
+          allow delete: if isOwner(userId);
+        }
+
+        // Writing links (wiki-link references)
+        match /writingLinks/{linkId} {
+          allow read: if isOwner(userId);
+          allow create, update, delete: if isOwner(userId);
+        }
+
+        // =====================================================
+        // CATCH-ALL: Deny everything else
+        // =====================================================
+
+        // Any other subcollection not explicitly defined is denied
+        match /{document=**} {
+          allow read, write: if false;
+        }
+      }
+    }
+
+    // =====================================================
+    // DEFAULT: Deny all unmatched paths
+    // =====================================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

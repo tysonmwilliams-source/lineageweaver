@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { getEntriesByType } from '../services/codexService';
 import { getHeraldry } from '../services/heraldryService';
 import { useDataset } from '../contexts/DatasetContext';
+import { sanitizeSVG } from '../utils/sanitize';
 import Navigation from '../components/Navigation';
 import Icon from '../components/icons/Icon';
 import LoadingState from '../components/shared/LoadingState';
@@ -348,7 +349,7 @@ function CodexBrowse() {
             {heraldryCache[entry.heraldryId].heraldrySVG ? (
               <div
                 className="browse-list__item-heraldry-svg"
-                dangerouslySetInnerHTML={{ __html: heraldryCache[entry.heraldryId].heraldrySVG }}
+                dangerouslySetInnerHTML={{ __html: sanitizeSVG(heraldryCache[entry.heraldryId].heraldrySVG) }}
               />
             ) : heraldryCache[entry.heraldryId].heraldryDisplay || heraldryCache[entry.heraldryId].heraldryThumbnail ? (
               <img

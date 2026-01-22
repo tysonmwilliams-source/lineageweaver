@@ -23,8 +23,9 @@ import {
   getHeraldryForEntity,
   getHeraldry
 } from '../services/heraldryService';
-import { 
-  calculateBirthOrder, 
+import { sanitizeSVG } from '../utils/sanitize';
+import {
+  calculateBirthOrder,
   getBirthOrderLabel,
   isEligibleForCadency,
   getCadencySummary
@@ -226,10 +227,10 @@ function PersonalArmsSection({
                 style={{ backgroundColor: theme.bgLighter }}
               >
                 {personalArms.heraldrySVG ? (
-                  <div 
+                  <div
                     className="w-full h-full"
                     style={{ maxWidth: '100%', maxHeight: '100%' }}
-                    dangerouslySetInnerHTML={{ __html: personalArms.heraldrySVG }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeSVG(personalArms.heraldrySVG) }}
                   />
                 ) : personalArms.heraldryDisplay ? (
                   <img 
@@ -327,13 +328,13 @@ function PersonalArmsSection({
                   <div className="text-xs mb-2 text-center" style={{ color: theme.textSecondary }}>
                     Preview with Cadency
                   </div>
-                  <div 
+                  <div
                     className="w-24 h-28 mx-auto rounded overflow-hidden"
                     style={{ backgroundColor: theme.bgLighter }}
                   >
-                    <div 
+                    <div
                       className="w-full h-full"
-                      dangerouslySetInnerHTML={{ __html: previewSVG }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeSVG(previewSVG) }}
                     />
                   </div>
                   <div className="text-xs mt-2 text-center italic" style={{ color: theme.textSecondary }}>

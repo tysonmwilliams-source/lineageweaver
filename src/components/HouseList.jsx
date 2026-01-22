@@ -27,6 +27,7 @@ import ListSearchBar from './shared/ListSearchBar';
 import SortDropdown from './shared/SortDropdown';
 import FilterDropdown from './shared/FilterDropdown';
 import Pagination from './shared/Pagination';
+import { sanitizeSVG } from '../utils/sanitize';
 import './HouseList.css';
 
 // ==================== PAGINATION CONFIG ====================
@@ -280,7 +281,7 @@ function HouseList({
           {hasSVG ? (
             <div
               className="house-list__heraldry-svg"
-              dangerouslySetInnerHTML={{ __html: heraldry.heraldrySVG }}
+              dangerouslySetInnerHTML={{ __html: sanitizeSVG(heraldry.heraldrySVG) }}
             />
           ) : fallbackImage ? (
             <img src={fallbackImage} alt={`${house.houseName} heraldry`} />

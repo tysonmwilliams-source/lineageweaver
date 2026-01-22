@@ -33,6 +33,7 @@ import { getDatabase } from '../../services/database';
 import Icon from '../icons';
 import ActionButton from '../shared/ActionButton';
 import LoadingState from '../shared/LoadingState';
+import { sanitizeSVG } from '../../utils/sanitize';
 import EmptyState from '../shared/EmptyState';
 import './HeraldryPickerModal.css';
 
@@ -398,7 +399,7 @@ function HeraldryPickerModal({
                             {heraldry.heraldrySVG ? (
                               <div
                                 className="heraldry-picker__item-svg"
-                                dangerouslySetInnerHTML={{ __html: heraldry.heraldrySVG }}
+                                dangerouslySetInnerHTML={{ __html: sanitizeSVG(heraldry.heraldrySVG) }}
                               />
                             ) : fallbackImage ? (
                               <img src={fallbackImage} alt={heraldry.name} />
@@ -454,7 +455,7 @@ function HeraldryPickerModal({
                       {selectedHeraldry.heraldrySVG ? (
                         <div
                           className="heraldry-picker__preview-svg"
-                          dangerouslySetInnerHTML={{ __html: selectedHeraldry.heraldrySVG }}
+                          dangerouslySetInnerHTML={{ __html: sanitizeSVG(selectedHeraldry.heraldrySVG) }}
                         />
                       ) : selectedHeraldry.heraldryHighRes || selectedHeraldry.heraldryDisplay ? (
                         <img

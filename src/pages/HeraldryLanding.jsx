@@ -28,6 +28,7 @@ import {
 import { getAllHouses, getDatabase } from '../services/database';
 import { getAllEntries } from '../services/codexService';
 import { useDataset } from '../contexts/DatasetContext';
+import { sanitizeSVG } from '../utils/sanitize';
 import Navigation from '../components/Navigation';
 import Icon from '../components/icons';
 import { LoadingState, EmptyState, SectionHeader, Card, ActionButton } from '../components/shared';
@@ -475,7 +476,7 @@ function HeraldryLanding() {
                             {h.heraldrySVG ? (
                               <div
                                 className="armory-card__shield-svg"
-                                dangerouslySetInnerHTML={{ __html: h.heraldrySVG }}
+                                dangerouslySetInnerHTML={{ __html: sanitizeSVG(h.heraldrySVG) }}
                               />
                             ) : h.heraldryDisplay || h.heraldryThumbnail ? (
                               <img

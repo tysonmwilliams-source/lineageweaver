@@ -7,6 +7,7 @@ import { getDatabase } from '../services/database';
 import { useDataset } from '../contexts/DatasetContext';
 import { parseWikiLinks, getContextSnippet } from '../utils/wikiLinkParser';
 import { getPrimaryEpithet } from '../utils/epithetUtils';
+import { sanitizeSVG, sanitizeHTML } from '../utils/sanitize';
 import Navigation from '../components/Navigation';
 import Icon from '../components/icons/Icon';
 import LoadingState from '../components/shared/LoadingState';
@@ -539,7 +540,7 @@ function CodexEntryView() {
                       {linkedHeraldry.heraldrySVG ? (
                         <div
                           className="entry-heraldry__svg"
-                          dangerouslySetInnerHTML={{ __html: linkedHeraldry.heraldrySVG }}
+                          dangerouslySetInnerHTML={{ __html: sanitizeSVG(linkedHeraldry.heraldrySVG) }}
                         />
                       ) : linkedHeraldry.heraldryDisplay || linkedHeraldry.heraldryThumbnail ? (
                         <img
@@ -575,7 +576,7 @@ function CodexEntryView() {
             <section className="entry-content">
               <div
                 className="entry-content__markdown"
-                dangerouslySetInnerHTML={{ __html: renderedContent }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHTML(renderedContent) }}
               />
             </section>
 

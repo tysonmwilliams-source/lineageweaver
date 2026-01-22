@@ -10,6 +10,7 @@ import { getEntryByHeraldryId, createEntry } from '../services/codexService'; //
 import { getAllHouses, getHouse, updateHouse } from '../services/database';
 import { createSVGHeraldryWithMask } from '../utils/shieldSVGProcessor';
 import { convertSVGtoPNG } from '../utils/armoriaIntegration';
+import { sanitizeSVG } from '../utils/sanitize';
 import {
   CHARGES,
   CHARGE_CATEGORIES,
@@ -1993,7 +1994,7 @@ function HeraldryCreator() {
                     <p>Generating...</p>
                   </div>
                 ) : previewSVG ? (
-                  <div className="shield-display" dangerouslySetInnerHTML={{ __html: previewSVG }} />
+                  <div className="shield-display" dangerouslySetInnerHTML={{ __html: sanitizeSVG(previewSVG) }} />
                 ) : (
                   <div className="preview-placeholder">
                     <span>🛡️</span>

@@ -42,6 +42,8 @@
  * Firestore has built-in offline persistence that helps with this.
  */
 
+import { retryWithBackoff, SYNC_RETRY_CONFIG } from '../utils/retryWithBackoff';
+
 import {
   addPersonCloud,
   updatePersonCloud,
@@ -103,7 +105,9 @@ import {
   getPendingChanges,
   getPendingChangesByType,
   clearSyncQueue,
-  clearSyncedItems
+  clearSyncedItems,
+  // Sync queue maintenance
+  performSyncQueueMaintenance
 } from './database';
 
 // Default dataset ID for backward compatibility
@@ -329,10 +333,16 @@ async function syncSingleChange(userId, datasetId, entityType, change) {
   await handler();
 }
 
+// Track sync cycle count for periodic maintenance
+let periodicSyncCycleCount = 0;
+const MAINTENANCE_FREQUENCY = 6; // Run maintenance every 6 syncs (30 minutes with 5-minute intervals)
+
 /**
  * Perform a periodic sync - uploads only pending changes to cloud
  * PERFORMANCE: Uses change tracking instead of uploading everything
  * Only runs if online and not currently syncing
+ *
+ * Also runs queue maintenance every MAINTENANCE_FREQUENCY cycles.
  */
 async function performPeriodicSync() {
   // Skip if offline, already syncing, or no user
@@ -340,8 +350,22 @@ async function performPeriodicSync() {
     return;
   }
 
+  periodicSyncCycleCount++;
+
   // Check if there are any pending changes first (cheap check)
   const pendingCount = await getPendingChangeCount(periodicSyncDatasetId);
+
+  // Run maintenance every MAINTENANCE_FREQUENCY cycles (even if no pending changes)
+  if (periodicSyncCycleCount >= MAINTENANCE_FREQUENCY) {
+    periodicSyncCycleCount = 0;
+    try {
+      console.log('🔧 Running scheduled sync queue maintenance...');
+      await performSyncQueueMaintenance(periodicSyncDatasetId);
+    } catch (error) {
+      console.warn('⚠️ Sync queue maintenance failed:', error);
+    }
+  }
+
   if (pendingCount === 0) {
     // No pending changes, skip sync
     return;
@@ -728,13 +752,17 @@ export async function syncAddPerson(userId, datasetId, personId, personData) {
   if (!userId || !isOnline) return;
 
   try {
-    await addPersonCloud(userId, datasetId, { ...personData, id: personId });
+    // Use retry with exponential backoff for cloud operations
+    await retryWithBackoff(
+      () => addPersonCloud(userId, datasetId, { ...personData, id: personId }),
+      SYNC_RETRY_CONFIG
+    );
     // Mark as synced on success
     await markEntitySynced('person', personId, datasetId);
   } catch (error) {
-    console.error('☁️ Failed to sync person add:', error);
+    console.error('☁️ Failed to sync person add after retries:', error);
     // Don't throw - local operation already succeeded
-    // Entry remains in queue as pending
+    // Entry remains in queue as pending for next periodic sync
   }
 }
 
@@ -747,10 +775,13 @@ export async function syncUpdatePerson(userId, datasetId, personId, updates) {
   if (!userId || !isOnline) return;
 
   try {
-    await updatePersonCloud(userId, datasetId, personId, updates);
+    await retryWithBackoff(
+      () => updatePersonCloud(userId, datasetId, personId, updates),
+      SYNC_RETRY_CONFIG
+    );
     await markEntitySynced('person', personId, datasetId);
   } catch (error) {
-    console.error('☁️ Failed to sync person update:', error);
+    console.error('☁️ Failed to sync person update after retries:', error);
   }
 }
 
@@ -804,10 +835,13 @@ export async function syncAddHouse(userId, datasetId, houseId, houseData) {
   if (!userId || !isOnline) return;
 
   try {
-    await addHouseCloud(userId, datasetId, { ...houseData, id: houseId });
+    await retryWithBackoff(
+      () => addHouseCloud(userId, datasetId, { ...houseData, id: houseId }),
+      SYNC_RETRY_CONFIG
+    );
     await markEntitySynced('house', houseId, datasetId);
   } catch (error) {
-    console.error('☁️ Failed to sync house add:', error);
+    console.error('☁️ Failed to sync house add after retries:', error);
   }
 }
 
@@ -820,10 +854,13 @@ export async function syncUpdateHouse(userId, datasetId, houseId, updates) {
   if (!userId || !isOnline) return;
 
   try {
-    await updateHouseCloud(userId, datasetId, houseId, updates);
+    await retryWithBackoff(
+      () => updateHouseCloud(userId, datasetId, houseId, updates),
+      SYNC_RETRY_CONFIG
+    );
     await markEntitySynced('house', houseId, datasetId);
   } catch (error) {
-    console.error('☁️ Failed to sync house update:', error);
+    console.error('☁️ Failed to sync house update after retries:', error);
   }
 }
 
@@ -852,10 +889,13 @@ export async function syncAddRelationship(userId, datasetId, relationshipId, rel
   if (!userId || !isOnline) return;
 
   try {
-    await addRelationshipCloud(userId, datasetId, { ...relationshipData, id: relationshipId });
+    await retryWithBackoff(
+      () => addRelationshipCloud(userId, datasetId, { ...relationshipData, id: relationshipId }),
+      SYNC_RETRY_CONFIG
+    );
     await markEntitySynced('relationship', relationshipId, datasetId);
   } catch (error) {
-    console.error('☁️ Failed to sync relationship add:', error);
+    console.error('☁️ Failed to sync relationship add after retries:', error);
   }
 }
 

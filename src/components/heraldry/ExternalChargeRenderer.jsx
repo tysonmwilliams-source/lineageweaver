@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { sanitizeSVG } from '../../utils/sanitize';
 // Support both old external library and new unified library for backwards compatibility
 import { getChargeUrl, getCharge } from '../../data/unifiedChargesLibrary';
 
@@ -223,10 +224,10 @@ function ExternalChargeRenderer({
       height={dimensions.height}
       preserveAspectRatio="xMidYMid meet"
       className={`external-charge ${className}`}
-      style={{ 
+      style={{
         display: 'block'
       }}
-      dangerouslySetInnerHTML={{ __html: processedContent }}
+      dangerouslySetInnerHTML={{ __html: sanitizeSVG(processedContent) }}
     />
   );
 }

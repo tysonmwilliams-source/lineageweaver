@@ -135,6 +135,41 @@ function applySchema(db) {
     });
   });
 
+  // Version 3: Add heraldry system fields
+  db.version(3).stores({
+    // No changes to indexes, just adding new fields through upgrade function
+    people: '++id, firstName, lastName, houseId, dateOfBirth, dateOfBirth, bastardStatus',
+    houses: '++id, houseName, parentHouseId, houseType',
+    relationships: '++id, person1Id, person2Id, relationshipType'
+  }).upgrade(tx => {
+    // Add heraldry fields to existing houses with default values
+    return tx.table('houses').toCollection().modify(house => {
+      // Heraldry image data (base64 encoded PNG, 200x200px, <100KB)
+      house.heraldryImageData = house.heraldryImageData || null;
+
+      // Source of heraldry: 'armoria', 'whisk', 'upload', 'composite'
+      house.heraldrySource = house.heraldrySource || null;
+
+      // Shield shape type: 'heater', 'french', 'spanish', 'english', 'swiss'
+      house.heraldryShieldType = house.heraldryShieldType || 'heater';
+
+      // Armoria seed for reproducibility (if generated via Armoria)
+      house.heraldrySeed = house.heraldrySeed || null;
+
+      // AI prompt (if generated via Whisk or other AI)
+      house.heraldryPrompt = house.heraldryPrompt || null;
+
+      // Metadata object for additional data (composition sources, version history, etc.)
+      house.heraldryMetadata = house.heraldryMetadata || null;
+
+      // Thumbnail version (40x40px base64) - auto-generated from main image
+      house.heraldryThumbnail = house.heraldryThumbnail || null;
+
+      // High-res version (400x400px base64) - original before compression
+      house.heraldryHighRes = house.heraldryHighRes || null;
+    });
+  });
+
 // Version 4: Add SVG support for infinite zoom quality
 db.version(4).stores({
   // No changes to indexes, just adding new SVG fields through upgrade function
@@ -367,41 +402,6 @@ db.version(14).stores({
   chapters: '++id, writingId, order, createdAt, updatedAt',
   // writingLinks: Tracks [[wiki-link]] references to entities
   writingLinks: '++id, writingId, chapterId, targetType, targetId, createdAt'
-});
-
-// Version 3: Add heraldry system fields
-db.version(3).stores({
-  // No changes to indexes, just adding new fields through upgrade function
-  people: '++id, firstName, lastName, houseId, dateOfBirth, dateOfBirth, bastardStatus',
-  houses: '++id, houseName, parentHouseId, houseType',
-  relationships: '++id, person1Id, person2Id, relationshipType'
-}).upgrade(tx => {
-  // Add heraldry fields to existing houses with default values
-  return tx.table('houses').toCollection().modify(house => {
-    // Heraldry image data (base64 encoded PNG, 200x200px, <100KB)
-    house.heraldryImageData = house.heraldryImageData || null;
-    
-    // Source of heraldry: 'armoria', 'whisk', 'upload', 'composite'
-    house.heraldrySource = house.heraldrySource || null;
-    
-    // Shield shape type: 'heater', 'french', 'spanish', 'english', 'swiss'
-    house.heraldryShieldType = house.heraldryShieldType || 'heater';
-    
-    // Armoria seed for reproducibility (if generated via Armoria)
-    house.heraldrySeed = house.heraldrySeed || null;
-    
-    // AI prompt (if generated via Whisk or other AI)
-    house.heraldryPrompt = house.heraldryPrompt || null;
-    
-    // Metadata object for additional data (composition sources, version history, etc.)
-    house.heraldryMetadata = house.heraldryMetadata || null;
-    
-    // Thumbnail version (40x40px base64) - auto-generated from main image
-    house.heraldryThumbnail = house.heraldryThumbnail || null;
-    
-    // High-res version (400x400px base64) - original before compression
-    house.heraldryHighRes = house.heraldryHighRes || null;
-  });
 });
 } // End of applySchema function
 
@@ -684,9 +684,46 @@ export async function deleteHouse(id, options = {}) {
 
 // ==================== RELATIONSHIP OPERATIONS ====================
 
+/**
+ * Add a new relationship with validation
+ *
+ * For parent-child relationships, validates that:
+ * 1. No self-reference (person cannot be their own parent)
+ * 2. No circular ancestry (would create impossible loop)
+ *
+ * @param {Object} relationshipData - Relationship data to add
+ * @param {string} [datasetId] - Dataset ID
+ * @returns {Promise<number>} The new relationship ID
+ * @throws {Error} If validation fails (circular reference, self-reference)
+ */
 export async function addRelationship(relationshipData, datasetId) {
   try {
     const database = getDatabase(datasetId);
+
+    // Validate parent-child relationships for circular references
+    if (relationshipData.relationshipType === 'parent-child') {
+      const parentId = relationshipData.person1Id;
+      const childId = relationshipData.person2Id;
+
+      // Check self-reference
+      if (parentId === childId) {
+        throw new Error('A person cannot be their own parent');
+      }
+
+      // Get all existing relationships to check for circular references
+      const allRelationships = await database.relationships.toArray();
+
+      // Check if this would create a circular reference
+      // Import dynamically to avoid circular dependency
+      const { detectCircularAncestry } = await import('../utils/dataIntegrity.js');
+      const circularCheck = detectCircularAncestry(parentId, childId, allRelationships);
+
+      if (circularCheck.isCircular) {
+        const pathStr = circularCheck.path.join(' → ');
+        throw new Error(`Cannot create parent-child relationship: would cause circular ancestry (${pathStr})`);
+      }
+    }
+
     const id = await database.relationships.add(relationshipData);
     console.log('Relationship added with ID:', id);
     return id;
@@ -1352,6 +1389,171 @@ export async function getPendingChangesByType(datasetId) {
   } catch (error) {
     console.error('Error grouping pending changes:', error);
     return {};
+  }
+}
+
+// ==================== SYNC QUEUE MAINTENANCE ====================
+
+/**
+ * Default maximum age for stale operations (24 hours)
+ * Operations older than this are considered "dead" and should be cleaned up
+ */
+const STALE_THRESHOLD_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+/**
+ * Clean up stale pending operations from the sync queue
+ *
+ * Stale operations are those that:
+ * 1. Have been pending for longer than the threshold
+ * 2. Are likely to never succeed (network issues, deleted accounts, etc.)
+ *
+ * This prevents the sync queue from growing indefinitely when operations fail.
+ *
+ * @param {string} [datasetId] - Dataset ID
+ * @param {number} [maxAgeMs=24h] - Maximum age in milliseconds before operation is considered stale
+ * @returns {Promise<{ deleted: number, archived: Array }>} Cleanup results
+ */
+export async function cleanupStaleSyncOperations(datasetId, maxAgeMs = STALE_THRESHOLD_MS) {
+  try {
+    const database = getDatabase(datasetId);
+    const cutoffTime = Date.now() - maxAgeMs;
+
+    // Find stale operations
+    const staleOperations = await database.syncQueue
+      .where('synced').equals(0)
+      .and(item => item.timestamp < cutoffTime)
+      .toArray();
+
+    if (staleOperations.length === 0) {
+      return { deleted: 0, archived: [] };
+    }
+
+    // Archive the stale operations (for debugging)
+    const archived = staleOperations.map(op => ({
+      id: op.id,
+      entityType: op.entityType,
+      entityId: op.entityId,
+      operation: op.operation,
+      timestamp: op.timestamp,
+      age: Math.round((Date.now() - op.timestamp) / 1000 / 60 / 60) + ' hours'
+    }));
+
+    console.warn(`⚠️ Found ${staleOperations.length} stale sync operations (older than ${maxAgeMs / 1000 / 60 / 60} hours)`);
+    console.warn('Archived operations:', archived);
+
+    // Delete stale operations
+    const staleIds = staleOperations.map(op => op.id);
+    await database.syncQueue.bulkDelete(staleIds);
+
+    console.log(`🧹 Cleaned up ${staleIds.length} stale sync operations`);
+
+    return { deleted: staleIds.length, archived };
+  } catch (error) {
+    console.error('Error cleaning up stale sync operations:', error);
+    return { deleted: 0, archived: [], error: error.message };
+  }
+}
+
+/**
+ * Get sync queue health statistics
+ *
+ * @param {string} [datasetId] - Dataset ID
+ * @returns {Promise<Object>} Queue statistics
+ */
+export async function getSyncQueueStats(datasetId) {
+  try {
+    const database = getDatabase(datasetId);
+
+    const totalPending = await database.syncQueue
+      .where('synced').equals(0)
+      .count();
+
+    const totalSynced = await database.syncQueue
+      .where('synced').equals(1)
+      .count();
+
+    const now = Date.now();
+    const oneHourAgo = now - (60 * 60 * 1000);
+    const oneDayAgo = now - (24 * 60 * 60 * 1000);
+
+    // Get pending items and calculate age distribution
+    const pendingItems = await database.syncQueue
+      .where('synced').equals(0)
+      .toArray();
+
+    const staleCount = pendingItems.filter(item => item.timestamp < oneDayAgo).length;
+    const recentCount = pendingItems.filter(item => item.timestamp > oneHourAgo).length;
+
+    // Find oldest pending item
+    const oldestPending = pendingItems.reduce(
+      (oldest, item) => (item.timestamp < oldest ? item.timestamp : oldest),
+      now
+    );
+
+    return {
+      totalPending,
+      totalSynced,
+      staleCount,
+      recentCount,
+      oldestPendingAge: pendingItems.length > 0
+        ? Math.round((now - oldestPending) / 1000 / 60) + ' minutes'
+        : 'none',
+      healthy: staleCount === 0 && totalPending < 100
+    };
+  } catch (error) {
+    console.error('Error getting sync queue stats:', error);
+    return {
+      totalPending: 0,
+      totalSynced: 0,
+      staleCount: 0,
+      recentCount: 0,
+      oldestPendingAge: 'unknown',
+      healthy: false,
+      error: error.message
+    };
+  }
+}
+
+/**
+ * Perform full sync queue maintenance
+ *
+ * 1. Clears successfully synced items
+ * 2. Cleans up stale pending operations
+ * 3. Returns health statistics
+ *
+ * Should be called periodically (e.g., on app startup or after successful sync)
+ *
+ * @param {string} [datasetId] - Dataset ID
+ * @returns {Promise<Object>} Maintenance results
+ */
+export async function performSyncQueueMaintenance(datasetId) {
+  try {
+    console.log('🔧 Running sync queue maintenance...');
+
+    // 1. Clear synced items
+    const clearedSynced = await clearSyncedItems(datasetId);
+
+    // 2. Clean up stale pending operations
+    const staleCleanup = await cleanupStaleSyncOperations(datasetId);
+
+    // 3. Get current stats
+    const stats = await getSyncQueueStats(datasetId);
+
+    console.log('✅ Sync queue maintenance complete:', {
+      clearedSynced,
+      clearedStale: staleCleanup.deleted,
+      currentStats: stats
+    });
+
+    return {
+      clearedSynced,
+      clearedStale: staleCleanup.deleted,
+      archivedStale: staleCleanup.archived,
+      stats
+    };
+  } catch (error) {
+    console.error('Error during sync queue maintenance:', error);
+    return { error: error.message };
   }
 }
 

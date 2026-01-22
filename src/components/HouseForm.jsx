@@ -26,6 +26,7 @@ import {
   unlinkHeraldry,
   getHeraldryLinks
 } from '../services/heraldryService';
+import { sanitizeSVG } from '../utils/sanitize';
 import './HouseForm.css';
 
 const SECTION_VARIANTS = {
@@ -322,7 +323,7 @@ function HouseForm({
                 {linkedHeraldry.heraldrySVG ? (
                   <div
                     className="house-form__heraldry-svg"
-                    dangerouslySetInnerHTML={{ __html: linkedHeraldry.heraldrySVG }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeSVG(linkedHeraldry.heraldrySVG) }}
                   />
                 ) : linkedHeraldry.heraldryDisplay || linkedHeraldry.heraldryThumbnail ? (
                   <img
