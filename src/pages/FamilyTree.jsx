@@ -864,7 +864,8 @@ function FamilyTree() {
       .attr('fill', harmonizedBg)
       .attr('stroke', borderColor)
       .attr('stroke-width', 2.5)
-      .attr('rx', 6);
+      .attr('rx', 6)
+      .attr('filter', 'url(#card-shadow)');
     
     const glowColor = isDarkTheme() ? 'rgba(233, 220, 201, 0.1)' : 'rgba(255, 255, 255, 0.3)';
     card.append('rect')
@@ -882,6 +883,7 @@ function FamilyTree() {
       .attr('x', CARD_WIDTH / 2).attr('y', 22)
       .attr('text-anchor', 'middle').attr('class', 'person-name')
       .attr('fill', '#e9dcc9')
+      .attr('filter', 'url(#text-shadow)')
       .text(nameResult.text);
 
     let currentY = 22;
@@ -897,6 +899,7 @@ function FamilyTree() {
         .attr('fill', '#d4a574')
         .attr('font-style', 'italic')
         .attr('font-size', '10px')
+        .attr('filter', 'url(#text-shadow)')
         .text(epithetResult.text);
     }
 
@@ -909,6 +912,7 @@ function FamilyTree() {
         .attr('x', CARD_WIDTH / 2).attr('y', currentY)
         .attr('text-anchor', 'middle').attr('class', 'person-maiden')
         .attr('fill', '#b8a891')
+        .attr('filter', 'url(#text-shadow)')
         .text(maidenResult.text);
     }
     currentY += 16;
@@ -918,6 +922,7 @@ function FamilyTree() {
       .attr('x', CARD_WIDTH / 2).attr('y', currentY)
       .attr('text-anchor', 'middle').attr('class', 'person-dates')
       .attr('fill', '#b8a891')
+      .attr('filter', 'url(#text-shadow)')
       .text(datesResult.text);
 
     const anyTruncated = nameResult.truncated ||
@@ -1339,6 +1344,36 @@ function FamilyTree() {
     const { peopleById, housesById, parentMap, childrenMap, spouseMap, spouseRelationshipMap } = buildRelationshipMaps();
     
     const svg = d3.select(svgRef.current).attr('width', '100%').attr('height', '100%');
+
+    // Add filter definitions for drop shadows
+    const defs = svg.append('defs');
+    const dropShadowFilter = defs.append('filter')
+      .attr('id', 'card-shadow')
+      .attr('x', '-20%')
+      .attr('y', '-20%')
+      .attr('width', '140%')
+      .attr('height', '140%');
+    dropShadowFilter.append('feDropShadow')
+      .attr('dx', 0)
+      .attr('dy', 2)
+      .attr('stdDeviation', 4)
+      .attr('flood-color', 'rgba(0, 0, 0, 0.35)')
+      .attr('flood-opacity', 1);
+
+    // Text shadow filter for better readability
+    const textShadowFilter = defs.append('filter')
+      .attr('id', 'text-shadow')
+      .attr('x', '-10%')
+      .attr('y', '-10%')
+      .attr('width', '120%')
+      .attr('height', '120%');
+    textShadowFilter.append('feDropShadow')
+      .attr('dx', 0)
+      .attr('dy', 1)
+      .attr('stdDeviation', 1.5)
+      .attr('flood-color', 'rgba(0, 0, 0, 0.7)')
+      .attr('flood-opacity', 1);
+
     const g = svg.append('g').attr('class', 'zoom-group');
 
     const zoom = d3.zoom().scaleExtent([0.1, 3])

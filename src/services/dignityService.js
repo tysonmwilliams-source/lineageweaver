@@ -662,7 +662,7 @@ export async function createDignity(dignityData, userId = null, datasetId = null
 
     // Sync to cloud if userId provided
     if (userId) {
-      syncAddDignity(userId, id, record);
+      syncAddDignity(userId, datasetId, id, record);
     }
 
     return id;
@@ -721,12 +721,12 @@ export async function updateDignity(id, updates, userId = null, datasetId = null
       updated: new Date().toISOString()
     });
     console.log('📜 Dignity updated:', id);
-    
+
     // Sync to cloud if userId provided
     if (userId) {
-      syncUpdateDignity(userId, id, updates);
+      syncUpdateDignity(userId, datasetId, id, updates);
     }
-    
+
     return result;
   } catch (error) {
     console.error('❌ Error updating dignity:', error);
@@ -766,7 +766,7 @@ export async function deleteDignity(id, userId = null, datasetId = null) {
     for (const tenure of tenures) {
       await db.dignityTenures.delete(tenure.id);
       if (userId) {
-        syncDeleteDignityTenure(userId, tenure.id);
+        syncDeleteDignityTenure(userId, datasetId, tenure.id);
       }
     }
 
@@ -775,7 +775,7 @@ export async function deleteDignity(id, userId = null, datasetId = null) {
     for (const link of links) {
       await db.dignityLinks.delete(link.id);
       if (userId) {
-        syncDeleteDignityLink(userId, link.id);
+        syncDeleteDignityLink(userId, datasetId, link.id);
       }
     }
 
@@ -785,7 +785,7 @@ export async function deleteDignity(id, userId = null, datasetId = null) {
 
     // Sync to cloud if userId provided
     if (userId) {
-      syncDeleteDignity(userId, id);
+      syncDeleteDignity(userId, datasetId, id);
     }
   } catch (error) {
     console.error('❌ Error deleting dignity:', error);
@@ -830,12 +830,12 @@ export async function createDignityTenure(tenureData, userId = null, datasetId =
     
     const id = await db.dignityTenures.add(record);
     console.log('📜 Dignity tenure created:', id);
-    
+
     // Sync to cloud if userId provided
     if (userId) {
-      syncAddDignityTenure(userId, id, record);
+      syncAddDignityTenure(userId, datasetId, id, record);
     }
-    
+
     return id;
   } catch (error) {
     console.error('❌ Error creating dignity tenure:', error);
@@ -932,12 +932,12 @@ export async function updateDignityTenure(id, updates, userId = null, datasetId 
     const db = getDatabase(datasetId);
     const result = await db.dignityTenures.update(id, updates);
     console.log('📜 Dignity tenure updated:', id);
-    
+
     // Sync to cloud if userId provided
     if (userId) {
-      syncUpdateDignityTenure(userId, id, updates);
+      syncUpdateDignityTenure(userId, datasetId, id, updates);
     }
-    
+
     return result;
   } catch (error) {
     console.error('❌ Error updating dignity tenure:', error);
@@ -947,7 +947,7 @@ export async function updateDignityTenure(id, updates, userId = null, datasetId 
 
 /**
  * Delete a tenure record
- * 
+ *
  * @param {number} id - The tenure ID
  * @param {string} [userId] - Optional user ID for cloud sync
  * @returns {Promise<void>}
@@ -957,10 +957,10 @@ export async function deleteDignityTenure(id, userId = null, datasetId = null) {
     const db = getDatabase(datasetId);
     await db.dignityTenures.delete(id);
     console.log('📜 Dignity tenure deleted:', id);
-    
+
     // Sync to cloud if userId provided
     if (userId) {
-      syncDeleteDignityTenure(userId, id);
+      syncDeleteDignityTenure(userId, datasetId, id);
     }
   } catch (error) {
     console.error('❌ Error deleting dignity tenure:', error);
@@ -991,12 +991,12 @@ export async function linkDignityToEntity(linkData, userId = null, datasetId = n
 
     const id = await db.dignityLinks.add(link);
     console.log('🔗 Dignity linked to', linkData.entityType, linkData.entityId);
-    
+
     // Sync to cloud if userId provided
     if (userId) {
-      syncAddDignityLink(userId, id, link);
+      syncAddDignityLink(userId, datasetId, id, link);
     }
-    
+
     return id;
   } catch (error) {
     console.error('❌ Error linking dignity:', error);
@@ -1072,10 +1072,10 @@ export async function unlinkDignity(linkId, userId = null, datasetId = null) {
     const db = getDatabase(datasetId);
     await db.dignityLinks.delete(linkId);
     console.log('🔗 Dignity link removed:', linkId);
-    
+
     // Sync to cloud if userId provided
     if (userId) {
-      syncDeleteDignityLink(userId, linkId);
+      syncDeleteDignityLink(userId, datasetId, linkId);
     }
   } catch (error) {
     console.error('❌ Error unlinking dignity:', error);

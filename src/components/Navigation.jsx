@@ -34,6 +34,7 @@ const NAV_LINKS = [
   { path: '/', label: 'Home', icon: 'home', exact: true },
   { path: '/tree', label: 'Family Tree', icon: 'tree-deciduous' },
   { path: '/codex', label: 'The Codex', icon: 'book-open' },
+  { path: '/writing', label: 'Writing', icon: 'feather' },
   { path: '/heraldry', label: 'Heraldry', icon: 'shield' },
   { path: '/dignities', label: 'Dignities', icon: 'crown' },
   { path: '/manage', label: 'Manage', icon: 'anvil' }

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getEntriesByType } from '../services/codexService';
 import { getHeraldry } from '../services/heraldryService';
@@ -52,6 +52,7 @@ const LIST_ITEM_VARIANTS = {
 
 // Type configuration
 const TYPE_CONFIG = {
+  all: { icon: 'book-open', label: 'All Entries', singular: 'Entry' },
   personage: { icon: 'user', label: 'Personages', singular: 'Personage' },
   house: { icon: 'castle', label: 'Houses', singular: 'House' },
   location: { icon: 'map-pin', label: 'Locations', singular: 'Location' },
@@ -65,6 +66,7 @@ const TYPE_CONFIG = {
 function CodexBrowse() {
   const { type } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { activeDataset } = useDataset();
 
   const [allEntries, setAllEntries] = useState([]);
@@ -72,8 +74,8 @@ function CodexBrowse() {
   const [displayedEntries, setDisplayedEntries] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Filters
-  const [searchTerm, setSearchTerm] = useState('');
+  // Filters - initialize search from URL query parameter
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
   const [sortBy, setSortBy] = useState('updated');
   const [selectedTags, setSelectedTags] = useState([]);
   const [selectedEra, setSelectedEra] = useState('');

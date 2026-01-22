@@ -73,6 +73,14 @@ import {
   addHouseholdRoleCloud,
   updateHouseholdRoleCloud,
   deleteHouseholdRoleCloud,
+  addWritingCloud,
+  updateWritingCloud,
+  deleteWritingCloud,
+  addChapterCloud,
+  updateChapterCloud,
+  deleteChapterCloud,
+  addWritingLinkCloud,
+  deleteWritingLinkCloud,
   syncAllToCloud,
   downloadAllFromCloud,
   hasCloudData
@@ -114,6 +122,21 @@ import {
 import {
   getAllHouseholdRoles as localGetAllHouseholdRoles
 } from './householdRoleService';
+
+import {
+  getAllWritings as localGetAllWritings,
+  restoreWriting as localRestoreWriting
+} from './writingService';
+
+import {
+  getAllChapters as localGetAllChapters,
+  restoreChapter as localRestoreChapter
+} from './chapterService';
+
+import {
+  getAllWritingLinks as localGetAllWritingLinks,
+  restoreWritingLink as localRestoreWritingLink
+} from './writingLinkService';
 
 import { db as localDb } from './database';
 
@@ -280,6 +303,20 @@ async function syncSingleChange(userId, datasetId, entityType, change) {
       add: () => addHouseholdRoleCloud(userId, datasetId, { ...data, id: entityId }),
       update: () => updateHouseholdRoleCloud(userId, datasetId, entityId, data),
       delete: () => deleteHouseholdRoleCloud(userId, datasetId, entityId)
+    },
+    writing: {
+      add: () => addWritingCloud(userId, datasetId, { ...data, id: entityId }),
+      update: () => updateWritingCloud(userId, datasetId, entityId, data),
+      delete: () => deleteWritingCloud(userId, datasetId, entityId)
+    },
+    chapter: {
+      add: () => addChapterCloud(userId, datasetId, { ...data, id: entityId }),
+      update: () => updateChapterCloud(userId, datasetId, entityId, data),
+      delete: () => deleteChapterCloud(userId, datasetId, entityId)
+    },
+    writingLink: {
+      add: () => addWritingLinkCloud(userId, datasetId, { ...data, id: entityId }),
+      delete: () => deleteWritingLinkCloud(userId, datasetId, entityId)
     }
   };
 
@@ -460,6 +497,18 @@ export async function initializeSync(userId, datasetId = DEFAULT_DATASET_ID) {
         console.warn('Could not get household roles:', e);
       }
 
+      // Get writings data
+      let writings = [];
+      let chapters = [];
+      let writingLinks = [];
+      try {
+        writings = await localGetAllWritings(dsId);
+        chapters = await localGetAllChapters(dsId);
+        writingLinks = await localGetAllWritingLinks(dsId);
+      } catch (e) {
+        console.warn('Could not get writings data:', e);
+      }
+
       await syncAllToCloud(userId, dsId, {
         people: localPeople,
         houses: localHouses,
@@ -471,7 +520,10 @@ export async function initializeSync(userId, datasetId = DEFAULT_DATASET_ID) {
         dignities,
         dignityTenures,
         dignityLinks,
-        householdRoles
+        householdRoles,
+        writings,
+        chapters,
+        writingLinks
       });
 
       updateSyncStatus({ isSyncing: false, lastSyncTime: new Date() });
@@ -610,6 +662,36 @@ export async function initializeSync(userId, datasetId = DEFAULT_DATASET_ID) {
         await localDb.householdRoles.put({ ...roleData, id: parseInt(role.id) || role.id });
       } catch (e) {
         console.warn('Could not restore household role:', e);
+      }
+    }
+
+    // Handle writings if they exist
+    for (const writing of cloudData.writings || []) {
+      const { createdAt, updatedAt, syncedAt, localId, ...writingData } = writing;
+      try {
+        await localRestoreWriting({ ...writingData, id: parseInt(writing.id) || writing.id }, dsId);
+      } catch (e) {
+        console.warn('Could not restore writing:', e);
+      }
+    }
+
+    // Handle chapters if they exist
+    for (const chapter of cloudData.chapters || []) {
+      const { createdAt, updatedAt, syncedAt, localId, ...chapterData } = chapter;
+      try {
+        await localRestoreChapter({ ...chapterData, id: parseInt(chapter.id) || chapter.id }, dsId);
+      } catch (e) {
+        console.warn('Could not restore chapter:', e);
+      }
+    }
+
+    // Handle writing links if they exist
+    for (const link of cloudData.writingLinks || []) {
+      const { createdAt, syncedAt, localId, ...linkData } = link;
+      try {
+        await localRestoreWritingLink({ ...linkData, id: parseInt(link.id) || link.id }, dsId);
+      } catch (e) {
+        console.warn('Could not restore writing link:', e);
       }
     }
 
@@ -1169,6 +1251,148 @@ export async function syncDeleteHouseholdRole(userId, datasetId, roleId) {
   }
 }
 
+// ==================== WRITINGS SYNC ====================
+
+/**
+ * Add writing (local + cloud)
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ * @param {number} writingId - The local writing ID (after local add)
+ * @param {Object} writingData - The writing data
+ */
+export async function syncAddWriting(userId, datasetId, writingId, writingData) {
+  await addToSyncQueue({ entityType: 'writing', entityId: writingId, operation: 'add', data: writingData }, datasetId);
+
+  if (!userId || !isOnline) return;
+
+  try {
+    await addWritingCloud(userId, datasetId, { ...writingData, id: writingId });
+    await markEntitySynced('writing', writingId, datasetId);
+  } catch (error) {
+    console.error('☁️ Failed to sync writing add:', error);
+  }
+}
+
+/**
+ * Update writing (local + cloud)
+ */
+export async function syncUpdateWriting(userId, datasetId, writingId, updates) {
+  await addToSyncQueue({ entityType: 'writing', entityId: writingId, operation: 'update', data: updates }, datasetId);
+
+  if (!userId || !isOnline) return;
+
+  try {
+    await updateWritingCloud(userId, datasetId, writingId, updates);
+    await markEntitySynced('writing', writingId, datasetId);
+  } catch (error) {
+    console.error('☁️ Failed to sync writing update:', error);
+  }
+}
+
+/**
+ * Delete writing (local + cloud)
+ */
+export async function syncDeleteWriting(userId, datasetId, writingId) {
+  await addToSyncQueue({ entityType: 'writing', entityId: writingId, operation: 'delete' }, datasetId);
+
+  if (!userId || !isOnline) return;
+
+  try {
+    await deleteWritingCloud(userId, datasetId, writingId);
+    await markEntitySynced('writing', writingId, datasetId);
+  } catch (error) {
+    console.error('☁️ Failed to sync writing delete:', error);
+  }
+}
+
+// ==================== CHAPTERS SYNC ====================
+
+/**
+ * Add chapter (local + cloud)
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ * @param {number} chapterId - The local chapter ID (after local add)
+ * @param {Object} chapterData - The chapter data
+ */
+export async function syncAddChapter(userId, datasetId, chapterId, chapterData) {
+  await addToSyncQueue({ entityType: 'chapter', entityId: chapterId, operation: 'add', data: chapterData }, datasetId);
+
+  if (!userId || !isOnline) return;
+
+  try {
+    await addChapterCloud(userId, datasetId, { ...chapterData, id: chapterId });
+    await markEntitySynced('chapter', chapterId, datasetId);
+  } catch (error) {
+    console.error('☁️ Failed to sync chapter add:', error);
+  }
+}
+
+/**
+ * Update chapter (local + cloud)
+ */
+export async function syncUpdateChapter(userId, datasetId, chapterId, updates) {
+  await addToSyncQueue({ entityType: 'chapter', entityId: chapterId, operation: 'update', data: updates }, datasetId);
+
+  if (!userId || !isOnline) return;
+
+  try {
+    await updateChapterCloud(userId, datasetId, chapterId, updates);
+    await markEntitySynced('chapter', chapterId, datasetId);
+  } catch (error) {
+    console.error('☁️ Failed to sync chapter update:', error);
+  }
+}
+
+/**
+ * Delete chapter (local + cloud)
+ */
+export async function syncDeleteChapter(userId, datasetId, chapterId) {
+  await addToSyncQueue({ entityType: 'chapter', entityId: chapterId, operation: 'delete' }, datasetId);
+
+  if (!userId || !isOnline) return;
+
+  try {
+    await deleteChapterCloud(userId, datasetId, chapterId);
+    await markEntitySynced('chapter', chapterId, datasetId);
+  } catch (error) {
+    console.error('☁️ Failed to sync chapter delete:', error);
+  }
+}
+
+// ==================== WRITING LINKS SYNC ====================
+
+/**
+ * Add writing link (local + cloud)
+ */
+export async function syncAddWritingLink(userId, datasetId, linkId, linkData) {
+  await addToSyncQueue({ entityType: 'writingLink', entityId: linkId, operation: 'add', data: linkData }, datasetId);
+
+  if (!userId || !isOnline) return;
+
+  try {
+    await addWritingLinkCloud(userId, datasetId, { ...linkData, id: linkId });
+    await markEntitySynced('writingLink', linkId, datasetId);
+  } catch (error) {
+    console.error('☁️ Failed to sync writing link add:', error);
+  }
+}
+
+/**
+ * Delete writing link (local + cloud)
+ */
+export async function syncDeleteWritingLink(userId, datasetId, linkId) {
+  await addToSyncQueue({ entityType: 'writingLink', entityId: linkId, operation: 'delete' }, datasetId);
+
+  if (!userId || !isOnline) return;
+
+  try {
+    await deleteWritingLinkCloud(userId, datasetId, linkId);
+    await markEntitySynced('writingLink', linkId, datasetId);
+  } catch (error) {
+    console.error('☁️ Failed to sync writing link delete:', error);
+  }
+}
+
 // ==================== UTILITY ====================
 
 /**
@@ -1319,6 +1543,36 @@ export async function forceCloudSync(userId, datasetId = DEFAULT_DATASET_ID, opt
       }
     }
 
+    // Restore writings
+    for (const writing of cloudData.writings || []) {
+      const { createdAt, updatedAt, syncedAt, localId, ...writingData } = writing;
+      try {
+        await localRestoreWriting({ ...writingData, id: parseInt(writing.id) || writing.id }, dsId);
+      } catch (e) {
+        console.warn('Could not restore writing during force sync:', e);
+      }
+    }
+
+    // Restore chapters
+    for (const chapter of cloudData.chapters || []) {
+      const { createdAt, updatedAt, syncedAt, localId, ...chapterData } = chapter;
+      try {
+        await localRestoreChapter({ ...chapterData, id: parseInt(chapter.id) || chapter.id }, dsId);
+      } catch (e) {
+        console.warn('Could not restore chapter during force sync:', e);
+      }
+    }
+
+    // Restore writing links
+    for (const link of cloudData.writingLinks || []) {
+      const { createdAt, syncedAt, localId, ...linkData } = link;
+      try {
+        await localRestoreWritingLink({ ...linkData, id: parseInt(link.id) || link.id }, dsId);
+      } catch (e) {
+        console.warn('Could not restore writing link during force sync:', e);
+      }
+    }
+
     updateSyncStatus({ isSyncing: false, lastSyncTime: new Date() });
     return { status: 'success', data: cloudData };
   } catch (error) {
@@ -1391,6 +1645,18 @@ export async function forceUploadToCloud(userId, datasetId = DEFAULT_DATASET_ID)
       console.warn('Could not get household roles for upload:', e);
     }
 
+    // Get writings data
+    let writings = [];
+    let chapters = [];
+    let writingLinks = [];
+    try {
+      writings = await localGetAllWritings(dsId);
+      chapters = await localGetAllChapters(dsId);
+      writingLinks = await localGetAllWritingLinks(dsId);
+    } catch (e) {
+      console.warn('Could not get writings data for upload:', e);
+    }
+
     // Upload everything to cloud
     await syncAllToCloud(userId, dsId, {
       people: localPeople,
@@ -1403,7 +1669,10 @@ export async function forceUploadToCloud(userId, datasetId = DEFAULT_DATASET_ID)
       dignities,
       dignityTenures,
       dignityLinks,
-      householdRoles
+      householdRoles,
+      writings,
+      chapters,
+      writingLinks
     });
 
     // Clear the sync queue since everything is now synced
@@ -1413,7 +1682,8 @@ export async function forceUploadToCloud(userId, datasetId = DEFAULT_DATASET_ID)
       people: localPeople.length,
       houses: localHouses.length,
       relationships: localRelationships.length,
-      codexEntries: codexEntries.length
+      codexEntries: codexEntries.length,
+      writings: writings.length
     });
 
     updateSyncStatus({ isSyncing: false, lastSyncTime: new Date() });
@@ -1441,22 +1711,22 @@ export default {
   forceUploadToCloud,
   startPeriodicSync,
   stopPeriodicSync,
-  
+
   // Sync wrappers - People
   syncAddPerson,
   syncUpdatePerson,
   syncDeletePerson,
-  
+
   // Sync wrappers - Houses
   syncAddHouse,
   syncUpdateHouse,
   syncDeleteHouse,
-  
+
   // Sync wrappers - Relationships
   syncAddRelationship,
   syncUpdateRelationship,
   syncDeleteRelationship,
-  
+
   // Sync wrappers - Codex Entries
   syncAddCodexEntry,
   syncUpdateCodexEntry,
@@ -1472,7 +1742,7 @@ export default {
   syncDeleteHeraldry,
   syncAddHeraldryLink,
   syncDeleteHeraldryLink,
-  
+
   // Sync wrappers - Dignities
   syncAddDignity,
   syncUpdateDignity,
@@ -1481,5 +1751,15 @@ export default {
   syncUpdateDignityTenure,
   syncDeleteDignityTenure,
   syncAddDignityLink,
-  syncDeleteDignityLink
+  syncDeleteDignityLink,
+
+  // Sync wrappers - Writings
+  syncAddWriting,
+  syncUpdateWriting,
+  syncDeleteWriting,
+  syncAddChapter,
+  syncUpdateChapter,
+  syncDeleteChapter,
+  syncAddWritingLink,
+  syncDeleteWritingLink
 };

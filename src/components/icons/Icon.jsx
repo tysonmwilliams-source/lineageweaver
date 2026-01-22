@@ -135,7 +135,20 @@ import {
   Baby,
   ClipboardList,
   Play,
-  Cloud
+  Cloud,
+  // Writing Studio icons
+  Feather,
+  StickyNote,
+  Bold,
+  Italic,
+  Strikethrough,
+  Pilcrow,
+  Heading1,
+  Heading2,
+  Heading3,
+  ListOrdered,
+  Quote,
+  Type
 } from 'lucide-react';
 
 /**
@@ -167,6 +180,7 @@ const LUCIDE_ICONS = {
   'person': User,
   'house': Castle,
   'castle': Castle,
+  'building': Castle,
   'bonds': Heart,
   'heart': Heart,
   'relationship': Link2,
@@ -224,6 +238,7 @@ const LUCIDE_ICONS = {
   'scroll-text': ScrollText,
   'document': FileText,
   'file': FileText,
+  'file-text': FileText,
   'file-edit': FileEdit,
   'pen': PenTool,
   'quill': PenTool,
@@ -350,7 +365,39 @@ const LUCIDE_ICONS = {
   'clipboard-list': ClipboardList,
 
   // Cloud & Sync
-  'cloud': Cloud
+  'cloud': Cloud,
+
+  // Writing Studio icons
+  'feather': Feather,
+  'writing': Feather,
+  'sticky-note': StickyNote,
+  'note': StickyNote,
+
+  // Text formatting
+  'bold': Bold,
+  'italic': Italic,
+  'strikethrough': Strikethrough,
+  'strike': Strikethrough,
+  'type': Type,
+  'text': Type,
+
+  // Headings & paragraphs
+  'pilcrow': Pilcrow,
+  'paragraph': Pilcrow,
+  'heading-1': Heading1,
+  'heading-2': Heading2,
+  'heading-3': Heading3,
+  'h1': Heading1,
+  'h2': Heading2,
+  'h3': Heading3,
+
+  // Lists
+  'list-ordered': ListOrdered,
+  'numbered-list': ListOrdered,
+
+  // Block elements
+  'quote': Quote,
+  'blockquote': Quote
 };
 
 /**

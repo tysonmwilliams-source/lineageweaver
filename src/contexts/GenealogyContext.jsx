@@ -160,6 +160,10 @@ export function GenealogyProvider({ children }) {
 
       // Still try to load local data
       await loadAllData();
+
+      // CRITICAL: Mark as initialized even on error to prevent infinite loop
+      // Without this, the useEffect will keep retrying and cause flickering
+      setSyncInitialized(true);
     }
   }, [user, activeDataset]);
 

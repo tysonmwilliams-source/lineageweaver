@@ -342,6 +342,33 @@ db.version(13).stores({
   syncQueue: '++id, entityType, entityId, operation, timestamp, synced'
 });
 
+// Version 14: Add Writing Studio - Creative Writing System
+// A canon-aware creative writing environment integrated with world-building data.
+// Supports novels, novellas, short stories with wiki-links to entities.
+db.version(14).stores({
+  people: '++id, firstName, lastName, houseId, dateOfBirth, dateOfDeath, bastardStatus, codexEntryId, heraldryId',
+  houses: '++id, houseName, parentHouseId, houseType, codexEntryId, heraldryId',
+  relationships: '++id, person1Id, person2Id, relationshipType',
+  codexEntries: '++id, type, title, category, *tags, era, created, updated',
+  codexLinks: '++id, sourceId, targetId, type',
+  acknowledgedDuplicates: '++id, person1Id, person2Id, acknowledgedAt',
+  heraldry: '++id, name, category, *tags, created, updated',
+  heraldryLinks: '++id, heraldryId, entityType, entityId, linkType',
+  dignities: '++id, name, shortName, dignityClass, dignityRank, swornToId, currentHolderId, currentHouseId, codexEntryId, created, updated',
+  dignityTenures: '++id, dignityId, personId, dateStarted, dateEnded, acquisitionType, endType, created',
+  dignityLinks: '++id, dignityId, entityType, entityId, linkType, created',
+  bugs: '++id, title, status, priority, system, page, created, resolved',
+  householdRoles: '++id, houseId, roleType, currentHolderId, startDate, created, updated',
+  syncQueue: '++id, entityType, entityId, operation, timestamp, synced',
+  // NEW: Writing Studio tables
+  // writings: Main writing projects (novels, novellas, short stories, notes)
+  writings: '++id, title, type, status, *tags, createdAt, updatedAt',
+  // chapters: Individual chapters within writings (minimum 1 per writing)
+  chapters: '++id, writingId, order, createdAt, updatedAt',
+  // writingLinks: Tracks [[wiki-link]] references to entities
+  writingLinks: '++id, writingId, chapterId, targetType, targetId, createdAt'
+});
+
 // Version 3: Add heraldry system fields
 db.version(3).stores({
   // No changes to indexes, just adding new fields through upgrade function
@@ -958,6 +985,11 @@ export async function deleteAllData(datasetId, options = {}) {
 
     // Clear household roles table if it exists
     if (database.householdRoles) await database.householdRoles.clear();
+
+    // Clear writing studio tables if they exist
+    if (database.writings) await database.writings.clear();
+    if (database.chapters) await database.chapters.clear();
+    if (database.writingLinks) await database.writingLinks.clear();
 
     // Only clear syncQueue if explicitly requested (after successful full sync)
     if (options.clearSyncQueue && database.syncQueue) {

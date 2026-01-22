@@ -266,12 +266,16 @@ export async function getEntriesCount(datasetId) {
 
 /**
  * Get entries by type
- * @param {string} type - Entry type (personage, house, location, event, mysteria, custom)
+ * @param {string} type - Entry type (personage, house, location, event, mysteria, custom, or 'all')
  * @param {string} [datasetId] - Dataset ID (optional)
  */
 export async function getEntriesByType(type, datasetId) {
   try {
     const db = getDatabase(datasetId);
+    // Handle 'all' type to return all entries
+    if (type === 'all') {
+      return await db.codexEntries.toArray();
+    }
     const entries = await db.codexEntries.where('type').equals(type).toArray();
     return entries;
   } catch (error) {

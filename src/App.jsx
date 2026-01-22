@@ -21,6 +21,8 @@ const DignityForm = lazy(() => import('./pages/DignityForm'));
 const DignityView = lazy(() => import('./pages/DignityView'));
 const DignityAnalysis = lazy(() => import('./pages/DignityAnalysis'));
 const BugTracker = lazy(() => import('./pages/BugTracker'));
+const WritingStudio = lazy(() => import('./pages/WritingStudio'));
+const WritingEditor = lazy(() => import('./pages/WritingEditor'));
 
 // Loading fallback for lazy-loaded routes
 function PageLoader() {
@@ -391,6 +393,8 @@ function AppContent() {
                 <Route path="/dignities/view/:id" element={<DignityView />} />
                 <Route path="/dignities/analysis" element={<DignityAnalysis />} />
                 <Route path="/bugs" element={<BugTracker />} />
+                <Route path="/writing" element={<WritingStudio />} />
+                <Route path="/writing/:id" element={<WritingEditor />} />
                 </Routes>
               </Suspense>
               {/* Floating bug reporter button - visible on all pages */}

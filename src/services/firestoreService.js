@@ -528,7 +528,7 @@ export async function syncAllToCloud(userId, datasetId, localData) {
   try {
     console.log('☁️ Starting full sync to cloud for dataset:', datasetId);
 
-    const { people, houses, relationships, codexEntries, codexLinks, heraldry, heraldryLinks, dignities, dignityTenures, dignityLinks, householdRoles } = localData;
+    const { people, houses, relationships, codexEntries, codexLinks, heraldry, heraldryLinks, dignities, dignityTenures, dignityLinks, householdRoles, writings, chapters, writingLinks } = localData;
 
     // Use batched writes for efficiency (max 500 operations per batch)
     // We'll create multiple batches if needed
@@ -668,6 +668,39 @@ export async function syncAllToCloud(userId, datasetId, localData) {
       await checkBatch();
     }
 
+    // Sync writings
+    for (const writing of writings || []) {
+      const docRef = getUserDoc(userId, datasetId, 'writings', String(writing.id));
+      batch.set(docRef, {
+        ...writing,
+        localId: writing.id,
+        syncedAt: serverTimestamp()
+      });
+      await checkBatch();
+    }
+
+    // Sync chapters
+    for (const chapter of chapters || []) {
+      const docRef = getUserDoc(userId, datasetId, 'chapters', String(chapter.id));
+      batch.set(docRef, {
+        ...chapter,
+        localId: chapter.id,
+        syncedAt: serverTimestamp()
+      });
+      await checkBatch();
+    }
+
+    // Sync writing links
+    for (const link of writingLinks || []) {
+      const docRef = getUserDoc(userId, datasetId, 'writingLinks', String(link.id));
+      batch.set(docRef, {
+        ...link,
+        localId: link.id,
+        syncedAt: serverTimestamp()
+      });
+      await checkBatch();
+    }
+
     // Commit remaining operations
     if (operationCount > 0) {
       await batch.commit();
@@ -685,7 +718,10 @@ export async function syncAllToCloud(userId, datasetId, localData) {
       dignities: dignities?.length || 0,
       dignityTenures: dignityTenures?.length || 0,
       dignityLinks: dignityLinks?.length || 0,
-      householdRoles: householdRoles?.length || 0
+      householdRoles: householdRoles?.length || 0,
+      writings: writings?.length || 0,
+      chapters: chapters?.length || 0,
+      writingLinks: writingLinks?.length || 0
     });
 
     return true;
@@ -707,7 +743,7 @@ export async function downloadAllFromCloud(userId, datasetId) {
   try {
     console.log('☁️ Downloading all data from cloud for dataset:', datasetId);
 
-    const [people, houses, relationships, codexEntries, codexLinks, heraldry, heraldryLinks, dignities, dignityTenures, dignityLinks, householdRoles] = await Promise.all([
+    const [people, houses, relationships, codexEntries, codexLinks, heraldry, heraldryLinks, dignities, dignityTenures, dignityLinks, householdRoles, writings, chapters, writingLinks] = await Promise.all([
       getAllPeopleCloud(userId, datasetId),
       getAllHousesCloud(userId, datasetId),
       getAllRelationshipsCloud(userId, datasetId),
@@ -718,7 +754,10 @@ export async function downloadAllFromCloud(userId, datasetId) {
       getAllDignitiesCloud(userId, datasetId),
       getAllDignityTenuresCloud(userId, datasetId),
       getAllDignityLinksCloud(userId, datasetId),
-      getAllHouseholdRolesCloud(userId, datasetId)
+      getAllHouseholdRolesCloud(userId, datasetId),
+      getAllWritingsCloud(userId, datasetId),
+      getAllChaptersCloud(userId, datasetId),
+      getAllWritingLinksCloud(userId, datasetId)
     ]);
 
     console.log('☁️ Download complete!', {
@@ -733,10 +772,13 @@ export async function downloadAllFromCloud(userId, datasetId) {
       dignities: dignities.length,
       dignityTenures: dignityTenures.length,
       dignityLinks: dignityLinks.length,
-      householdRoles: householdRoles.length
+      householdRoles: householdRoles.length,
+      writings: writings.length,
+      chapters: chapters.length,
+      writingLinks: writingLinks.length
     });
 
-    return { people, houses, relationships, codexEntries, codexLinks, heraldry, heraldryLinks, dignities, dignityTenures, dignityLinks, householdRoles };
+    return { people, houses, relationships, codexEntries, codexLinks, heraldry, heraldryLinks, dignities, dignityTenures, dignityLinks, householdRoles, writings, chapters, writingLinks };
   } catch (error) {
     console.error('☁️ Error downloading from cloud:', error);
     throw error;
@@ -1221,6 +1263,238 @@ export async function deleteHouseholdRoleCloud(userId, datasetId, roleId) {
   }
 }
 
+// ==================== WRITINGS OPERATIONS ====================
+
+/**
+ * Add a writing to Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ * @param {Object} writingData - Writing data
+ */
+export async function addWritingCloud(userId, datasetId, writingData) {
+  try {
+    const writingsRef = getUserCollection(userId, datasetId, 'writings');
+    const docRef = doc(writingsRef, String(writingData.id));
+
+    await setDoc(docRef, {
+      ...writingData,
+      localId: writingData.id,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+
+    console.log('Writing added to cloud:', writingData.title);
+    return docRef.id;
+  } catch (error) {
+    console.error('Error adding writing to cloud:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get all writings from Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ */
+export async function getAllWritingsCloud(userId, datasetId) {
+  try {
+    const writingsRef = getUserCollection(userId, datasetId, 'writings');
+    const snapshot = await getDocs(writingsRef);
+    return snapshot.docs.map(docToObject);
+  } catch (error) {
+    console.error('Error getting all writings from cloud:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update a writing in Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ * @param {string|number} writingId - The writing ID
+ * @param {Object} updates - Fields to update
+ */
+export async function updateWritingCloud(userId, datasetId, writingId, updates) {
+  try {
+    const docRef = getUserDoc(userId, datasetId, 'writings', String(writingId));
+    // Use setDoc with merge to handle both create and update scenarios
+    // This prevents "No document to update" errors when local data hasn't synced yet
+    await setDoc(docRef, {
+      ...updates,
+      id: writingId,
+      localId: writingId,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+    console.log('Writing updated in cloud:', writingId);
+  } catch (error) {
+    console.error('Error updating writing in cloud:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete a writing from Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ * @param {string|number} writingId - The writing ID
+ */
+export async function deleteWritingCloud(userId, datasetId, writingId) {
+  try {
+    const docRef = getUserDoc(userId, datasetId, 'writings', String(writingId));
+    await deleteDoc(docRef);
+    console.log('Writing deleted from cloud:', writingId);
+  } catch (error) {
+    console.error('Error deleting writing from cloud:', error);
+    throw error;
+  }
+}
+
+// ==================== CHAPTERS OPERATIONS ====================
+
+/**
+ * Add a chapter to Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ * @param {Object} chapterData - Chapter data
+ */
+export async function addChapterCloud(userId, datasetId, chapterData) {
+  try {
+    const chaptersRef = getUserCollection(userId, datasetId, 'chapters');
+    const docRef = doc(chaptersRef, String(chapterData.id));
+
+    await setDoc(docRef, {
+      ...chapterData,
+      localId: chapterData.id,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+
+    console.log('Chapter added to cloud:', chapterData.title);
+    return docRef.id;
+  } catch (error) {
+    console.error('Error adding chapter to cloud:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get all chapters from Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ */
+export async function getAllChaptersCloud(userId, datasetId) {
+  try {
+    const chaptersRef = getUserCollection(userId, datasetId, 'chapters');
+    const snapshot = await getDocs(chaptersRef);
+    return snapshot.docs.map(docToObject);
+  } catch (error) {
+    console.error('Error getting all chapters from cloud:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update a chapter in Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ * @param {string|number} chapterId - The chapter ID
+ * @param {Object} updates - Fields to update
+ */
+export async function updateChapterCloud(userId, datasetId, chapterId, updates) {
+  try {
+    const docRef = getUserDoc(userId, datasetId, 'chapters', String(chapterId));
+    // Use setDoc with merge to handle both create and update scenarios
+    // This prevents "No document to update" errors when local data hasn't synced yet
+    await setDoc(docRef, {
+      ...updates,
+      id: chapterId,
+      localId: chapterId,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+    console.log('Chapter updated in cloud:', chapterId);
+  } catch (error) {
+    console.error('Error updating chapter in cloud:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete a chapter from Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ * @param {string|number} chapterId - The chapter ID
+ */
+export async function deleteChapterCloud(userId, datasetId, chapterId) {
+  try {
+    const docRef = getUserDoc(userId, datasetId, 'chapters', String(chapterId));
+    await deleteDoc(docRef);
+    console.log('Chapter deleted from cloud:', chapterId);
+  } catch (error) {
+    console.error('Error deleting chapter from cloud:', error);
+    throw error;
+  }
+}
+
+// ==================== WRITING LINKS OPERATIONS ====================
+
+/**
+ * Add a writing link to Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ * @param {Object} linkData - Link data
+ */
+export async function addWritingLinkCloud(userId, datasetId, linkData) {
+  try {
+    const linksRef = getUserCollection(userId, datasetId, 'writingLinks');
+    const docRef = doc(linksRef, String(linkData.id));
+
+    await setDoc(docRef, {
+      ...linkData,
+      localId: linkData.id,
+      createdAt: serverTimestamp()
+    });
+
+    console.log('Writing link added to cloud');
+    return docRef.id;
+  } catch (error) {
+    console.error('Error adding writing link to cloud:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get all writing links from Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ */
+export async function getAllWritingLinksCloud(userId, datasetId) {
+  try {
+    const linksRef = getUserCollection(userId, datasetId, 'writingLinks');
+    const snapshot = await getDocs(linksRef);
+    return snapshot.docs.map(docToObject);
+  } catch (error) {
+    console.error('Error getting all writing links from cloud:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete a writing link from Firestore
+ * @param {string} userId - The user's Firebase UID
+ * @param {string} datasetId - The dataset ID
+ * @param {string|number} linkId - The link ID
+ */
+export async function deleteWritingLinkCloud(userId, datasetId, linkId) {
+  try {
+    const docRef = getUserDoc(userId, datasetId, 'writingLinks', String(linkId));
+    await deleteDoc(docRef);
+    console.log('Writing link deleted from cloud:', linkId);
+  } catch (error) {
+    console.error('Error deleting writing link from cloud:', error);
+    throw error;
+  }
+}
+
 // ==================== ADDITIONAL BULK OPERATIONS ====================
 
 /**
@@ -1232,7 +1506,7 @@ export async function deleteAllCloudData(userId, datasetId) {
   try {
     console.log('☁️ Deleting all cloud data for dataset:', datasetId);
 
-    const collections = ['people', 'houses', 'relationships', 'codexEntries', 'codexLinks', 'acknowledgedDuplicates', 'heraldry', 'heraldryLinks', 'dignities', 'dignityTenures', 'dignityLinks', 'bugs', 'householdRoles'];
+    const collections = ['people', 'houses', 'relationships', 'codexEntries', 'codexLinks', 'acknowledgedDuplicates', 'heraldry', 'heraldryLinks', 'dignities', 'dignityTenures', 'dignityLinks', 'bugs', 'householdRoles', 'writings', 'chapters', 'writingLinks'];
 
     for (const collName of collections) {
       const collRef = getUserCollection(userId, datasetId, collName);
@@ -1263,20 +1537,20 @@ export default {
   getAllPeopleCloud,
   updatePersonCloud,
   deletePersonCloud,
-  
+
   // Houses
   addHouseCloud,
   getHouseCloud,
   getAllHousesCloud,
   updateHouseCloud,
   deleteHouseCloud,
-  
+
   // Relationships
   addRelationshipCloud,
   getAllRelationshipsCloud,
   updateRelationshipCloud,
   deleteRelationshipCloud,
-  
+
   // Codex Entries
   addCodexEntryCloud,
   getAllCodexEntriesCloud,
@@ -1294,24 +1568,24 @@ export default {
   getAllHeraldryCloud,
   updateHeraldryCloud,
   deleteHeraldryCloud,
-  
+
   // Heraldry Links
   addHeraldryLinkCloud,
   getAllHeraldryLinksCloud,
   deleteHeraldryLinkCloud,
-  
+
   // Dignities
   addDignityCloud,
   getAllDignitiesCloud,
   updateDignityCloud,
   deleteDignityCloud,
-  
+
   // Dignity Tenures
   addDignityTenureCloud,
   getAllDignityTenuresCloud,
   updateDignityTenureCloud,
   deleteDignityTenureCloud,
-  
+
   // Dignity Links
   addDignityLinkCloud,
   getAllDignityLinksCloud,
@@ -1322,6 +1596,23 @@ export default {
   getAllHouseholdRolesCloud,
   updateHouseholdRoleCloud,
   deleteHouseholdRoleCloud,
+
+  // Writings
+  addWritingCloud,
+  getAllWritingsCloud,
+  updateWritingCloud,
+  deleteWritingCloud,
+
+  // Chapters
+  addChapterCloud,
+  getAllChaptersCloud,
+  updateChapterCloud,
+  deleteChapterCloud,
+
+  // Writing Links
+  addWritingLinkCloud,
+  getAllWritingLinksCloud,
+  deleteWritingLinkCloud,
 
   // Bulk operations
   syncAllToCloud,

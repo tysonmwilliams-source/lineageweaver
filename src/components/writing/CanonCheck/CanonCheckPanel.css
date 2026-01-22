@@ -1,0 +1,403 @@
+/**
+ * CanonCheckPanel.css - Canon Check Panel Styles
+ */
+
+.canon-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg-primary);
+  border-left: 1px solid var(--border-primary);
+}
+
+/* Header */
+.canon-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-primary);
+  background: var(--bg-secondary);
+}
+
+.canon-panel__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text-primary);
+}
+
+.canon-panel__title h3 {
+  font-family: var(--font-display);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  margin: 0;
+}
+
+.canon-panel__close {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.canon-panel__close:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+/* Summary */
+.canon-panel__summary {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.canon-summary__stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+}
+
+.canon-summary__stat--active.canon-summary__stat--error {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.canon-summary__stat--active.canon-summary__stat--warning {
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.canon-summary__stat--active.canon-summary__stat--info {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.canon-summary__count {
+  font-family: var(--font-mono, monospace);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.canon-summary__stat--active.canon-summary__stat--error .canon-summary__count {
+  color: var(--color-error);
+}
+
+.canon-summary__stat--active.canon-summary__stat--warning .canon-summary__count {
+  color: var(--color-warning, #f59e0b);
+}
+
+.canon-summary__stat--active.canon-summary__stat--info .canon-summary__count {
+  color: var(--color-info);
+}
+
+.canon-summary__label {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+/* Actions */
+.canon-panel__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.canon-panel__buttons {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.canon-panel__check-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--color-info);
+  color: white;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.canon-panel__check-btn--quick {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
+}
+
+.canon-panel__check-btn--quick:hover:not(:disabled) {
+  background: var(--bg-secondary);
+  border-color: var(--border-hover);
+}
+
+.canon-panel__check-btn--ai {
+  background: linear-gradient(135deg, var(--color-info) 0%, #8b5cf6 100%);
+  color: white;
+}
+
+.canon-panel__check-btn--ai:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--color-info-dark, #2563eb) 0%, #7c3aed 100%);
+}
+
+.canon-panel__check-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.canon-panel__last-check {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  text-align: center;
+}
+
+/* Issues */
+.canon-panel__issues {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-3) var(--space-4);
+}
+
+.canon-panel__checking,
+.canon-panel__no-issues {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-6);
+  text-align: center;
+}
+
+.canon-panel__checking .loader-spinner {
+  width: 32px;
+  height: 32px;
+}
+
+.canon-panel__no-issues svg {
+  color: var(--color-success, #10b981);
+  margin-bottom: var(--space-2);
+}
+
+.canon-panel__no-issues p {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.canon-panel__no-issues span {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+/* Issue Card */
+.canon-issue {
+  margin-bottom: var(--space-2);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  overflow: hidden;
+}
+
+.canon-issue--error {
+  border-left: 3px solid var(--color-error);
+}
+
+.canon-issue--warning {
+  border-left: 3px solid var(--color-warning, #f59e0b);
+}
+
+.canon-issue--info {
+  border-left: 3px solid var(--color-info);
+}
+
+.canon-issue__header {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.canon-issue__header:hover {
+  background: var(--bg-tertiary);
+}
+
+.canon-issue__icon {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.canon-issue--error .canon-issue__icon {
+  color: var(--color-error);
+}
+
+.canon-issue--warning .canon-issue__icon {
+  color: var(--color-warning, #f59e0b);
+}
+
+.canon-issue--info .canon-issue__icon {
+  color: var(--color-info);
+}
+
+.canon-issue__content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.canon-issue__title {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.canon-issue__description {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.canon-issue__chevron {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+  margin-top: 4px;
+}
+
+/* Issue Details */
+.canon-issue__details {
+  overflow: hidden;
+  border-top: 1px solid var(--border-primary);
+  padding: var(--space-3);
+  background: var(--bg-primary);
+}
+
+.canon-issue__suggestion {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  margin-bottom: var(--space-2);
+}
+
+.canon-issue__suggestion svg {
+  flex-shrink: 0;
+  color: var(--color-warning, #f59e0b);
+  margin-top: 2px;
+}
+
+.canon-issue__suggestion span {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.canon-issue__extra {
+  font-family: var(--font-mono, monospace);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  padding: var(--space-2);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-2);
+}
+
+.canon-issue__actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.canon-issue__dismiss {
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.canon-issue__dismiss:hover {
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+}
+
+/* Scrollbar */
+.canon-panel__issues::-webkit-scrollbar {
+  width: 6px;
+}
+
+.canon-panel__issues::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.canon-panel__issues::-webkit-scrollbar-thumb {
+  background: var(--border-primary);
+  border-radius: 3px;
+}
+
+.canon-panel__issues::-webkit-scrollbar-thumb:hover {
+  background: var(--border-hover);
+}
+
+/* Loader spinner */
+.loader-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border-primary);
+  border-top-color: var(--color-info);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.loader-spinner--small {
+  width: 16px;
+  height: 16px;
+  border-width: 2px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
