@@ -20,6 +20,7 @@ const DignitiesLanding = lazy(() => import('./pages/DignitiesLanding'));
 const DignityForm = lazy(() => import('./pages/DignityForm'));
 const DignityView = lazy(() => import('./pages/DignityView'));
 const DignityAnalysis = lazy(() => import('./pages/DignityAnalysis'));
+const DignityCrisisDashboard = lazy(() => import('./pages/DignityCrisisDashboard'));
 const BugTracker = lazy(() => import('./pages/BugTracker'));
 const WritingStudio = lazy(() => import('./pages/WritingStudio'));
 const WritingEditor = lazy(() => import('./pages/WritingEditor'));
@@ -392,6 +393,7 @@ function AppContent() {
                 <Route path="/dignities/edit/:id" element={<DignityForm />} />
                 <Route path="/dignities/view/:id" element={<DignityView />} />
                 <Route path="/dignities/analysis" element={<DignityAnalysis />} />
+                <Route path="/dignities/crises" element={<DignityCrisisDashboard />} />
                 <Route path="/bugs" element={<BugTracker />} />
                 <Route path="/writing" element={<WritingStudio />} />
                 <Route path="/writing/:id" element={<WritingEditor />} />

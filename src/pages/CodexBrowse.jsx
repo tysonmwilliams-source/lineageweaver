@@ -80,8 +80,10 @@ function CodexBrowse() {
   const [sortBy, setSortBy] = useState('updated');
   const [selectedTags, setSelectedTags] = useState([]);
   const [selectedEra, setSelectedEra] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
   const [availableTags, setAvailableTags] = useState([]);
   const [availableEras, setAvailableEras] = useState([]);
+  const [availableCategories, setAvailableCategories] = useState([]);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -120,9 +122,10 @@ function CodexBrowse() {
       const entries = await getEntriesByType(type, activeDataset?.id);
       setAllEntries(entries);
 
-      // Extract unique tags and eras
+      // Extract unique tags, eras, and categories
       const tags = new Set();
       const eras = new Set();
+      const categories = new Set();
 
       entries.forEach(entry => {
         if (entry.tags) {
@@ -131,10 +134,14 @@ function CodexBrowse() {
         if (entry.era) {
           eras.add(entry.era);
         }
+        if (entry.category) {
+          categories.add(entry.category);
+        }
       });
 
       setAvailableTags(Array.from(tags).sort());
       setAvailableEras(Array.from(eras).sort());
+      setAvailableCategories(Array.from(categories).sort());
       calculateStatistics(entries);
       setLoading(false);
     } catch (error) {
@@ -195,6 +202,11 @@ function CodexBrowse() {
       filtered = filtered.filter(entry => entry.era === selectedEra);
     }
 
+    // Apply category filter
+    if (selectedCategory) {
+      filtered = filtered.filter(entry => entry.category === selectedCategory);
+    }
+
     // Apply sorting
     filtered.sort((a, b) => {
       switch (sortBy) {
@@ -211,7 +223,7 @@ function CodexBrowse() {
 
     setFilteredEntries(filtered);
     setCurrentPage(1);
-  }, [allEntries, searchTerm, sortBy, selectedTags, selectedEra]);
+  }, [allEntries, searchTerm, sortBy, selectedTags, selectedEra, selectedCategory]);
 
   useEffect(() => {
     applyFiltersAndSort();
@@ -249,6 +261,7 @@ function CodexBrowse() {
     setSearchTerm('');
     setSelectedTags([]);
     setSelectedEra('');
+    setSelectedCategory('');
     setSortBy('updated');
   }, []);
 
@@ -307,7 +320,7 @@ function CodexBrowse() {
   }, []);
 
   const totalPages = Math.ceil(filteredEntries.length / entriesPerPage);
-  const hasFilters = searchTerm || selectedTags.length > 0 || selectedEra;
+  const hasFilters = searchTerm || selectedTags.length > 0 || selectedEra || selectedCategory;
 
   // Subsection header component for heraldry & titles
   const SubsectionHeader = useCallback(({ label, icon, count, collapsed, onToggle }) => (
@@ -551,6 +564,26 @@ function CodexBrowse() {
                   <option value="">All Eras</option>
                   {availableEras.map(era => (
                     <option key={era} value={era}>{era}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Category Filter */}
+            {availableCategories.length > 0 && (
+              <div className="browse-filters__group">
+                <label className="browse-filters__label">
+                  <Icon name="folder" size={14} />
+                  <span>Category:</span>
+                </label>
+                <select
+                  className="browse-filters__select"
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                >
+                  <option value="">All Categories</option>
+                  {availableCategories.map(category => (
+                    <option key={category} value={category}>{category}</option>
                   ))}
                 </select>
               </div>

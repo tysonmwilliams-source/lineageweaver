@@ -26,6 +26,8 @@ import { getEntryByPersonId } from '../services/codexService';
 import { getBiographyStatus, getStatusSummary } from '../utils/biographyStatus';
 import { validateRelationship } from '../utils/SmartDataValidator';
 import { getDignitiesForPerson, getDignityIcon, DIGNITY_CLASSES, DIGNITY_NATURES } from '../services/dignityService';
+import { getLinksByTarget, LINK_TARGET_TYPES } from '../services/writingLinkService';
+import { getWriting } from '../services/writingService';
 import EpithetsSection from './EpithetsSection';
 import { getPrimaryEpithet } from '../utils/epithetUtils';
 import Icon from './icons/Icon';
@@ -88,7 +90,8 @@ function QuickEditPanel({
     relationships,
     addPerson,
     updatePerson,
-    addRelationship
+    addRelationship,
+    deleteRelationship
   } = useGenealogy();
 
   const navigate = useNavigate();
@@ -114,6 +117,8 @@ function QuickEditPanel({
   const [personDignities, setPersonDignities] = useState([]);
   const [loadingDignities, setLoadingDignities] = useState(false);
   const [personHasArms, setPersonHasArms] = useState(false);
+  const [writingBacklinks, setWritingBacklinks] = useState([]);
+  const [loadingBacklinks, setLoadingBacklinks] = useState(false);
 
   // Collapsible section state
   // Biography is always collapsed, others auto-expand if they have data
@@ -121,7 +126,8 @@ function QuickEditPanel({
     personalArms: true,
     biography: true,
     titles: true,
-    epithets: true
+    epithets: true,
+    writingBacklinks: true
   });
 
   const toggleSection = (section) => {
@@ -144,10 +150,12 @@ function QuickEditPanel({
       loadCodexEntry(person.id);
       loadPersonDignities(person.id);
       loadPersonalArmsStatus(person.id);
+      loadWritingBacklinks(person.id);
     } else {
       setCodexEntry(null);
       setPersonDignities([]);
       setPersonHasArms(false);
+      setWritingBacklinks([]);
     }
   }, [person, activeDataset]);
 
@@ -158,9 +166,10 @@ function QuickEditPanel({
       personalArms: !personHasArms,  // Expand if has arms
       // biography always stays collapsed (user preference)
       titles: personDignities.length === 0,  // Expand if has titles
-      epithets: !(person?.epithets?.length > 0)  // Expand if has epithets
+      epithets: !(person?.epithets?.length > 0),  // Expand if has epithets
+      writingBacklinks: writingBacklinks.length === 0  // Expand if mentioned in writings
     }));
-  }, [personHasArms, personDignities, person?.epithets]);
+  }, [personHasArms, personDignities, person?.epithets, writingBacklinks]);
 
   const loadCodexEntry = async (personId) => {
     const datasetId = activeDataset?.id;
@@ -207,6 +216,43 @@ function QuickEditPanel({
     }
   };
 
+  const loadWritingBacklinks = async (personId) => {
+    const datasetId = activeDataset?.id;
+    try {
+      setLoadingBacklinks(true);
+      const links = await getLinksByTarget(LINK_TARGET_TYPES.PERSON, personId, datasetId);
+
+      // Fetch writing details for each unique writingId
+      const writingIds = [...new Set(links.map(l => l.writingId))];
+      const backlinksWithDetails = [];
+
+      for (const writingId of writingIds) {
+        try {
+          const writing = await getWriting(writingId, datasetId);
+          if (writing) {
+            const linksForWriting = links.filter(l => l.writingId === writingId);
+            backlinksWithDetails.push({
+              writingId,
+              writingTitle: writing.title || 'Untitled',
+              writingType: writing.type,
+              linkCount: linksForWriting.length,
+              displayTexts: [...new Set(linksForWriting.map(l => l.displayText).filter(Boolean))]
+            });
+          }
+        } catch (e) {
+          console.warn('Could not load writing for backlink:', e);
+        }
+      }
+
+      setWritingBacklinks(backlinksWithDetails);
+    } catch (error) {
+      console.warn('Could not load writing backlinks:', error);
+      setWritingBacklinks([]);
+    } finally {
+      setLoadingBacklinks(false);
+    }
+  };
+
   // Computed relationships
   const house = useMemo(() =>
     houses.find(h => h.id === person?.houseId),
@@ -225,9 +271,12 @@ function QuickEditPanel({
       .filter(rel => rel.relationshipType === 'spouse')
       .map(rel => {
         const spouseId = rel.person1Id === person?.id ? rel.person2Id : rel.person1Id;
-        return people.find(p => p.id === spouseId);
+        return {
+          person: people.find(p => p.id === spouseId),
+          relationshipId: rel.id
+        };
       })
-      .filter(Boolean),
+      .filter(item => item.person),
     [personRelationships, person?.id, people]
   );
 
@@ -239,7 +288,8 @@ function QuickEditPanel({
       )
       .map(rel => ({
         person: people.find(p => p.id === rel.person1Id),
-        type: rel.relationshipType
+        type: rel.relationshipType,
+        relationshipId: rel.id
       }))
       .filter(item => item.person),
     [personRelationships, person?.id, people]
@@ -253,7 +303,8 @@ function QuickEditPanel({
       )
       .map(rel => ({
         person: people.find(p => p.id === rel.person2Id),
-        type: rel.relationshipType
+        type: rel.relationshipType,
+        relationshipId: rel.id
       }))
       .filter(item => item.person)
       .sort((a, b) => {
@@ -659,6 +710,17 @@ function QuickEditPanel({
     }
   };
 
+  const handleDeleteRelationship = async (relationshipId, relationshipType) => {
+    const confirmMessage = `Remove this ${relationshipType} relationship? This only removes the connection, not the person.`;
+    if (window.confirm(confirmMessage)) {
+      try {
+        await deleteRelationship(relationshipId);
+      } catch (error) {
+        console.error('Failed to delete relationship:', error);
+      }
+    }
+  };
+
   // Render helpers
   const renderPersonChip = (relatedPerson, subtitle = null) => (
     <motion.div
@@ -677,6 +739,39 @@ function QuickEditPanel({
       {subtitle && (
         <span className="quick-edit__person-chip-subtitle">{subtitle}</span>
       )}
+    </motion.div>
+  );
+
+  const renderRelationshipChip = (relatedPerson, relationshipId, relationshipType, subtitle = null) => (
+    <motion.div
+      key={relatedPerson.id}
+      className="quick-edit__person-chip quick-edit__person-chip--with-delete"
+      whileHover={{ scale: 1.02 }}
+    >
+      <div
+        className="quick-edit__person-chip-content"
+        onClick={() => handlePersonClick(relatedPerson)}
+      >
+        <div className="quick-edit__person-chip-main">
+          <span className="quick-edit__person-chip-name">
+            {relatedPerson.firstName} {relatedPerson.lastName}
+          </span>
+          <Icon name="chevron-right" size={14} className="quick-edit__person-chip-arrow" />
+        </div>
+        {subtitle && (
+          <span className="quick-edit__person-chip-subtitle">{subtitle}</span>
+        )}
+      </div>
+      <button
+        className="quick-edit__person-chip-delete"
+        onClick={(e) => {
+          e.stopPropagation();
+          handleDeleteRelationship(relationshipId, relationshipType);
+        }}
+        title={`Remove ${relationshipType} relationship`}
+      >
+        <Icon name="x" size={12} />
+      </button>
     </motion.div>
   );
 
@@ -809,7 +904,9 @@ function QuickEditPanel({
             </h3>
 
             <div className="quick-edit__persons">
-              {spouses.map(spouse => renderPersonChip(spouse))}
+              {spouses.map(({ person: spouse, relationshipId }) =>
+                renderRelationshipChip(spouse, relationshipId, 'spouse')
+              )}
             </div>
             {renderAddButton('Spouse', 'spouse')}
           </motion.section>
@@ -829,8 +926,8 @@ function QuickEditPanel({
             </h3>
 
             <div className="quick-edit__persons">
-              {parents.map(({ person: parent, type }) =>
-                renderPersonChip(parent, type === 'adopted-parent' ? 'Adoptive' : null)
+              {parents.map(({ person: parent, type, relationshipId }) =>
+                renderRelationshipChip(parent, relationshipId, 'parent', type === 'adopted-parent' ? 'Adoptive' : null)
               )}
             </div>
             {parents.length < 2 ? (
@@ -882,8 +979,8 @@ function QuickEditPanel({
 
             {children.length > 0 && (
               <div className="quick-edit__persons quick-edit__persons--scrollable">
-                {children.map(({ person: child, type }) =>
-                  renderPersonChip(child, type === 'adopted-parent' ? 'Adopted' : null)
+                {children.map(({ person: child, type, relationshipId }) =>
+                  renderRelationshipChip(child, relationshipId, 'parent-child', type === 'adopted-parent' ? 'Adopted' : null)
                 )}
               </div>
             )}
@@ -1024,6 +1121,75 @@ function QuickEditPanel({
                           </div>
                         )}
                       </div>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.section>
+
+          {/* Mentioned in Writings - Collapsible */}
+          <motion.section
+            className="quick-edit__section quick-edit__section--collapsible"
+            variants={SECTION_VARIANTS}
+            initial="hidden"
+            animate="visible"
+            transition={{ delay: 0.32 }}
+          >
+            <h3
+              className="quick-edit__section-title quick-edit__section-title--clickable"
+              onClick={() => toggleSection('writingBacklinks')}
+            >
+              <Icon name="feather" size={14} />
+              <span>Mentioned in Writings</span>
+              <span className="quick-edit__section-count">({writingBacklinks.length})</span>
+              <Icon
+                name={collapsedSections.writingBacklinks ? 'chevron-down' : 'chevron-up'}
+                size={14}
+                className="quick-edit__section-toggle"
+              />
+            </h3>
+            <AnimatePresence>
+              {!collapsedSections.writingBacklinks && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="quick-edit__section-content"
+                >
+                  {loadingBacklinks ? (
+                    <div className="quick-edit__loading">
+                      <Icon name="loader-2" size={16} className="spin" />
+                      <span>Loading...</span>
+                    </div>
+                  ) : writingBacklinks.length === 0 ? (
+                    <div className="quick-edit__backlinks-empty">
+                      <Icon name="file-text" size={16} />
+                      <span>Not mentioned in any writings</span>
+                    </div>
+                  ) : (
+                    <div className="quick-edit__backlinks-list">
+                      {writingBacklinks.map(backlink => (
+                        <div
+                          key={backlink.writingId}
+                          className="quick-edit__backlink-item"
+                          onClick={() => navigate(`/writing-studio/${backlink.writingId}`)}
+                        >
+                          <div className="quick-edit__backlink-info">
+                            <span className="quick-edit__backlink-title">{backlink.writingTitle}</span>
+                            {backlink.writingType && (
+                              <span className="quick-edit__backlink-type">{backlink.writingType}</span>
+                            )}
+                          </div>
+                          <div className="quick-edit__backlink-meta">
+                            {backlink.linkCount > 1 && (
+                              <span className="quick-edit__backlink-count">{backlink.linkCount} mentions</span>
+                            )}
+                            <Icon name="arrow-right" size={12} />
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </motion.div>

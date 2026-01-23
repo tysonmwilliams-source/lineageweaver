@@ -420,6 +420,94 @@
 }
 
 /* ============================================
+   WRITING BACKLINKS
+   ============================================ */
+
+.quick-edit__backlinks-empty {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+  background: var(--bg-tertiary);
+  border: 1px dashed var(--border-primary);
+  border-radius: var(--radius-md);
+}
+
+.quick-edit__backlinks-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.quick-edit__backlink-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.quick-edit__backlink-item:hover {
+  border-color: var(--accent-primary);
+  background: var(--bg-hover);
+}
+
+.quick-edit__backlink-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.quick-edit__backlink-title {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quick-edit__backlink-type {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  text-transform: capitalize;
+}
+
+.quick-edit__backlink-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.quick-edit__backlink-count {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  padding: var(--space-1) var(--space-2);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+}
+
+.quick-edit__backlink-meta svg {
+  color: var(--text-tertiary);
+  transition: transform var(--duration-fast) var(--ease-standard);
+}
+
+.quick-edit__backlink-item:hover .quick-edit__backlink-meta svg {
+  transform: translateX(2px);
+  color: var(--accent-primary);
+}
+
+/* ============================================
    DIGNITIES
    ============================================ */
 
@@ -554,6 +642,40 @@
   font-size: var(--text-xs);
   color: var(--text-secondary);
   margin-top: 2px;
+}
+
+/* Person chip with delete button */
+.quick-edit__person-chip--with-delete {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-right: var(--space-1);
+}
+
+.quick-edit__person-chip--with-delete .quick-edit__person-chip-content {
+  flex: 1;
+  cursor: pointer;
+}
+
+.quick-edit__person-chip-delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
+  flex-shrink: 0;
+}
+
+.quick-edit__person-chip-delete:hover {
+  background: var(--status-deceased);
+  color: white;
 }
 
 /* ============================================

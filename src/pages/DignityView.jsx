@@ -19,6 +19,9 @@ import {
   removeDispute,
   setInterregnum,
   endInterregnum,
+  linkDignityToEntity,
+  getDignityLinks,
+  unlinkDignity,
   DIGNITY_CLASSES,
   DIGNITY_RANKS,
   DIGNITY_NATURES,
@@ -37,6 +40,8 @@ import {
   natureHasTenureHistory
 } from '../services/dignityService';
 import { getAllHouses, getAllPeople, getAllRelationships } from '../services/database';
+import { getLinksByTarget, LINK_TARGET_TYPES } from '../services/writingLinkService';
+import { getWriting } from '../services/writingService';
 import Navigation from '../components/Navigation';
 import Icon from '../components/icons/Icon';
 import LoadingState from '../components/shared/LoadingState';
@@ -113,6 +118,8 @@ function DignityView() {
   const [relationships, setRelationships] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [writingBacklinks, setWritingBacklinks] = useState([]);
+  const [loadingBacklinks, setLoadingBacklinks] = useState(false);
 
   // Succession state
   const [successionLine, setSuccessionLine] = useState([]);
@@ -170,6 +177,10 @@ function DignityView() {
     notes: ''
   });
   const [savingTenure, setSavingTenure] = useState(false);
+
+  // Entity links state
+  const [entityLinks, setEntityLinks] = useState([]);
+  const [loadingEntityLinks, setLoadingEntityLinks] = useState(false);
 
   // Entity-specific dignity analysis
   const {
@@ -330,6 +341,70 @@ function DignityView() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Load writing backlinks for this dignity
+  const loadWritingBacklinks = useCallback(async () => {
+    if (!id) return;
+
+    try {
+      setLoadingBacklinks(true);
+      const datasetId = activeDataset?.id;
+      const links = await getLinksByTarget(LINK_TARGET_TYPES.DIGNITY, parseInt(id), datasetId);
+
+      // Fetch writing details for each unique writingId
+      const writingIds = [...new Set(links.map(l => l.writingId))];
+      const backlinksWithDetails = [];
+
+      for (const writingId of writingIds) {
+        try {
+          const writing = await getWriting(writingId, datasetId);
+          if (writing) {
+            const linksForWriting = links.filter(l => l.writingId === writingId);
+            backlinksWithDetails.push({
+              writingId,
+              writingTitle: writing.title || 'Untitled',
+              writingType: writing.type,
+              linkCount: linksForWriting.length
+            });
+          }
+        } catch (e) {
+          console.warn('Could not load writing for backlink:', e);
+        }
+      }
+
+      setWritingBacklinks(backlinksWithDetails);
+    } catch (error) {
+      console.warn('Could not load writing backlinks:', error);
+      setWritingBacklinks([]);
+    } finally {
+      setLoadingBacklinks(false);
+    }
+  }, [id, activeDataset]);
+
+  useEffect(() => {
+    loadWritingBacklinks();
+  }, [loadWritingBacklinks]);
+
+  // Load entity links for this dignity
+  const loadEntityLinks = useCallback(async () => {
+    if (!id) return;
+
+    try {
+      setLoadingEntityLinks(true);
+      const datasetId = activeDataset?.id;
+      const links = await getDignityLinks(parseInt(id), datasetId);
+      setEntityLinks(links);
+    } catch (error) {
+      console.warn('Could not load entity links:', error);
+      setEntityLinks([]);
+    } finally {
+      setLoadingEntityLinks(false);
+    }
+  }, [id, activeDataset]);
+
+  useEffect(() => {
+    loadEntityLinks();
+  }, [loadEntityLinks]);
 
   // Navigation handlers
   const handleEdit = useCallback(() => {
@@ -904,6 +979,56 @@ function DignityView() {
                 )}
               </motion.section>
 
+              {/* Entity Links Section */}
+              {entityLinks.length > 0 && (
+                <motion.section className="dignity-section" variants={CARD_VARIANTS}>
+                  <h2 className="dignity-section__title">
+                    <Icon name="link" size={18} />
+                    <span>Linked Entities</span>
+                    <span className="dignity-section__count">({entityLinks.length})</span>
+                  </h2>
+                  <div className="dignity-entity-links">
+                    {loadingEntityLinks ? (
+                      <div className="dignity-entity-links__loading">
+                        <Icon name="loader-2" size={16} className="spin" />
+                        <span>Loading links...</span>
+                      </div>
+                    ) : (
+                      <div className="dignity-entity-links__list">
+                        {entityLinks.map(link => (
+                          <div key={link.id} className="dignity-entity-link">
+                            <div className="dignity-entity-link__icon">
+                              <Icon
+                                name={
+                                  link.entityType === 'house' ? 'castle' :
+                                  link.entityType === 'location' ? 'map-pin' :
+                                  link.entityType === 'event' ? 'swords' :
+                                  'users'
+                                }
+                                size={16}
+                              />
+                            </div>
+                            <div className="dignity-entity-link__content">
+                              <span className="dignity-entity-link__type">
+                                {link.entityType.charAt(0).toUpperCase() + link.entityType.slice(1)}
+                              </span>
+                              {link.entityType === 'house' && (
+                                <span className="dignity-entity-link__name">
+                                  {getHouseName(link.entityId) || `House #${link.entityId}`}
+                                </span>
+                              )}
+                            </div>
+                            <span className={`dignity-entity-link__badge dignity-entity-link__badge--${link.linkType}`}>
+                              {link.linkType}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </motion.section>
+              )}
+
               {/* Succession Section - Only for territorial dignities */}
               {natureHasSuccession(dignity.dignityNature || 'territorial') && (
               <motion.section className="dignity-section dignity-section--succession" variants={CARD_VARIANTS}>
@@ -1362,6 +1487,40 @@ function DignityView() {
                   <p className="dignity-sidebar-notes">{dignity.notes}</p>
                 </div>
               )}
+
+              {/* Writing Backlinks */}
+              <div className="dignity-sidebar-section">
+                <h3 className="dignity-sidebar-section__title">
+                  <Icon name="feather" size={14} />
+                  Mentioned in Writings
+                </h3>
+                {loadingBacklinks ? (
+                  <div className="dignity-sidebar-loading">
+                    <Icon name="loader-2" size={14} className="spin" />
+                    <span>Loading...</span>
+                  </div>
+                ) : writingBacklinks.length === 0 ? (
+                  <p className="dignity-sidebar-empty">Not mentioned in any writings</p>
+                ) : (
+                  <div className="dignity-sidebar-backlinks">
+                    {writingBacklinks.map(backlink => (
+                      <button
+                        key={backlink.writingId}
+                        className="dignity-sidebar-backlink"
+                        onClick={() => navigate(`/writing-studio/${backlink.writingId}`)}
+                      >
+                        <div className="dignity-sidebar-backlink__info">
+                          <span className="dignity-sidebar-backlink__title">{backlink.writingTitle}</span>
+                          {backlink.writingType && (
+                            <span className="dignity-sidebar-backlink__type">{backlink.writingType}</span>
+                          )}
+                        </div>
+                        <Icon name="arrow-right" size={12} />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               {/* Metadata */}
               <div className="dignity-sidebar-section dignity-sidebar-section--metadata">

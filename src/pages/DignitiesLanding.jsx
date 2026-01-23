@@ -871,6 +871,14 @@ function DignitiesLanding() {
                   >
                     View Full Analysis Dashboard
                   </ActionButton>
+                  <ActionButton
+                    icon="alert-triangle"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => navigate('/dignities/crises')}
+                  >
+                    Succession Crises
+                  </ActionButton>
                 </div>
               )}
             </motion.section>
