@@ -102,7 +102,8 @@ function HouseList({
   houses,
   onEdit,
   onDelete,
-  onAddHeraldry = null
+  onAddHeraldry = null,
+  onFoundBranch = null
 }) {
   const navigate = useNavigate();
   const { activeDataset } = useDataset();
@@ -435,6 +436,20 @@ function HouseList({
 
                 {/* Actions */}
                 <div className="house-list__actions">
+                  {/* Found Branch button (only for non-extinct houses) */}
+                  {onFoundBranch && house.houseType !== 'extinct' && (
+                    <motion.button
+                      onClick={() => onFoundBranch(house)}
+                      className="house-list__btn house-list__btn--branch"
+                      title="Found a cadet branch from this house"
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <Icon name="git-branch" size={14} />
+                      <span>Found Branch</span>
+                    </motion.button>
+                  )}
+
                   {/* Add Heraldry button (only if no heraldry) */}
                   {!hasHeraldry && (
                     <motion.button

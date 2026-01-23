@@ -35,6 +35,7 @@ import HouseList from '../components/HouseList';
 import RelationshipForm from '../components/RelationshipForm';
 import RelationshipList from '../components/RelationshipList';
 import CadetHouseCeremonyModal from '../components/CadetHouseCeremonyModal';
+import FounderPickerModal from '../components/FounderPickerModal';
 import ImportExportManager from '../components/ImportExportManager';
 import DataHealthDashboard from '../components/DataHealthDashboard';
 import BulkFamilyImportTool from '../components/BulkFamilyImportTool';
@@ -108,6 +109,8 @@ function ManageData() {
   const [showHouseModal, setShowHouseModal] = useState(false);
   const [showRelationshipModal, setShowRelationshipModal] = useState(false);
   const [showCadetModal, setShowCadetModal] = useState(false);
+  const [showFounderPicker, setShowFounderPicker] = useState(false);
+  const [pendingParentHouse, setPendingParentHouse] = useState(null);
 
   // Editing states
   const [editingPerson, setEditingPerson] = useState(null);
@@ -200,6 +203,21 @@ function ManageData() {
       alert('Error deleting house: ' + error.message);
     }
   }, [deleteHouse]);
+
+  // Found Branch handlers
+  const handleFoundBranch = useCallback((house) => {
+    setPendingParentHouse(house);
+    setShowFounderPicker(true);
+  }, []);
+
+  const handleFounderSelected = useCallback((person) => {
+    // Close the founder picker and open the ceremony modal
+    setShowFounderPicker(false);
+    setCadetFounder(person);
+    // pendingParentHouse is already set from handleFoundBranch
+    setCadetParentHouse(pendingParentHouse);
+    setShowCadetModal(true);
+  }, [pendingParentHouse]);
 
   // Relationship handlers
   const handleAddRelationship = useCallback(() => {
@@ -436,6 +454,7 @@ function ManageData() {
                           houses={houses}
                           onEdit={handleEditHouse}
                           onDelete={handleDeleteHouse}
+                          onFoundBranch={handleFoundBranch}
                         />
                       </motion.div>
                     )}
@@ -638,6 +657,7 @@ function ManageData() {
         <HouseForm
           house={editingHouse}
           people={people}
+          houses={houses}
           onSave={handleSaveHouse}
           onCancel={() => {
             setShowHouseModal(false);
@@ -684,6 +704,7 @@ function ManageData() {
             setShowCadetModal(false);
             setCadetFounder(null);
             setCadetParentHouse(null);
+            setPendingParentHouse(null);
           }}
           title="Found Cadet House"
         >
@@ -695,10 +716,24 @@ function ManageData() {
               setShowCadetModal(false);
               setCadetFounder(null);
               setCadetParentHouse(null);
+              setPendingParentHouse(null);
             }}
           />
         </Modal>
       )}
+
+      {/* Founder Picker Modal */}
+      <FounderPickerModal
+        isOpen={showFounderPicker}
+        onClose={() => {
+          setShowFounderPicker(false);
+          setPendingParentHouse(null);
+        }}
+        onSelect={handleFounderSelected}
+        parentHouse={pendingParentHouse}
+        people={people}
+        houses={houses}
+      />
     </>
   );
 }
