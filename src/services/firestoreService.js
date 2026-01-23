@@ -514,6 +514,414 @@ export async function getAllCodexLinksCloud(userId, datasetId) {
   }
 }
 
+// ==================== PLANNING: STORY PLANS ====================
+
+/**
+ * Add story plan to Firestore
+ */
+export async function addStoryPlanCloud(userId, datasetId, planData) {
+  try {
+    const plansRef = getUserCollection(userId, datasetId, 'storyPlans');
+    const docRef = doc(plansRef, String(planData.id));
+    await setDoc(docRef, {
+      ...planData,
+      localId: planData.id,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+    console.log('☁️ Story plan added to cloud:', planData.title);
+    return docRef.id;
+  } catch (error) {
+    console.error('☁️ Error adding story plan to cloud:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get all story plans from Firestore
+ */
+export async function getAllStoryPlansCloud(userId, datasetId) {
+  try {
+    const plansRef = getUserCollection(userId, datasetId, 'storyPlans');
+    const snapshot = await getDocs(plansRef);
+    return snapshot.docs.map(docToObject);
+  } catch (error) {
+    console.error('☁️ Error getting story plans from cloud:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update story plan in Firestore
+ */
+export async function updateStoryPlanCloud(userId, datasetId, planId, updates) {
+  try {
+    const docRef = getUserDoc(userId, datasetId, 'storyPlans', String(planId));
+    await updateDoc(docRef, {
+      ...updates,
+      updatedAt: serverTimestamp()
+    });
+    console.log('☁️ Story plan updated in cloud:', planId);
+  } catch (error) {
+    console.error('☁️ Error updating story plan in cloud:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete story plan from Firestore
+ */
+export async function deleteStoryPlanCloud(userId, datasetId, planId) {
+  try {
+    const docRef = getUserDoc(userId, datasetId, 'storyPlans', String(planId));
+    await deleteDoc(docRef);
+    console.log('☁️ Story plan deleted from cloud:', planId);
+  } catch (error) {
+    console.error('☁️ Error deleting story plan from cloud:', error);
+    throw error;
+  }
+}
+
+// ==================== PLANNING: STORY BEATS ====================
+
+/**
+ * Add story beat to Firestore
+ */
+export async function addStoryBeatCloud(userId, datasetId, beatData) {
+  try {
+    const beatsRef = getUserCollection(userId, datasetId, 'storyBeats');
+    const docRef = doc(beatsRef, String(beatData.id));
+    await setDoc(docRef, {
+      ...beatData,
+      localId: beatData.id,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+    console.log('☁️ Story beat added to cloud:', beatData.name);
+    return docRef.id;
+  } catch (error) {
+    console.error('☁️ Error adding story beat to cloud:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get all story beats from Firestore
+ */
+export async function getAllStoryBeatsCloud(userId, datasetId) {
+  try {
+    const beatsRef = getUserCollection(userId, datasetId, 'storyBeats');
+    const snapshot = await getDocs(beatsRef);
+    return snapshot.docs.map(docToObject);
+  } catch (error) {
+    console.error('☁️ Error getting story beats from cloud:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update story beat in Firestore
+ */
+export async function updateStoryBeatCloud(userId, datasetId, beatId, updates) {
+  try {
+    const docRef = getUserDoc(userId, datasetId, 'storyBeats', String(beatId));
+    await updateDoc(docRef, {
+      ...updates,
+      updatedAt: serverTimestamp()
+    });
+    console.log('☁️ Story beat updated in cloud:', beatId);
+  } catch (error) {
+    console.error('☁️ Error updating story beat in cloud:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete story beat from Firestore
+ */
+export async function deleteStoryBeatCloud(userId, datasetId, beatId) {
+  try {
+    const docRef = getUserDoc(userId, datasetId, 'storyBeats', String(beatId));
+    await deleteDoc(docRef);
+    console.log('☁️ Story beat deleted from cloud:', beatId);
+  } catch (error) {
+    console.error('☁️ Error deleting story beat from cloud:', error);
+    throw error;
+  }
+}
+
+// ==================== PLANNING: SCENE PLANS ====================
+
+/**
+ * Add scene plan to Firestore
+ */
+export async function addScenePlanCloud(userId, datasetId, sceneData) {
+  try {
+    const scenesRef = getUserCollection(userId, datasetId, 'scenePlans');
+    const docRef = doc(scenesRef, String(sceneData.id));
+    await setDoc(docRef, {
+      ...sceneData,
+      localId: sceneData.id,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+    console.log('☁️ Scene plan added to cloud:', sceneData.title);
+    return docRef.id;
+  } catch (error) {
+    console.error('☁️ Error adding scene plan to cloud:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get all scene plans from Firestore
+ */
+export async function getAllScenePlansCloud(userId, datasetId) {
+  try {
+    const scenesRef = getUserCollection(userId, datasetId, 'scenePlans');
+    const snapshot = await getDocs(scenesRef);
+    return snapshot.docs.map(docToObject);
+  } catch (error) {
+    console.error('☁️ Error getting scene plans from cloud:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update scene plan in Firestore
+ */
+export async function updateScenePlanCloud(userId, datasetId, sceneId, updates) {
+  try {
+    const docRef = getUserDoc(userId, datasetId, 'scenePlans', String(sceneId));
+    await updateDoc(docRef, {
+      ...updates,
+      updatedAt: serverTimestamp()
+    });
+    console.log('☁️ Scene plan updated in cloud:', sceneId);
+  } catch (error) {
+    console.error('☁️ Error updating scene plan in cloud:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete scene plan from Firestore
+ */
+export async function deleteScenePlanCloud(userId, datasetId, sceneId) {
+  try {
+    const docRef = getUserDoc(userId, datasetId, 'scenePlans', String(sceneId));
+    await deleteDoc(docRef);
+    console.log('☁️ Scene plan deleted from cloud:', sceneId);
+  } catch (error) {
+    console.error('☁️ Error deleting scene plan from cloud:', error);
+    throw error;
+  }
+}
+
+// ==================== PLANNING: PLOT THREADS ====================
+
+/**
+ * Add plot thread to Firestore
+ */
+export async function addPlotThreadCloud(userId, datasetId, threadData) {
+  try {
+    const threadsRef = getUserCollection(userId, datasetId, 'plotThreads');
+    const docRef = doc(threadsRef, String(threadData.id));
+    await setDoc(docRef, {
+      ...threadData,
+      localId: threadData.id,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+    console.log('☁️ Plot thread added to cloud:', threadData.name);
+    return docRef.id;
+  } catch (error) {
+    console.error('☁️ Error adding plot thread to cloud:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get all plot threads from Firestore
+ */
+export async function getAllPlotThreadsCloud(userId, datasetId) {
+  try {
+    const threadsRef = getUserCollection(userId, datasetId, 'plotThreads');
+    const snapshot = await getDocs(threadsRef);
+    return snapshot.docs.map(docToObject);
+  } catch (error) {
+    console.error('☁️ Error getting plot threads from cloud:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update plot thread in Firestore
+ */
+export async function updatePlotThreadCloud(userId, datasetId, threadId, updates) {
+  try {
+    const docRef = getUserDoc(userId, datasetId, 'plotThreads', String(threadId));
+    await updateDoc(docRef, {
+      ...updates,
+      updatedAt: serverTimestamp()
+    });
+    console.log('☁️ Plot thread updated in cloud:', threadId);
+  } catch (error) {
+    console.error('☁️ Error updating plot thread in cloud:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete plot thread from Firestore
+ */
+export async function deletePlotThreadCloud(userId, datasetId, threadId) {
+  try {
+    const docRef = getUserDoc(userId, datasetId, 'plotThreads', String(threadId));
+    await deleteDoc(docRef);
+    console.log('☁️ Plot thread deleted from cloud:', threadId);
+  } catch (error) {
+    console.error('☁️ Error deleting plot thread from cloud:', error);
+    throw error;
+  }
+}
+
+// ==================== PLANNING: CHARACTER ARCS ====================
+
+/**
+ * Add character arc to Firestore
+ */
+export async function addCharacterArcCloud(userId, datasetId, arcData) {
+  try {
+    const arcsRef = getUserCollection(userId, datasetId, 'characterArcs');
+    const docRef = doc(arcsRef, String(arcData.id));
+    await setDoc(docRef, {
+      ...arcData,
+      localId: arcData.id,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+    console.log('☁️ Character arc added to cloud:', arcData.name);
+    return docRef.id;
+  } catch (error) {
+    console.error('☁️ Error adding character arc to cloud:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get all character arcs from Firestore
+ */
+export async function getAllCharacterArcsCloud(userId, datasetId) {
+  try {
+    const arcsRef = getUserCollection(userId, datasetId, 'characterArcs');
+    const snapshot = await getDocs(arcsRef);
+    return snapshot.docs.map(docToObject);
+  } catch (error) {
+    console.error('☁️ Error getting character arcs from cloud:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update character arc in Firestore
+ */
+export async function updateCharacterArcCloud(userId, datasetId, arcId, updates) {
+  try {
+    const docRef = getUserDoc(userId, datasetId, 'characterArcs', String(arcId));
+    await updateDoc(docRef, {
+      ...updates,
+      updatedAt: serverTimestamp()
+    });
+    console.log('☁️ Character arc updated in cloud:', arcId);
+  } catch (error) {
+    console.error('☁️ Error updating character arc in cloud:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete character arc from Firestore
+ */
+export async function deleteCharacterArcCloud(userId, datasetId, arcId) {
+  try {
+    const docRef = getUserDoc(userId, datasetId, 'characterArcs', String(arcId));
+    await deleteDoc(docRef);
+    console.log('☁️ Character arc deleted from cloud:', arcId);
+  } catch (error) {
+    console.error('☁️ Error deleting character arc from cloud:', error);
+    throw error;
+  }
+}
+
+// ==================== PLANNING: ARC MILESTONES ====================
+
+/**
+ * Add arc milestone to Firestore
+ */
+export async function addArcMilestoneCloud(userId, datasetId, milestoneData) {
+  try {
+    const milestonesRef = getUserCollection(userId, datasetId, 'arcMilestones');
+    const docRef = doc(milestonesRef, String(milestoneData.id));
+    await setDoc(docRef, {
+      ...milestoneData,
+      localId: milestoneData.id,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+    console.log('☁️ Arc milestone added to cloud:', milestoneData.name);
+    return docRef.id;
+  } catch (error) {
+    console.error('☁️ Error adding arc milestone to cloud:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get all arc milestones from Firestore
+ */
+export async function getAllArcMilestonesCloud(userId, datasetId) {
+  try {
+    const milestonesRef = getUserCollection(userId, datasetId, 'arcMilestones');
+    const snapshot = await getDocs(milestonesRef);
+    return snapshot.docs.map(docToObject);
+  } catch (error) {
+    console.error('☁️ Error getting arc milestones from cloud:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update arc milestone in Firestore
+ */
+export async function updateArcMilestoneCloud(userId, datasetId, milestoneId, updates) {
+  try {
+    const docRef = getUserDoc(userId, datasetId, 'arcMilestones', String(milestoneId));
+    await updateDoc(docRef, {
+      ...updates,
+      updatedAt: serverTimestamp()
+    });
+    console.log('☁️ Arc milestone updated in cloud:', milestoneId);
+  } catch (error) {
+    console.error('☁️ Error updating arc milestone in cloud:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete arc milestone from Firestore
+ */
+export async function deleteArcMilestoneCloud(userId, datasetId, milestoneId) {
+  try {
+    const docRef = getUserDoc(userId, datasetId, 'arcMilestones', String(milestoneId));
+    await deleteDoc(docRef);
+    console.log('☁️ Arc milestone deleted from cloud:', milestoneId);
+  } catch (error) {
+    console.error('☁️ Error deleting arc milestone from cloud:', error);
+    throw error;
+  }
+}
+
 // ==================== BULK OPERATIONS ====================
 
 /**
@@ -528,7 +936,7 @@ export async function syncAllToCloud(userId, datasetId, localData) {
   try {
     console.log('☁️ Starting full sync to cloud for dataset:', datasetId);
 
-    const { people, houses, relationships, codexEntries, codexLinks, heraldry, heraldryLinks, dignities, dignityTenures, dignityLinks, householdRoles, writings, chapters, writingLinks } = localData;
+    const { people, houses, relationships, codexEntries, codexLinks, heraldry, heraldryLinks, dignities, dignityTenures, dignityLinks, householdRoles, writings, chapters, writingLinks, storyPlans, storyBeats, scenePlans, plotThreads, characterArcs, arcMilestones } = localData;
 
     // Use batched writes for efficiency (max 500 operations per batch)
     // We'll create multiple batches if needed
@@ -701,6 +1109,72 @@ export async function syncAllToCloud(userId, datasetId, localData) {
       await checkBatch();
     }
 
+    // Sync story plans
+    for (const plan of storyPlans || []) {
+      const docRef = getUserDoc(userId, datasetId, 'storyPlans', String(plan.id));
+      batch.set(docRef, {
+        ...plan,
+        localId: plan.id,
+        syncedAt: serverTimestamp()
+      });
+      await checkBatch();
+    }
+
+    // Sync story beats
+    for (const beat of storyBeats || []) {
+      const docRef = getUserDoc(userId, datasetId, 'storyBeats', String(beat.id));
+      batch.set(docRef, {
+        ...beat,
+        localId: beat.id,
+        syncedAt: serverTimestamp()
+      });
+      await checkBatch();
+    }
+
+    // Sync scene plans
+    for (const scene of scenePlans || []) {
+      const docRef = getUserDoc(userId, datasetId, 'scenePlans', String(scene.id));
+      batch.set(docRef, {
+        ...scene,
+        localId: scene.id,
+        syncedAt: serverTimestamp()
+      });
+      await checkBatch();
+    }
+
+    // Sync plot threads
+    for (const thread of plotThreads || []) {
+      const docRef = getUserDoc(userId, datasetId, 'plotThreads', String(thread.id));
+      batch.set(docRef, {
+        ...thread,
+        localId: thread.id,
+        syncedAt: serverTimestamp()
+      });
+      await checkBatch();
+    }
+
+    // Sync character arcs
+    for (const arc of characterArcs || []) {
+      const docRef = getUserDoc(userId, datasetId, 'characterArcs', String(arc.id));
+      batch.set(docRef, {
+        ...arc,
+        localId: arc.id,
+        syncedAt: serverTimestamp()
+      });
+      await checkBatch();
+    }
+
+    // Sync arc milestones
+    for (const milestone of arcMilestones || []) {
+      const docRef = getUserDoc(userId, datasetId, 'arcMilestones', String(milestone.id));
+      batch.set(docRef, {
+        ...milestone,
+        localId: milestone.id,
+        syncedAt: serverTimestamp()
+      });
+      await checkBatch();
+    }
+
     // Commit remaining operations
     if (operationCount > 0) {
       await batch.commit();
@@ -721,7 +1195,13 @@ export async function syncAllToCloud(userId, datasetId, localData) {
       householdRoles: householdRoles?.length || 0,
       writings: writings?.length || 0,
       chapters: chapters?.length || 0,
-      writingLinks: writingLinks?.length || 0
+      writingLinks: writingLinks?.length || 0,
+      storyPlans: storyPlans?.length || 0,
+      storyBeats: storyBeats?.length || 0,
+      scenePlans: scenePlans?.length || 0,
+      plotThreads: plotThreads?.length || 0,
+      characterArcs: characterArcs?.length || 0,
+      arcMilestones: arcMilestones?.length || 0
     });
 
     return true;
@@ -743,7 +1223,7 @@ export async function downloadAllFromCloud(userId, datasetId) {
   try {
     console.log('☁️ Downloading all data from cloud for dataset:', datasetId);
 
-    const [people, houses, relationships, codexEntries, codexLinks, heraldry, heraldryLinks, dignities, dignityTenures, dignityLinks, householdRoles, writings, chapters, writingLinks] = await Promise.all([
+    const [people, houses, relationships, codexEntries, codexLinks, heraldry, heraldryLinks, dignities, dignityTenures, dignityLinks, householdRoles, writings, chapters, writingLinks, storyPlans, storyBeats, scenePlans, plotThreads, characterArcs, arcMilestones] = await Promise.all([
       getAllPeopleCloud(userId, datasetId),
       getAllHousesCloud(userId, datasetId),
       getAllRelationshipsCloud(userId, datasetId),
@@ -757,7 +1237,13 @@ export async function downloadAllFromCloud(userId, datasetId) {
       getAllHouseholdRolesCloud(userId, datasetId),
       getAllWritingsCloud(userId, datasetId),
       getAllChaptersCloud(userId, datasetId),
-      getAllWritingLinksCloud(userId, datasetId)
+      getAllWritingLinksCloud(userId, datasetId),
+      getAllStoryPlansCloud(userId, datasetId),
+      getAllStoryBeatsCloud(userId, datasetId),
+      getAllScenePlansCloud(userId, datasetId),
+      getAllPlotThreadsCloud(userId, datasetId),
+      getAllCharacterArcsCloud(userId, datasetId),
+      getAllArcMilestonesCloud(userId, datasetId)
     ]);
 
     console.log('☁️ Download complete!', {
@@ -775,10 +1261,16 @@ export async function downloadAllFromCloud(userId, datasetId) {
       householdRoles: householdRoles.length,
       writings: writings.length,
       chapters: chapters.length,
-      writingLinks: writingLinks.length
+      writingLinks: writingLinks.length,
+      storyPlans: storyPlans.length,
+      storyBeats: storyBeats.length,
+      scenePlans: scenePlans.length,
+      plotThreads: plotThreads.length,
+      characterArcs: characterArcs.length,
+      arcMilestones: arcMilestones.length
     });
 
-    return { people, houses, relationships, codexEntries, codexLinks, heraldry, heraldryLinks, dignities, dignityTenures, dignityLinks, householdRoles, writings, chapters, writingLinks };
+    return { people, houses, relationships, codexEntries, codexLinks, heraldry, heraldryLinks, dignities, dignityTenures, dignityLinks, householdRoles, writings, chapters, writingLinks, storyPlans, storyBeats, scenePlans, plotThreads, characterArcs, arcMilestones };
   } catch (error) {
     console.error('☁️ Error downloading from cloud:', error);
     throw error;
@@ -1506,7 +1998,7 @@ export async function deleteAllCloudData(userId, datasetId) {
   try {
     console.log('☁️ Deleting all cloud data for dataset:', datasetId);
 
-    const collections = ['people', 'houses', 'relationships', 'codexEntries', 'codexLinks', 'acknowledgedDuplicates', 'heraldry', 'heraldryLinks', 'dignities', 'dignityTenures', 'dignityLinks', 'bugs', 'householdRoles', 'writings', 'chapters', 'writingLinks'];
+    const collections = ['people', 'houses', 'relationships', 'codexEntries', 'codexLinks', 'acknowledgedDuplicates', 'heraldry', 'heraldryLinks', 'dignities', 'dignityTenures', 'dignityLinks', 'bugs', 'householdRoles', 'writings', 'chapters', 'writingLinks', 'storyPlans', 'storyBeats', 'scenePlans', 'plotThreads', 'characterArcs', 'arcMilestones'];
 
     for (const collName of collections) {
       const collRef = getUserCollection(userId, datasetId, collName);
@@ -1613,6 +2105,42 @@ export default {
   addWritingLinkCloud,
   getAllWritingLinksCloud,
   deleteWritingLinkCloud,
+
+  // Story Plans
+  addStoryPlanCloud,
+  getAllStoryPlansCloud,
+  updateStoryPlanCloud,
+  deleteStoryPlanCloud,
+
+  // Story Beats
+  addStoryBeatCloud,
+  getAllStoryBeatsCloud,
+  updateStoryBeatCloud,
+  deleteStoryBeatCloud,
+
+  // Scene Plans
+  addScenePlanCloud,
+  getAllScenePlansCloud,
+  updateScenePlanCloud,
+  deleteScenePlanCloud,
+
+  // Plot Threads
+  addPlotThreadCloud,
+  getAllPlotThreadsCloud,
+  updatePlotThreadCloud,
+  deletePlotThreadCloud,
+
+  // Character Arcs
+  addCharacterArcCloud,
+  getAllCharacterArcsCloud,
+  updateCharacterArcCloud,
+  deleteCharacterArcCloud,
+
+  // Arc Milestones
+  addArcMilestoneCloud,
+  getAllArcMilestonesCloud,
+  updateArcMilestoneCloud,
+  deleteArcMilestoneCloud,
 
   // Bulk operations
   syncAllToCloud,

@@ -83,6 +83,24 @@ import {
   deleteChapterCloud,
   addWritingLinkCloud,
   deleteWritingLinkCloud,
+  addStoryPlanCloud,
+  updateStoryPlanCloud,
+  deleteStoryPlanCloud,
+  addStoryBeatCloud,
+  updateStoryBeatCloud,
+  deleteStoryBeatCloud,
+  addScenePlanCloud,
+  updateScenePlanCloud,
+  deleteScenePlanCloud,
+  addPlotThreadCloud,
+  updatePlotThreadCloud,
+  deletePlotThreadCloud,
+  addCharacterArcCloud,
+  updateCharacterArcCloud,
+  deleteCharacterArcCloud,
+  addArcMilestoneCloud,
+  updateArcMilestoneCloud,
+  deleteArcMilestoneCloud,
   syncAllToCloud,
   downloadAllFromCloud,
   hasCloudData
@@ -141,6 +159,15 @@ import {
   getAllWritingLinks as localGetAllWritingLinks,
   restoreWritingLink as localRestoreWritingLink
 } from './writingLinkService';
+
+import {
+  getAllStoryPlans as localGetAllStoryPlans,
+  restoreStoryPlan as localRestoreStoryPlan,
+  restoreStoryBeat as localRestoreStoryBeat,
+  restoreScenePlan as localRestoreScenePlan,
+  restoreCharacterArc as localRestoreCharacterArc,
+  restorePlotThread as localRestorePlotThread
+} from './planningService';
 
 import { db as localDb } from './database';
 
@@ -321,6 +348,36 @@ async function syncSingleChange(userId, datasetId, entityType, change) {
     writingLink: {
       add: () => addWritingLinkCloud(userId, datasetId, { ...data, id: entityId }),
       delete: () => deleteWritingLinkCloud(userId, datasetId, entityId)
+    },
+    storyPlan: {
+      add: () => addStoryPlanCloud(userId, datasetId, { ...data, id: entityId }),
+      update: () => updateStoryPlanCloud(userId, datasetId, entityId, data),
+      delete: () => deleteStoryPlanCloud(userId, datasetId, entityId)
+    },
+    storyBeat: {
+      add: () => addStoryBeatCloud(userId, datasetId, { ...data, id: entityId }),
+      update: () => updateStoryBeatCloud(userId, datasetId, entityId, data),
+      delete: () => deleteStoryBeatCloud(userId, datasetId, entityId)
+    },
+    scenePlan: {
+      add: () => addScenePlanCloud(userId, datasetId, { ...data, id: entityId }),
+      update: () => updateScenePlanCloud(userId, datasetId, entityId, data),
+      delete: () => deleteScenePlanCloud(userId, datasetId, entityId)
+    },
+    plotThread: {
+      add: () => addPlotThreadCloud(userId, datasetId, { ...data, id: entityId }),
+      update: () => updatePlotThreadCloud(userId, datasetId, entityId, data),
+      delete: () => deletePlotThreadCloud(userId, datasetId, entityId)
+    },
+    characterArc: {
+      add: () => addCharacterArcCloud(userId, datasetId, { ...data, id: entityId }),
+      update: () => updateCharacterArcCloud(userId, datasetId, entityId, data),
+      delete: () => deleteCharacterArcCloud(userId, datasetId, entityId)
+    },
+    arcMilestone: {
+      add: () => addArcMilestoneCloud(userId, datasetId, { ...data, id: entityId }),
+      update: () => updateArcMilestoneCloud(userId, datasetId, entityId, data),
+      delete: () => deleteArcMilestoneCloud(userId, datasetId, entityId)
     }
   };
 
@@ -533,6 +590,24 @@ export async function initializeSync(userId, datasetId = DEFAULT_DATASET_ID) {
         console.warn('Could not get writings data:', e);
       }
 
+      // Get planning data
+      let storyPlans = [];
+      let storyBeats = [];
+      let scenePlans = [];
+      let plotThreads = [];
+      let characterArcs = [];
+      let arcMilestones = [];
+      try {
+        storyPlans = await localDb.storyPlans.toArray();
+        storyBeats = await localDb.storyBeats.toArray();
+        scenePlans = await localDb.scenePlans.toArray();
+        plotThreads = await localDb.plotThreads.toArray();
+        characterArcs = await localDb.characterArcs.toArray();
+        arcMilestones = await localDb.arcMilestones.toArray();
+      } catch (e) {
+        console.warn('Could not get planning data:', e);
+      }
+
       await syncAllToCloud(userId, dsId, {
         people: localPeople,
         houses: localHouses,
@@ -547,7 +622,13 @@ export async function initializeSync(userId, datasetId = DEFAULT_DATASET_ID) {
         householdRoles,
         writings,
         chapters,
-        writingLinks
+        writingLinks,
+        storyPlans,
+        storyBeats,
+        scenePlans,
+        plotThreads,
+        characterArcs,
+        arcMilestones
       });
 
       updateSyncStatus({ isSyncing: false, lastSyncTime: new Date() });
@@ -716,6 +797,66 @@ export async function initializeSync(userId, datasetId = DEFAULT_DATASET_ID) {
         await localRestoreWritingLink({ ...linkData, id: parseInt(link.id) || link.id }, dsId);
       } catch (e) {
         console.warn('Could not restore writing link:', e);
+      }
+    }
+
+    // Handle story plans if they exist
+    for (const plan of cloudData.storyPlans || []) {
+      const { createdAt, updatedAt, syncedAt, localId, ...planData } = plan;
+      try {
+        await localRestoreStoryPlan({ ...planData, id: parseInt(plan.id) || plan.id }, dsId);
+      } catch (e) {
+        console.warn('Could not restore story plan:', e);
+      }
+    }
+
+    // Handle story beats if they exist
+    for (const beat of cloudData.storyBeats || []) {
+      const { createdAt, updatedAt, syncedAt, localId, ...beatData } = beat;
+      try {
+        await localRestoreStoryBeat({ ...beatData, id: parseInt(beat.id) || beat.id }, dsId);
+      } catch (e) {
+        console.warn('Could not restore story beat:', e);
+      }
+    }
+
+    // Handle scene plans if they exist
+    for (const scene of cloudData.scenePlans || []) {
+      const { createdAt, updatedAt, syncedAt, localId, ...sceneData } = scene;
+      try {
+        await localRestoreScenePlan({ ...sceneData, id: parseInt(scene.id) || scene.id }, dsId);
+      } catch (e) {
+        console.warn('Could not restore scene plan:', e);
+      }
+    }
+
+    // Handle plot threads if they exist
+    for (const thread of cloudData.plotThreads || []) {
+      const { createdAt, updatedAt, syncedAt, localId, ...threadData } = thread;
+      try {
+        await localRestorePlotThread({ ...threadData, id: parseInt(thread.id) || thread.id }, dsId);
+      } catch (e) {
+        console.warn('Could not restore plot thread:', e);
+      }
+    }
+
+    // Handle character arcs if they exist
+    for (const arc of cloudData.characterArcs || []) {
+      const { createdAt, updatedAt, syncedAt, localId, ...arcData } = arc;
+      try {
+        await localRestoreCharacterArc({ ...arcData, id: parseInt(arc.id) || arc.id }, dsId);
+      } catch (e) {
+        console.warn('Could not restore character arc:', e);
+      }
+    }
+
+    // Handle arc milestones if they exist
+    for (const milestone of cloudData.arcMilestones || []) {
+      const { createdAt, updatedAt, syncedAt, localId, ...milestoneData } = milestone;
+      try {
+        await localDb.arcMilestones.put({ ...milestoneData, id: parseInt(milestone.id) || milestone.id });
+      } catch (e) {
+        console.warn('Could not restore arc milestone:', e);
       }
     }
 
@@ -1433,6 +1574,306 @@ export async function syncDeleteWritingLink(userId, datasetId, linkId) {
   }
 }
 
+// ==================== PLANNING: STORY PLANS SYNC ====================
+
+/**
+ * Add story plan (local + cloud)
+ */
+export async function syncAddStoryPlan(userId, datasetId, planId, planData) {
+  await addToSyncQueue({ entityType: 'storyPlan', entityId: planId, operation: 'add', data: planData }, datasetId);
+
+  if (!userId || !isOnline) return;
+
+  try {
+    await addStoryPlanCloud(userId, datasetId, { ...planData, id: planId });
+    await markEntitySynced('storyPlan', planId, datasetId);
+  } catch (error) {
+    console.error('☁️ Failed to sync story plan add:', error);
+  }
+}
+
+/**
+ * Update story plan (local + cloud)
+ */
+export async function syncUpdateStoryPlan(userId, datasetId, planId, updates) {
+  await addToSyncQueue({ entityType: 'storyPlan', entityId: planId, operation: 'update', data: updates }, datasetId);
+
+  if (!userId || !isOnline) return;
+
+  try {
+    await updateStoryPlanCloud(userId, datasetId, planId, updates);
+    await markEntitySynced('storyPlan', planId, datasetId);
+  } catch (error) {
+    console.error('☁️ Failed to sync story plan update:', error);
+  }
+}
+
+/**
+ * Delete story plan (local + cloud)
+ */
+export async function syncDeleteStoryPlan(userId, datasetId, planId) {
+  await addToSyncQueue({ entityType: 'storyPlan', entityId: planId, operation: 'delete' }, datasetId);
+
+  if (!userId || !isOnline) return;
+
+  try {
+    await deleteStoryPlanCloud(userId, datasetId, planId);
+    await markEntitySynced('storyPlan', planId, datasetId);
+  } catch (error) {
+    console.error('☁️ Failed to sync story plan delete:', error);
+  }
+}
+
+// ==================== PLANNING: STORY BEATS SYNC ====================
+
+/**
+ * Add story beat (local + cloud)
+ */
+export async function syncAddStoryBeat(userId, datasetId, beatId, beatData) {
+  await addToSyncQueue({ entityType: 'storyBeat', entityId: beatId, operation: 'add', data: beatData }, datasetId);
+
+  if (!userId || !isOnline) return;
+
+  try {
+    await addStoryBeatCloud(userId, datasetId, { ...beatData, id: beatId });
+    await markEntitySynced('storyBeat', beatId, datasetId);
+  } catch (error) {
+    console.error('☁️ Failed to sync story beat add:', error);
+  }
+}
+
+/**
+ * Update story beat (local + cloud)
+ */
+export async function syncUpdateStoryBeat(userId, datasetId, beatId, updates) {
+  await addToSyncQueue({ entityType: 'storyBeat', entityId: beatId, operation: 'update', data: updates }, datasetId);
+
+  if (!userId || !isOnline) return;
+
+  try {
+    await updateStoryBeatCloud(userId, datasetId, beatId, updates);
+    await markEntitySynced('storyBeat', beatId, datasetId);
+  } catch (error) {
+    console.error('☁️ Failed to sync story beat update:', error);
+  }
+}
+
+/**
+ * Delete story beat (local + cloud)
+ */
+export async function syncDeleteStoryBeat(userId, datasetId, beatId) {
+  await addToSyncQueue({ entityType: 'storyBeat', entityId: beatId, operation: 'delete' }, datasetId);
+
+  if (!userId || !isOnline) return;
+
+  try {
+    await deleteStoryBeatCloud(userId, datasetId, beatId);
+    await markEntitySynced('storyBeat', beatId, datasetId);
+  } catch (error) {
+    console.error('☁️ Failed to sync story beat delete:', error);
+  }
+}
+
+// ==================== PLANNING: SCENE PLANS SYNC ====================
+
+/**
+ * Add scene plan (local + cloud)
+ */
+export async function syncAddScenePlan(userId, datasetId, sceneId, sceneData) {
+  await addToSyncQueue({ entityType: 'scenePlan', entityId: sceneId, operation: 'add', data: sceneData }, datasetId);
+
+  if (!userId || !isOnline) return;
+
+  try {
+    await addScenePlanCloud(userId, datasetId, { ...sceneData, id: sceneId });
+    await markEntitySynced('scenePlan', sceneId, datasetId);
+  } catch (error) {
+    console.error('☁️ Failed to sync scene plan add:', error);
+  }
+}
+
+/**
+ * Update scene plan (local + cloud)
+ */
+export async function syncUpdateScenePlan(userId, datasetId, sceneId, updates) {
+  await addToSyncQueue({ entityType: 'scenePlan', entityId: sceneId, operation: 'update', data: updates }, datasetId);
+
+  if (!userId || !isOnline) return;
+
+  try {
+    await updateScenePlanCloud(userId, datasetId, sceneId, updates);
+    await markEntitySynced('scenePlan', sceneId, datasetId);
+  } catch (error) {
+    console.error('☁️ Failed to sync scene plan update:', error);
+  }
+}
+
+/**
+ * Delete scene plan (local + cloud)
+ */
+export async function syncDeleteScenePlan(userId, datasetId, sceneId) {
+  await addToSyncQueue({ entityType: 'scenePlan', entityId: sceneId, operation: 'delete' }, datasetId);
+
+  if (!userId || !isOnline) return;
+
+  try {
+    await deleteScenePlanCloud(userId, datasetId, sceneId);
+    await markEntitySynced('scenePlan', sceneId, datasetId);
+  } catch (error) {
+    console.error('☁️ Failed to sync scene plan delete:', error);
+  }
+}
+
+// ==================== PLANNING: PLOT THREADS SYNC ====================
+
+/**
+ * Add plot thread (local + cloud)
+ */
+export async function syncAddPlotThread(userId, datasetId, threadId, threadData) {
+  await addToSyncQueue({ entityType: 'plotThread', entityId: threadId, operation: 'add', data: threadData }, datasetId);
+
+  if (!userId || !isOnline) return;
+
+  try {
+    await addPlotThreadCloud(userId, datasetId, { ...threadData, id: threadId });
+    await markEntitySynced('plotThread', threadId, datasetId);
+  } catch (error) {
+    console.error('☁️ Failed to sync plot thread add:', error);
+  }
+}
+
+/**
+ * Update plot thread (local + cloud)
+ */
+export async function syncUpdatePlotThread(userId, datasetId, threadId, updates) {
+  await addToSyncQueue({ entityType: 'plotThread', entityId: threadId, operation: 'update', data: updates }, datasetId);
+
+  if (!userId || !isOnline) return;
+
+  try {
+    await updatePlotThreadCloud(userId, datasetId, threadId, updates);
+    await markEntitySynced('plotThread', threadId, datasetId);
+  } catch (error) {
+    console.error('☁️ Failed to sync plot thread update:', error);
+  }
+}
+
+/**
+ * Delete plot thread (local + cloud)
+ */
+export async function syncDeletePlotThread(userId, datasetId, threadId) {
+  await addToSyncQueue({ entityType: 'plotThread', entityId: threadId, operation: 'delete' }, datasetId);
+
+  if (!userId || !isOnline) return;
+
+  try {
+    await deletePlotThreadCloud(userId, datasetId, threadId);
+    await markEntitySynced('plotThread', threadId, datasetId);
+  } catch (error) {
+    console.error('☁️ Failed to sync plot thread delete:', error);
+  }
+}
+
+// ==================== PLANNING: CHARACTER ARCS SYNC ====================
+
+/**
+ * Add character arc (local + cloud)
+ */
+export async function syncAddCharacterArc(userId, datasetId, arcId, arcData) {
+  await addToSyncQueue({ entityType: 'characterArc', entityId: arcId, operation: 'add', data: arcData }, datasetId);
+
+  if (!userId || !isOnline) return;
+
+  try {
+    await addCharacterArcCloud(userId, datasetId, { ...arcData, id: arcId });
+    await markEntitySynced('characterArc', arcId, datasetId);
+  } catch (error) {
+    console.error('☁️ Failed to sync character arc add:', error);
+  }
+}
+
+/**
+ * Update character arc (local + cloud)
+ */
+export async function syncUpdateCharacterArc(userId, datasetId, arcId, updates) {
+  await addToSyncQueue({ entityType: 'characterArc', entityId: arcId, operation: 'update', data: updates }, datasetId);
+
+  if (!userId || !isOnline) return;
+
+  try {
+    await updateCharacterArcCloud(userId, datasetId, arcId, updates);
+    await markEntitySynced('characterArc', arcId, datasetId);
+  } catch (error) {
+    console.error('☁️ Failed to sync character arc update:', error);
+  }
+}
+
+/**
+ * Delete character arc (local + cloud)
+ */
+export async function syncDeleteCharacterArc(userId, datasetId, arcId) {
+  await addToSyncQueue({ entityType: 'characterArc', entityId: arcId, operation: 'delete' }, datasetId);
+
+  if (!userId || !isOnline) return;
+
+  try {
+    await deleteCharacterArcCloud(userId, datasetId, arcId);
+    await markEntitySynced('characterArc', arcId, datasetId);
+  } catch (error) {
+    console.error('☁️ Failed to sync character arc delete:', error);
+  }
+}
+
+// ==================== PLANNING: ARC MILESTONES SYNC ====================
+
+/**
+ * Add arc milestone (local + cloud)
+ */
+export async function syncAddArcMilestone(userId, datasetId, milestoneId, milestoneData) {
+  await addToSyncQueue({ entityType: 'arcMilestone', entityId: milestoneId, operation: 'add', data: milestoneData }, datasetId);
+
+  if (!userId || !isOnline) return;
+
+  try {
+    await addArcMilestoneCloud(userId, datasetId, { ...milestoneData, id: milestoneId });
+    await markEntitySynced('arcMilestone', milestoneId, datasetId);
+  } catch (error) {
+    console.error('☁️ Failed to sync arc milestone add:', error);
+  }
+}
+
+/**
+ * Update arc milestone (local + cloud)
+ */
+export async function syncUpdateArcMilestone(userId, datasetId, milestoneId, updates) {
+  await addToSyncQueue({ entityType: 'arcMilestone', entityId: milestoneId, operation: 'update', data: updates }, datasetId);
+
+  if (!userId || !isOnline) return;
+
+  try {
+    await updateArcMilestoneCloud(userId, datasetId, milestoneId, updates);
+    await markEntitySynced('arcMilestone', milestoneId, datasetId);
+  } catch (error) {
+    console.error('☁️ Failed to sync arc milestone update:', error);
+  }
+}
+
+/**
+ * Delete arc milestone (local + cloud)
+ */
+export async function syncDeleteArcMilestone(userId, datasetId, milestoneId) {
+  await addToSyncQueue({ entityType: 'arcMilestone', entityId: milestoneId, operation: 'delete' }, datasetId);
+
+  if (!userId || !isOnline) return;
+
+  try {
+    await deleteArcMilestoneCloud(userId, datasetId, milestoneId);
+    await markEntitySynced('arcMilestone', milestoneId, datasetId);
+  } catch (error) {
+    console.error('☁️ Failed to sync arc milestone delete:', error);
+  }
+}
+
 // ==================== UTILITY ====================
 
 /**
@@ -1613,6 +2054,66 @@ export async function forceCloudSync(userId, datasetId = DEFAULT_DATASET_ID, opt
       }
     }
 
+    // Restore story plans
+    for (const plan of cloudData.storyPlans || []) {
+      const { createdAt, updatedAt, syncedAt, localId, ...planData } = plan;
+      try {
+        await localRestoreStoryPlan({ ...planData, id: parseInt(plan.id) || plan.id }, dsId);
+      } catch (e) {
+        console.warn('Could not restore story plan during force sync:', e);
+      }
+    }
+
+    // Restore story beats
+    for (const beat of cloudData.storyBeats || []) {
+      const { createdAt, updatedAt, syncedAt, localId, ...beatData } = beat;
+      try {
+        await localRestoreStoryBeat({ ...beatData, id: parseInt(beat.id) || beat.id }, dsId);
+      } catch (e) {
+        console.warn('Could not restore story beat during force sync:', e);
+      }
+    }
+
+    // Restore scene plans
+    for (const scene of cloudData.scenePlans || []) {
+      const { createdAt, updatedAt, syncedAt, localId, ...sceneData } = scene;
+      try {
+        await localRestoreScenePlan({ ...sceneData, id: parseInt(scene.id) || scene.id }, dsId);
+      } catch (e) {
+        console.warn('Could not restore scene plan during force sync:', e);
+      }
+    }
+
+    // Restore plot threads
+    for (const thread of cloudData.plotThreads || []) {
+      const { createdAt, updatedAt, syncedAt, localId, ...threadData } = thread;
+      try {
+        await localRestorePlotThread({ ...threadData, id: parseInt(thread.id) || thread.id }, dsId);
+      } catch (e) {
+        console.warn('Could not restore plot thread during force sync:', e);
+      }
+    }
+
+    // Restore character arcs
+    for (const arc of cloudData.characterArcs || []) {
+      const { createdAt, updatedAt, syncedAt, localId, ...arcData } = arc;
+      try {
+        await localRestoreCharacterArc({ ...arcData, id: parseInt(arc.id) || arc.id }, dsId);
+      } catch (e) {
+        console.warn('Could not restore character arc during force sync:', e);
+      }
+    }
+
+    // Restore arc milestones
+    for (const milestone of cloudData.arcMilestones || []) {
+      const { createdAt, updatedAt, syncedAt, localId, ...milestoneData } = milestone;
+      try {
+        await localDb.arcMilestones.put({ ...milestoneData, id: parseInt(milestone.id) || milestone.id });
+      } catch (e) {
+        console.warn('Could not restore arc milestone during force sync:', e);
+      }
+    }
+
     updateSyncStatus({ isSyncing: false, lastSyncTime: new Date() });
     return { status: 'success', data: cloudData };
   } catch (error) {
@@ -1697,6 +2198,24 @@ export async function forceUploadToCloud(userId, datasetId = DEFAULT_DATASET_ID)
       console.warn('Could not get writings data for upload:', e);
     }
 
+    // Get planning data
+    let storyPlans = [];
+    let storyBeats = [];
+    let scenePlans = [];
+    let plotThreads = [];
+    let characterArcs = [];
+    let arcMilestones = [];
+    try {
+      storyPlans = await localDb.storyPlans.toArray();
+      storyBeats = await localDb.storyBeats.toArray();
+      scenePlans = await localDb.scenePlans.toArray();
+      plotThreads = await localDb.plotThreads.toArray();
+      characterArcs = await localDb.characterArcs.toArray();
+      arcMilestones = await localDb.arcMilestones.toArray();
+    } catch (e) {
+      console.warn('Could not get planning data for upload:', e);
+    }
+
     // Upload everything to cloud
     await syncAllToCloud(userId, dsId, {
       people: localPeople,
@@ -1712,7 +2231,13 @@ export async function forceUploadToCloud(userId, datasetId = DEFAULT_DATASET_ID)
       householdRoles,
       writings,
       chapters,
-      writingLinks
+      writingLinks,
+      storyPlans,
+      storyBeats,
+      scenePlans,
+      plotThreads,
+      characterArcs,
+      arcMilestones
     });
 
     // Clear the sync queue since everything is now synced
@@ -1801,5 +2326,35 @@ export default {
   syncUpdateChapter,
   syncDeleteChapter,
   syncAddWritingLink,
-  syncDeleteWritingLink
+  syncDeleteWritingLink,
+
+  // Sync wrappers - Planning: Story Plans
+  syncAddStoryPlan,
+  syncUpdateStoryPlan,
+  syncDeleteStoryPlan,
+
+  // Sync wrappers - Planning: Story Beats
+  syncAddStoryBeat,
+  syncUpdateStoryBeat,
+  syncDeleteStoryBeat,
+
+  // Sync wrappers - Planning: Scene Plans
+  syncAddScenePlan,
+  syncUpdateScenePlan,
+  syncDeleteScenePlan,
+
+  // Sync wrappers - Planning: Plot Threads
+  syncAddPlotThread,
+  syncUpdatePlotThread,
+  syncDeletePlotThread,
+
+  // Sync wrappers - Planning: Character Arcs
+  syncAddCharacterArc,
+  syncUpdateCharacterArc,
+  syncDeleteCharacterArc,
+
+  // Sync wrappers - Planning: Arc Milestones
+  syncAddArcMilestone,
+  syncUpdateArcMilestone,
+  syncDeleteArcMilestone
 };

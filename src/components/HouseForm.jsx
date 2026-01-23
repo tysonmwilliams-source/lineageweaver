@@ -14,7 +14,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import HeraldryPickerModal from './heraldry/HeraldryPickerModal';
 import Icon from './icons/Icon';
 import ActionButton from './shared/ActionButton';
@@ -29,6 +29,27 @@ import {
 import { sanitizeSVG } from '../utils/sanitize';
 import './HouseForm.css';
 
+// House type options
+const HOUSE_TYPE_OPTIONS = [
+  { value: 'great', label: 'Great House' },
+  { value: 'cadet', label: 'Cadet Branch' },
+  { value: 'minor', label: 'Minor House' },
+  { value: 'vassal', label: 'Vassal House' },
+  { value: 'extinct', label: 'Extinct House' }
+];
+
+// Cadet tier options
+const CADET_TIER_OPTIONS = [
+  { value: 1, label: 'Tier 1 - Noble Cadet Branch' },
+  { value: 2, label: 'Tier 2 - Bastard Elevation' }
+];
+
+// Founding type options
+const FOUNDING_TYPE_OPTIONS = [
+  { value: 'noble', label: 'Noble' },
+  { value: 'bastard-elevation', label: 'Bastard Elevation' }
+];
+
 const SECTION_VARIANTS = {
   hidden: { opacity: 0, y: 10 },
   visible: {
@@ -41,6 +62,7 @@ const SECTION_VARIANTS = {
 function HouseForm({
   house = null,
   people = [],
+  houses = [],
   onSave,
   onCancel
 }) {
@@ -56,7 +78,13 @@ function HouseForm({
     foundedDate: house?.foundedDate || '',
     colorCode: house?.colorCode || '#3b82f6',
     notes: house?.notes || '',
-    heraldryId: house?.heraldryId || null
+    heraldryId: house?.heraldryId || null,
+    // House Classification fields
+    houseType: house?.houseType || 'great',
+    parentHouseId: house?.parentHouseId || null,
+    cadetTier: house?.cadetTier || null,
+    foundingType: house?.foundingType || null,
+    foundedBy: house?.foundedBy || null
   });
 
   // Heraldry State
@@ -117,6 +145,11 @@ function HouseForm({
 
     if (formData.foundedDate && !/^\d{4}$/.test(formData.foundedDate)) {
       newErrors.foundedDate = 'Founded date must be a 4-digit year (e.g., 1120)';
+    }
+
+    // Validate cadet-specific fields
+    if (formData.houseType === 'cadet' && !formData.parentHouseId) {
+      newErrors.parentHouseId = 'Parent house is required for cadet branches';
     }
 
     setErrors(newErrors);
@@ -293,6 +326,159 @@ function HouseForm({
               </div>
             </div>
           </div>
+        </motion.div>
+
+        {/* House Classification Section */}
+        <motion.div
+          className="house-form__section house-form__section--classification"
+          variants={SECTION_VARIANTS}
+          initial="hidden"
+          animate="visible"
+          transition={{ delay: 0.05 }}
+        >
+          <h3 className="house-form__section-title">
+            <Icon name="crown" size={16} />
+            <span>House Classification</span>
+          </h3>
+
+          {/* House Type */}
+          <div className="house-form__group">
+            <label htmlFor="houseType" className="house-form__label">
+              House Type
+            </label>
+            <select
+              id="houseType"
+              name="houseType"
+              value={formData.houseType}
+              onChange={handleChange}
+              className="house-form__select"
+            >
+              {HOUSE_TYPE_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Conditional Cadet Fields */}
+          <AnimatePresence>
+            {formData.houseType === 'cadet' && (
+              <motion.div
+                className="house-form__cadet-fields"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                {/* Parent House */}
+                <div className="house-form__group">
+                  <label htmlFor="parentHouseId" className="house-form__label house-form__label--required">
+                    Parent House
+                  </label>
+                  <select
+                    id="parentHouseId"
+                    name="parentHouseId"
+                    value={formData.parentHouseId || ''}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      parentHouseId: e.target.value ? parseInt(e.target.value) : null
+                    }))}
+                    className={`house-form__select ${errors.parentHouseId ? 'house-form__select--error' : ''}`}
+                  >
+                    <option value="">Select parent house...</option>
+                    {houses
+                      .filter(h => h.id !== house?.id)
+                      .map(h => (
+                        <option key={h.id} value={h.id}>
+                          {h.houseName}
+                        </option>
+                      ))
+                    }
+                  </select>
+                  {errors.parentHouseId && (
+                    <span className="house-form__error">
+                      <Icon name="alert-circle" size={12} />
+                      {errors.parentHouseId}
+                    </span>
+                  )}
+                </div>
+
+                {/* Cadet Tier */}
+                <div className="house-form__group">
+                  <label htmlFor="cadetTier" className="house-form__label">
+                    Cadet Tier
+                  </label>
+                  <select
+                    id="cadetTier"
+                    name="cadetTier"
+                    value={formData.cadetTier || ''}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      cadetTier: e.target.value ? parseInt(e.target.value) : null
+                    }))}
+                    className="house-form__select"
+                  >
+                    <option value="">Select tier...</option>
+                    {CADET_TIER_OPTIONS.map(opt => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="house-form__hint">
+                    Tier 1 for noble cadets, Tier 2 for bastard-founded houses
+                  </span>
+                </div>
+
+                {/* Founding Type */}
+                <div className="house-form__group">
+                  <label htmlFor="foundingType" className="house-form__label">
+                    Founding Type
+                  </label>
+                  <select
+                    id="foundingType"
+                    name="foundingType"
+                    value={formData.foundingType || ''}
+                    onChange={handleChange}
+                    className="house-form__select"
+                  >
+                    <option value="">Select founding type...</option>
+                    {FOUNDING_TYPE_OPTIONS.map(opt => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Founded By */}
+                <div className="house-form__group">
+                  <label htmlFor="foundedBy" className="house-form__label">
+                    Founded By
+                  </label>
+                  <select
+                    id="foundedBy"
+                    name="foundedBy"
+                    value={formData.foundedBy || ''}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      foundedBy: e.target.value ? parseInt(e.target.value) : null
+                    }))}
+                    className="house-form__select"
+                  >
+                    <option value="">Select founder...</option>
+                    {people.map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.firstName} {p.lastName}
+                        {p.legitimacyStatus === 'bastard' ? ' (Bastard)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
 
         {/* Heraldry Section */}

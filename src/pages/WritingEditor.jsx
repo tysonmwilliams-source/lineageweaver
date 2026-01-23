@@ -39,6 +39,7 @@ import { EntitySidebar } from '../components/writing/Sidebar';
 import { CanonCheckPanel } from '../components/writing/CanonCheck';
 import WritingWizard from '../components/writing/WritingWizard';
 import ReferenceBrowser from '../components/writing/ReferenceBrowser';
+import { PlanningSidebar, StoryPlannerModal } from '../components/writing/Planner';
 import ExportModal from '../components/writing/ExportModal';
 import { runRuleBasedChecks, runAICanonCheck } from '../services/canonCheckService';
 import { askGemini } from '../services/aiAssistantService';
@@ -136,8 +137,14 @@ export default function WritingEditor() {
   // Reference Browser state
   const [showReferenceBrowser, setShowReferenceBrowser] = useState(false);
 
+  // Planning Sidebar state
+  const [showPlannerPanel, setShowPlannerPanel] = useState(false);
+
   // Export modal state
   const [showExportModal, setShowExportModal] = useState(false);
+
+  // Planner modal state
+  const [showPlannerModal, setShowPlannerModal] = useState(false);
 
   // Is this a multi-chapter writing?
   const isMultiChapter = chapters.length > 1 ||
@@ -611,11 +618,27 @@ Be encouraging but honest. Give specific examples from the text when possible. K
                 if (!showReferenceBrowser) {
                   setShowWizardPanel(false);
                   setShowCanonPanel(false);
+                  setShowPlannerPanel(false);
                 }
               }}
             >
               <Icon name="library" size={18} strokeWidth={2} />
               Reference
+            </button>
+            <button
+              className={`btn btn--secondary ${showPlannerPanel ? 'btn--active' : ''}`}
+              title="Story Planner - View planning context"
+              onClick={() => {
+                setShowPlannerPanel(!showPlannerPanel);
+                if (!showPlannerPanel) {
+                  setShowWizardPanel(false);
+                  setShowCanonPanel(false);
+                  setShowReferenceBrowser(false);
+                }
+              }}
+            >
+              <Icon name="map" size={18} strokeWidth={2} />
+              Planner
             </button>
             <button
               className={`btn btn--secondary ${showWizardPanel ? 'btn--active' : ''}`}
@@ -625,6 +648,7 @@ Be encouraging but honest. Give specific examples from the text when possible. K
                 if (!showWizardPanel) {
                   setShowCanonPanel(false);
                   setShowReferenceBrowser(false);
+                  setShowPlannerPanel(false);
                 }
               }}
             >
@@ -639,6 +663,7 @@ Be encouraging but honest. Give specific examples from the text when possible. K
                 if (!showCanonPanel) {
                   setShowWizardPanel(false);
                   setShowReferenceBrowser(false);
+                  setShowPlannerPanel(false);
                 }
               }}
             >
@@ -684,13 +709,20 @@ Be encouraging but honest. Give specific examples from the text when possible. K
             )}
           </div>
 
-          {/* Right Sidebar - Entity, Canon Panel, Writing Wizard, or Reference Browser */}
+          {/* Right Sidebar - Entity, Canon Panel, Writing Wizard, Reference Browser, or Planner */}
           <div className="writing-editor__entity-sidebar">
             {showReferenceBrowser ? (
               <ReferenceBrowser
                 datasetId={activeDataset?.id}
                 onInsertEntity={handleInsertEntityFromBrowser}
                 onClose={() => setShowReferenceBrowser(false)}
+              />
+            ) : showPlannerPanel ? (
+              <PlanningSidebar
+                writingId={parseInt(id)}
+                chapterId={activeChapterId}
+                onOpenPlanner={() => setShowPlannerModal(true)}
+                onCreatePlan={() => setShowPlannerModal(true)}
               />
             ) : showWizardPanel ? (
               <WritingWizard
@@ -728,6 +760,15 @@ Be encouraging but honest. Give specific examples from the text when possible. K
       <ExportModal
         isOpen={showExportModal}
         onClose={() => setShowExportModal(false)}
+        writingId={parseInt(id)}
+        writingTitle={writing.title}
+        datasetId={activeDataset?.id}
+      />
+
+      {/* Story Planner Modal */}
+      <StoryPlannerModal
+        isOpen={showPlannerModal}
+        onClose={() => setShowPlannerModal(false)}
         writingId={parseInt(id)}
         writingTitle={writing.title}
         datasetId={activeDataset?.id}

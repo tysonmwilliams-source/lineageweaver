@@ -250,6 +250,16 @@
   transition: all var(--duration-fast) var(--ease-standard);
 }
 
+.house-list__btn--branch {
+  background: transparent;
+  color: rgb(139, 92, 246);
+  border: 1px solid rgb(139, 92, 246);
+}
+
+.house-list__btn--branch:hover {
+  background: rgba(139, 92, 246, 0.1);
+}
+
 .house-list__btn--heraldry {
   background: transparent;
   color: var(--accent-primary);

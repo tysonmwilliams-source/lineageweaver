@@ -430,6 +430,42 @@ db.version(14).stores({
   // writingLinks: Tracks [[wiki-link]] references to entities
   writingLinks: '++id, writingId, chapterId, targetType, targetId, createdAt'
 });
+
+// Version 15: Add Intelligent Writing Planner System
+// A comprehensive story planning system with multi-level narrative structure support.
+// Integrates with writings, codex, and genealogy for canon-aware planning.
+db.version(15).stores({
+  people: '++id, firstName, lastName, houseId, dateOfBirth, dateOfDeath, bastardStatus, codexEntryId, heraldryId',
+  houses: '++id, houseName, parentHouseId, houseType, codexEntryId, heraldryId',
+  relationships: '++id, person1Id, person2Id, relationshipType',
+  codexEntries: '++id, type, title, category, *tags, era, created, updated',
+  codexLinks: '++id, sourceId, targetId, type',
+  acknowledgedDuplicates: '++id, person1Id, person2Id, acknowledgedAt',
+  heraldry: '++id, name, category, *tags, created, updated',
+  heraldryLinks: '++id, heraldryId, entityType, entityId, linkType',
+  dignities: '++id, name, shortName, dignityClass, dignityRank, swornToId, currentHolderId, currentHouseId, codexEntryId, created, updated',
+  dignityTenures: '++id, dignityId, personId, dateStarted, dateEnded, acquisitionType, endType, created',
+  dignityLinks: '++id, dignityId, entityType, entityId, linkType, created',
+  bugs: '++id, title, status, priority, system, page, created, resolved',
+  householdRoles: '++id, houseId, roleType, currentHolderId, startDate, created, updated',
+  syncQueue: '++id, entityType, entityId, operation, timestamp, synced',
+  writings: '++id, title, type, status, *tags, createdAt, updatedAt',
+  chapters: '++id, writingId, order, createdAt, updatedAt',
+  writingLinks: '++id, writingId, chapterId, targetType, targetId, createdAt',
+  // NEW: Intelligent Writing Planner tables
+  // storyPlans: Top-level planning container for a writing
+  storyPlans: '++id, writingId, framework, *genre, createdAt, updatedAt',
+  // storyArcs: Narrative arcs (main plot + subplots)
+  storyArcs: '++id, storyPlanId, type, status, order, createdAt, updatedAt',
+  // storyBeats: Framework-specific story beats (Save the Cat, Hero's Journey, etc.)
+  storyBeats: '++id, storyPlanId, storyArcId, beatType, status, order, createdAt, updatedAt',
+  // scenePlans: Detailed scene-level planning
+  scenePlans: '++id, storyPlanId, chapterId, povCharacterId, status, order, createdAt, updatedAt',
+  // characterArcs: Track character development through the story
+  characterArcs: '++id, storyPlanId, characterId, arcType, status, createdAt, updatedAt',
+  // plotThreads: Track narrative threads and their resolution
+  plotThreads: '++id, storyPlanId, threadType, status, createdAt, updatedAt'
+});
 } // End of applySchema function
 
 /**
@@ -1054,6 +1090,14 @@ export async function deleteAllData(datasetId, options = {}) {
     if (database.writings) await database.writings.clear();
     if (database.chapters) await database.chapters.clear();
     if (database.writingLinks) await database.writingLinks.clear();
+
+    // Clear story planning tables if they exist
+    if (database.storyPlans) await database.storyPlans.clear();
+    if (database.storyArcs) await database.storyArcs.clear();
+    if (database.storyBeats) await database.storyBeats.clear();
+    if (database.scenePlans) await database.scenePlans.clear();
+    if (database.characterArcs) await database.characterArcs.clear();
+    if (database.plotThreads) await database.plotThreads.clear();
 
     // Only clear syncQueue if explicitly requested (after successful full sync)
     if (options.clearSyncQueue && database.syncQueue) {

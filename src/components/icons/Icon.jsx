@@ -148,7 +148,21 @@ import {
   Heading3,
   ListOrdered,
   Quote,
-  Type
+  Type,
+  // Story Planner icons
+  Target,
+  TrendingUp,
+  BarChart2,
+  Edit2,
+  Edit3,
+  Compass,
+  GitCommit,
+  Activity,
+  Inbox,
+  Lock,
+  Unlock,
+  Link as LinkIcon,
+  Unlink
 } from 'lucide-react';
 
 /**
@@ -397,7 +411,26 @@ const LUCIDE_ICONS = {
 
   // Block elements
   'quote': Quote,
-  'blockquote': Quote
+  'blockquote': Quote,
+
+  // Story Planner icons
+  'target': Target,
+  'trending-up': TrendingUp,
+  'bar-chart-2': BarChart2,
+  'edit-2': Edit2,
+  'edit-3': Edit3,
+  'compass': Compass,
+  'git-commit': GitCommit,
+  'activity': Activity,
+  'maximize-2': Maximize2,
+  'rotate-cw': RotateCw,
+  'inbox': Inbox,
+
+  // Plot threads / Security
+  'lock': Lock,
+  'unlock': Unlock,
+  'link-2': LinkIcon,
+  'unlink': Unlink
 };
 
 /**

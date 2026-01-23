@@ -561,7 +561,7 @@ export const exportData = (data, format = 'json') => {
  */
 export const importData = (jsonString, existingData) => {
   try {
-    const data = JSON.parse(jsonString);
+    let data = JSON.parse(jsonString);
     
     // Validate structure
     const errors = IMPORT_VALIDATORS.validateJSON(data);

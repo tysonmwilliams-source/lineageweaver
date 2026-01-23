@@ -26,6 +26,7 @@ import {
   syncAddWriting,
   syncDeleteWriting
 } from '../services/dataSyncService';
+import { StoryPlannerModal } from '../components/writing/Planner';
 import './WritingStudio.css';
 
 // Animation variants
@@ -50,7 +51,7 @@ const MODAL_VARIANTS = {
 /**
  * WritingCard Component
  */
-function WritingCard({ writing, onOpen, onDelete }) {
+function WritingCard({ writing, onOpen, onDelete, onOpenPlanner }) {
   const [chapterCount, setChapterCount] = useState(0);
   const { activeDataset } = useDataset();
 
@@ -95,6 +96,16 @@ function WritingCard({ writing, onOpen, onDelete }) {
           <Icon name={typeIcon} size={24} strokeWidth={1.5} />
         </div>
         <div className="writing-card__actions">
+          <button
+            className="writing-card__action-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenPlanner(writing.id);
+            }}
+            title="Story Planner"
+          >
+            <Icon name="map" size={16} strokeWidth={2} />
+          </button>
           <button
             className="writing-card__action-btn writing-card__action-btn--delete"
             onClick={(e) => {
@@ -317,6 +328,7 @@ export default function WritingStudio() {
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [writingToDelete, setWritingToDelete] = useState(null);
+  const [plannerWritingId, setPlannerWritingId] = useState(null);
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -412,6 +424,10 @@ export default function WritingStudio() {
   const handleOpen = useCallback((writingId) => {
     navigate(`/writing/${writingId}`);
   }, [navigate]);
+
+  const handleOpenPlanner = useCallback((writingId) => {
+    setPlannerWritingId(writingId);
+  }, []);
 
   // Stats
   const stats = useMemo(() => ({
@@ -573,6 +589,7 @@ export default function WritingStudio() {
                 writing={writing}
                 onOpen={handleOpen}
                 onDelete={setWritingToDelete}
+                onOpenPlanner={handleOpenPlanner}
               />
             ))}
           </motion.div>
@@ -597,6 +614,15 @@ export default function WritingStudio() {
           />
         )}
       </AnimatePresence>
+
+      {/* Story Planner Modal */}
+      <StoryPlannerModal
+        isOpen={!!plannerWritingId}
+        onClose={() => setPlannerWritingId(null)}
+        writingId={plannerWritingId}
+        writingTitle={writings.find(w => w.id === plannerWritingId)?.title}
+        datasetId={activeDataset?.id}
+      />
     </>
   );
 }
