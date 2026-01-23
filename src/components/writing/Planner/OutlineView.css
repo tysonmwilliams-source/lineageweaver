@@ -1,0 +1,545 @@
+/**
+ * OutlineView.css
+ *
+ * Styles for the hierarchical story outline view.
+ */
+
+/* ============================================
+   CONTAINER
+   ============================================ */
+
+.outline-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: var(--bg-primary);
+  overflow: hidden;
+}
+
+.outline-view--loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  color: var(--text-secondary);
+}
+
+.outline-view--loading svg {
+  color: var(--accent-primary);
+}
+
+/* ============================================
+   HEADER
+   ============================================ */
+
+.outline-view__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--border-primary);
+  background-color: var(--bg-secondary);
+  flex-shrink: 0;
+}
+
+.outline-view__header-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.outline-view__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.outline-view__title svg {
+  color: var(--accent-primary);
+}
+
+.outline-view__stats {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.outline-view__stats-divider {
+  color: var(--border-secondary);
+}
+
+.outline-view__close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.outline-view__close-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+/* ============================================
+   CONTENT
+   ============================================ */
+
+.outline-view__content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-4);
+}
+
+/* ============================================
+   ACT
+   ============================================ */
+
+.outline-view__act {
+  margin-bottom: var(--space-3);
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.outline-view__act-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.outline-view__act-header:hover {
+  background-color: var(--bg-tertiary);
+}
+
+.outline-view__act-header svg {
+  color: var(--text-tertiary);
+  transition: transform var(--duration-fast) var(--ease-standard);
+}
+
+.outline-view__act-header--expanded svg {
+  color: var(--accent-primary);
+}
+
+.outline-view__act-name {
+  flex: 1;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.outline-view__act-percent {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  padding: var(--space-1) var(--space-2);
+  background-color: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+}
+
+.outline-view__act-content {
+  padding: 0 var(--space-4) var(--space-4);
+  overflow: hidden;
+}
+
+/* ============================================
+   CHAPTER
+   ============================================ */
+
+.outline-view__chapter {
+  margin-top: var(--space-2);
+  background-color: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.outline-view__chapter-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.outline-view__chapter-header:hover {
+  background-color: var(--bg-elevated);
+}
+
+.outline-view__chapter-header svg {
+  color: var(--text-tertiary);
+}
+
+.outline-view__chapter-header--expanded svg {
+  color: var(--accent-primary);
+}
+
+.outline-view__chapter-title {
+  flex: 1;
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-primary);
+  text-align: left;
+}
+
+.outline-view__chapter-count {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+.outline-view__chapter-words {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--accent-primary);
+}
+
+.outline-view__chapter-content {
+  padding: var(--space-2) var(--space-3) var(--space-3);
+  overflow: hidden;
+}
+
+/* ============================================
+   SCENE
+   ============================================ */
+
+.outline-view__scene {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-1);
+  background-color: var(--bg-primary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.outline-view__scene:hover {
+  background-color: var(--bg-secondary);
+  transform: translateX(4px);
+}
+
+.outline-view__scene:last-child {
+  margin-bottom: 0;
+}
+
+.outline-view__scene-status {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.outline-view__scene-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.outline-view__scene-title {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.outline-view__scene-pov {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+.outline-view__scene-pov svg {
+  color: var(--accent-primary);
+}
+
+.outline-view__scene-actions {
+  display: flex;
+  gap: var(--space-1);
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-standard);
+}
+
+.outline-view__scene:hover .outline-view__scene-actions {
+  opacity: 1;
+}
+
+.outline-view__scene-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: transparent;
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-sm);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.outline-view__scene-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-color: var(--accent-primary);
+}
+
+.outline-view__scene-btn--delete:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border-color: #ef4444;
+}
+
+/* ============================================
+   ADD SCENE
+   ============================================ */
+
+.outline-view__add-scene {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  margin-top: var(--space-2);
+  background: transparent;
+  border: 1px dashed var(--border-secondary);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
+  width: 100%;
+}
+
+.outline-view__add-scene:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+  background-color: rgba(212, 175, 55, 0.05);
+}
+
+.outline-view__add-form {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.outline-view__add-input {
+  flex: 1;
+  padding: var(--space-2);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-sm);
+}
+
+.outline-view__add-input:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+.outline-view__add-confirm,
+.outline-view__add-cancel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.outline-view__add-confirm {
+  color: #22c55e;
+}
+
+.outline-view__add-confirm:hover {
+  background: rgba(34, 197, 94, 0.1);
+  border-color: #22c55e;
+}
+
+.outline-view__add-cancel {
+  color: var(--text-tertiary);
+}
+
+.outline-view__add-cancel:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+/* ============================================
+   BEATS LIST
+   ============================================ */
+
+.outline-view__beats-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2);
+}
+
+.outline-view__beat {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+}
+
+.outline-view__beat svg {
+  color: var(--accent-primary);
+}
+
+.outline-view__beat-percent {
+  margin-left: auto;
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+/* ============================================
+   UNASSIGNED SCENES
+   ============================================ */
+
+.outline-view__unassigned {
+  margin-top: var(--space-4);
+  padding: var(--space-3);
+  background-color: rgba(245, 158, 11, 0.05);
+  border: 1px dashed rgba(245, 158, 11, 0.3);
+  border-radius: var(--radius-lg);
+}
+
+.outline-view__unassigned-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: #f59e0b;
+}
+
+.outline-view__unassigned-count {
+  font-weight: 400;
+  font-size: var(--text-xs);
+  padding: 2px var(--space-2);
+  background-color: rgba(245, 158, 11, 0.15);
+  border-radius: var(--radius-sm);
+}
+
+.outline-view__unassigned-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* ============================================
+   EMPTY STATE
+   ============================================ */
+
+.outline-view__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-8);
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.outline-view__empty svg {
+  color: var(--text-tertiary);
+  margin-bottom: var(--space-3);
+}
+
+.outline-view__empty p {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--text-primary);
+  margin: 0 0 var(--space-2) 0;
+}
+
+.outline-view__empty small {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 480px) {
+  .outline-view__header {
+    padding: var(--space-3);
+  }
+
+  .outline-view__content {
+    padding: var(--space-3);
+  }
+
+  .outline-view__scene-actions {
+    opacity: 1;
+  }
+}
+
+/* ============================================
+   REDUCED MOTION
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .outline-view__act-header,
+  .outline-view__chapter-header,
+  .outline-view__scene,
+  .outline-view__scene-btn,
+  .outline-view__add-scene {
+    transition: none;
+  }
+}

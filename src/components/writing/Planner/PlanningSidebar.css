@@ -1,0 +1,634 @@
+/**
+ * PlanningSidebar.css
+ *
+ * Styles for the Planning Sidebar in the WritingEditor.
+ */
+
+/* ============================================
+   CONTAINER
+   ============================================ */
+
+.planning-sidebar {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: var(--bg-secondary);
+  overflow: hidden;
+}
+
+.planning-sidebar--loading,
+.planning-sidebar--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.planning-sidebar__loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.planning-sidebar__loader svg {
+  color: var(--accent-primary);
+}
+
+/* ============================================
+   EMPTY STATE
+   ============================================ */
+
+.planning-sidebar__empty-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: var(--space-6);
+}
+
+.planning-sidebar__empty-icon {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(59, 130, 246, 0.2));
+  border-radius: var(--radius-full);
+  margin-bottom: var(--space-3);
+  color: var(--accent-primary);
+}
+
+.planning-sidebar__empty-title {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 var(--space-2) 0;
+}
+
+.planning-sidebar__empty-desc {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0 0 var(--space-4) 0;
+}
+
+/* ============================================
+   HEADER
+   ============================================ */
+
+.planning-sidebar__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--border-primary);
+  background-color: var(--bg-tertiary);
+}
+
+.planning-sidebar__header-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.planning-sidebar__title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.planning-sidebar__title svg {
+  color: var(--accent-primary);
+}
+
+.planning-sidebar__framework {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+.planning-sidebar__open-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.planning-sidebar__open-btn:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border-color: var(--accent-primary);
+}
+
+/* ============================================
+   CONTENT
+   ============================================ */
+
+.planning-sidebar__content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-3);
+}
+
+/* ============================================
+   SECTIONS
+   ============================================ */
+
+.planning-sidebar__section {
+  margin-bottom: var(--space-2);
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.planning-sidebar__section--expanded {
+  border-color: var(--accent-primary);
+}
+
+.planning-sidebar__section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: var(--space-3);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-standard);
+}
+
+.planning-sidebar__section-header:hover {
+  background-color: var(--bg-elevated);
+}
+
+.planning-sidebar__section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.planning-sidebar__section-title svg {
+  color: var(--accent-primary);
+}
+
+.planning-sidebar__section-count {
+  padding: 1px var(--space-1);
+  background-color: var(--accent-primary);
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  color: var(--bg-primary);
+}
+
+.planning-sidebar__section-content {
+  padding: 0 var(--space-3) var(--space-3) var(--space-3);
+  overflow: hidden;
+}
+
+/* ============================================
+   BEAT SECTION
+   ============================================ */
+
+.planning-sidebar__beat-card {
+  padding: var(--space-3);
+  background-color: var(--bg-primary);
+  border-radius: var(--radius-sm);
+}
+
+.planning-sidebar__beat-name {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.planning-sidebar__beat-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-2);
+}
+
+.planning-sidebar__beat-percent {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.planning-sidebar__beat-status {
+  font-family: var(--font-body);
+  font-size: 10px;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+  text-transform: capitalize;
+}
+
+.planning-sidebar__beat-status--planned {
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.planning-sidebar__beat-status--drafted {
+  background-color: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+}
+
+.planning-sidebar__beat-status--complete {
+  background-color: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+}
+
+.planning-sidebar__beat-desc {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.planning-sidebar__beat-progress {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-top: var(--space-3);
+}
+
+.planning-sidebar__beat-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-secondary);
+}
+
+.planning-sidebar__beat-dot--current {
+  background-color: var(--accent-primary);
+  border-color: var(--accent-primary);
+}
+
+.planning-sidebar__beat-dot--complete {
+  background-color: #22c55e;
+  border-color: #22c55e;
+}
+
+.planning-sidebar__beat-more {
+  font-family: var(--font-body);
+  font-size: 10px;
+  color: var(--text-tertiary);
+  margin-left: var(--space-1);
+}
+
+/* ============================================
+   SCENE SECTION
+   ============================================ */
+
+.planning-sidebar__scene-card {
+  padding: var(--space-3);
+  background-color: var(--bg-primary);
+  border-radius: var(--radius-sm);
+}
+
+.planning-sidebar__scene-title {
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 var(--space-3) 0;
+}
+
+.planning-sidebar__scene-item {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+}
+
+.planning-sidebar__scene-label {
+  font-weight: 600;
+  color: var(--accent-primary);
+  min-width: 50px;
+  flex-shrink: 0;
+}
+
+.planning-sidebar__scene-value {
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+.planning-sidebar__scene-dynamics {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: var(--space-3);
+  padding-top: var(--space-2);
+  border-top: 1px dashed var(--border-secondary);
+}
+
+.planning-sidebar__tension {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.planning-sidebar__tension span {
+  font-family: var(--font-body);
+  font-size: 10px;
+  color: var(--text-tertiary);
+}
+
+.planning-sidebar__tension-bar {
+  height: 4px;
+  background-color: var(--bg-tertiary);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  max-width: 80px;
+}
+
+.planning-sidebar__tension-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #22c55e, #f59e0b, #ef4444);
+  border-radius: var(--radius-full);
+}
+
+.planning-sidebar__pacing {
+  font-family: var(--font-body);
+  font-size: 10px;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+  text-transform: capitalize;
+}
+
+.planning-sidebar__pacing--action {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.planning-sidebar__pacing--reaction {
+  background-color: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+}
+
+.planning-sidebar__pacing--transition {
+  background-color: rgba(139, 92, 246, 0.15);
+  color: #8b5cf6;
+}
+
+.planning-sidebar__pacing--exposition {
+  background-color: rgba(107, 114, 128, 0.15);
+  color: #6b7280;
+}
+
+/* ============================================
+   THREADS SECTION
+   ============================================ */
+
+.planning-sidebar__threads-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.planning-sidebar__thread-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  background-color: var(--bg-primary);
+  border-radius: var(--radius-sm);
+}
+
+.planning-sidebar__thread-item svg {
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.planning-sidebar__thread-name {
+  flex: 1;
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.planning-sidebar__thread-status {
+  font-family: var(--font-body);
+  font-size: 10px;
+  padding: 1px var(--space-1);
+  border-radius: var(--radius-xs);
+  text-transform: capitalize;
+  flex-shrink: 0;
+}
+
+.planning-sidebar__thread-status--setup {
+  background-color: rgba(139, 92, 246, 0.15);
+  color: #8b5cf6;
+}
+
+.planning-sidebar__thread-status--developing {
+  background-color: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+}
+
+.planning-sidebar__thread-status--climax {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.planning-sidebar__threads-more {
+  background: transparent;
+  border: none;
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--accent-primary);
+  cursor: pointer;
+  padding: var(--space-2);
+  text-align: center;
+}
+
+.planning-sidebar__threads-more:hover {
+  text-decoration: underline;
+}
+
+/* ============================================
+   PREMISE SECTION
+   ============================================ */
+
+.planning-sidebar__premise {
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  line-height: 1.6;
+  font-style: italic;
+  margin: 0;
+  padding: var(--space-3);
+  background-color: var(--bg-primary);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--accent-primary);
+}
+
+/* ============================================
+   AI SECTION
+   ============================================ */
+
+.planning-sidebar__section--ai {
+  border-color: rgba(139, 92, 246, 0.3);
+  background: linear-gradient(135deg, var(--bg-tertiary), rgba(139, 92, 246, 0.05));
+}
+
+.planning-sidebar__section--ai .planning-sidebar__section-title svg {
+  color: #8b5cf6;
+}
+
+.planning-sidebar__ai-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.planning-sidebar__ai-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.planning-sidebar__ai-btn:hover:not(:disabled) {
+  border-color: #8b5cf6;
+  background-color: rgba(139, 92, 246, 0.1);
+}
+
+.planning-sidebar__ai-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.planning-sidebar__ai-btn svg {
+  color: #8b5cf6;
+}
+
+.planning-sidebar__ai-loading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+}
+
+.planning-sidebar__ai-loading svg {
+  color: #8b5cf6;
+}
+
+.planning-sidebar__ai-result {
+  position: relative;
+  margin-top: var(--space-3);
+  padding: var(--space-3);
+  background-color: var(--bg-primary);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid #8b5cf6;
+}
+
+.planning-sidebar__ai-result p {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  color: var(--text-primary);
+  line-height: 1.5;
+  padding-right: var(--space-4);
+}
+
+.planning-sidebar__ai-dismiss {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+
+.planning-sidebar__ai-dismiss:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+/* ============================================
+   FOOTER
+   ============================================ */
+
+.planning-sidebar__footer {
+  padding: var(--space-3);
+  border-top: 1px solid var(--border-primary);
+  display: flex;
+  justify-content: center;
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+/* ============================================
+   REDUCED MOTION
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  .planning-sidebar__section-header,
+  .planning-sidebar__open-btn,
+  .planning-sidebar__ai-btn {
+    transition: none;
+  }
+
+  .spinning {
+    animation: none;
+  }
+}
