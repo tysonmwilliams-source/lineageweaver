@@ -10,16 +10,19 @@
 
 import React, { createContext, useState, useContext, useEffect, useRef } from 'react';
 
-// Theme CSS file paths - loaded dynamically
-const THEME_CSS_PATHS = {
-  'royal-parchment': '/src/styles/themes/theme-royal-parchment.css',
-  'light-manuscript': '/src/styles/themes/theme-light-manuscript.css',
-  'emerald-court': '/src/styles/themes/theme-emerald-court.css',
-  'sapphire-dynasty': '/src/styles/themes/theme-sapphire-dynasty.css',
-  'autumn-chronicle': '/src/styles/themes/theme-autumn-chronicle.css',
-  'rose-lineage': '/src/styles/themes/theme-rose-lineage.css',
-  'twilight-realm': '/src/styles/themes/theme-twilight-realm.css'
-};
+// Import theme CSS files using Vite's glob import with ?url to get bundled paths
+// This ensures the CSS files are properly processed and available in production
+const themeModules = import.meta.glob('../styles/themes/theme-*.css', { query: '?url', import: 'default', eager: true });
+
+// Build theme CSS paths from the glob imports
+const THEME_CSS_PATHS = Object.entries(themeModules).reduce((acc, [path, url]) => {
+  // Extract theme ID from path: ../styles/themes/theme-royal-parchment.css -> royal-parchment
+  const match = path.match(/theme-(.+)\.css$/);
+  if (match) {
+    acc[match[1]] = url;
+  }
+  return acc;
+}, {});
 
 // Cache for loaded theme stylesheets
 const loadedThemes = new Set();
