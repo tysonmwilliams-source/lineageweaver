@@ -1,19 +1,14 @@
 /**
  * Codex Import Page
- * 
- * Dedicated page for importing worldbuilding content into The Codex.
- * Provides UI for importing House Wilfrey seed data, Veritists expansion,
- * Charter data, Alliance data, or any custom data following the same format.
- * 
+ *
+ * Dedicated page for importing new worldbuilding content into The Codex.
+ * All previous imports have been completed and archived.
+ *
  * STYLED TO MATCH: Medieval manuscript aesthetic using theme CSS variables
  */
 
 import { useNavigate } from 'react-router-dom';
 import EnhancedCodexImportTool from '../components/EnhancedCodexImportTool';
-import VERITISTS_CODEX_DATA from '../data/veritists-codex-import';
-import CHARTER_CODEX_DATA from '../data/charter-codex-import';
-import ALLIANCE_CODEX_DATA from '../data/alliance-codex-import';
-import BASTARDY_NAMING_CODEX_DATA from '../data/bastardy-naming-codex-import';
 import './CodexImport.css';
 
 export default function CodexImport() {
@@ -43,12 +38,7 @@ export default function CodexImport() {
 
       {/* Import Tool */}
       <main className="codex-import__main">
-        <EnhancedCodexImportTool 
-          veritistsData={VERITISTS_CODEX_DATA} 
-          charterData={CHARTER_CODEX_DATA}
-          allianceData={ALLIANCE_CODEX_DATA}
-          bastardyData={BASTARDY_NAMING_CODEX_DATA}
-        />
+        <EnhancedCodexImportTool />
       </main>
     </div>
   );

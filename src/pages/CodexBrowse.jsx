@@ -101,6 +101,9 @@ function CodexBrowse() {
   // Subsection collapse state (for heraldry & titles)
   const [collapsedSubsections, setCollapsedSubsections] = useState(new Set());
 
+  // Tags filter collapse state (collapsed by default)
+  const [tagsExpanded, setTagsExpanded] = useState(false);
+
   // Get type configuration
   const typeConfig = useMemo(() => {
     return TYPE_CONFIG[type] || TYPE_CONFIG.custom;
@@ -598,25 +601,49 @@ function CodexBrowse() {
             )}
           </motion.section>
 
-          {/* Tag Filters */}
+          {/* Tag Filters - Collapsible */}
           {availableTags.length > 0 && (
             <motion.section className="browse-tags" variants={ITEM_VARIANTS}>
-              <label className="browse-tags__label">
-                <Icon name="tags" size={14} />
-                <span>Filter by tags:</span>
-              </label>
-              <div className="browse-tags__list">
-                {availableTags.map(tag => (
-                  <button
-                    key={tag}
-                    className={`browse-tags__item ${selectedTags.includes(tag) ? 'browse-tags__item--active' : ''}`}
-                    onClick={() => toggleTag(tag)}
+              <button
+                className="browse-tags__header"
+                onClick={() => setTagsExpanded(!tagsExpanded)}
+              >
+                <div className="browse-tags__label">
+                  <Icon name="tags" size={14} />
+                  <span>Filter by tags</span>
+                  {selectedTags.length > 0 && (
+                    <span className="browse-tags__count">{selectedTags.length} selected</span>
+                  )}
+                </div>
+                <motion.div
+                  animate={{ rotate: tagsExpanded ? 0 : -90 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <Icon name="chevron-down" size={16} />
+                </motion.div>
+              </button>
+              <AnimatePresence>
+                {tagsExpanded && (
+                  <motion.div
+                    className="browse-tags__list"
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
                   >
-                    <Icon name="tag" size={12} />
-                    <span>{tag}</span>
-                  </button>
-                ))}
-              </div>
+                    {availableTags.map(tag => (
+                      <button
+                        key={tag}
+                        className={`browse-tags__item ${selectedTags.includes(tag) ? 'browse-tags__item--active' : ''}`}
+                        onClick={() => toggleTag(tag)}
+                      >
+                        <Icon name="tag" size={12} />
+                        <span>{tag}</span>
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.section>
           )}
 

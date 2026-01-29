@@ -151,6 +151,45 @@ function CodexEntryForm() {
     }));
   }
 
+  // Strip formatting on paste - always use plain text, remove code fences and leading indentation
+  function handlePlainTextPaste(e, field) {
+    e.preventDefault();
+    let plainText = e.clipboardData.getData('text/plain');
+
+    // Remove markdown code fences (``` at start/end)
+    plainText = plainText
+      .replace(/^```[\w]*\n?/gm, '')    // Remove opening code fences
+      .replace(/\n?```$/gm, '')          // Remove closing code fences
+      .replace(/^```$/gm, '');           // Remove standalone code fences
+
+    // Remove leading spaces/tabs from each line to prevent markdown code blocks
+    plainText = plainText
+      .split('\n')
+      .map(line => line.replace(/^[ \t]+/, ''))  // Strip leading whitespace
+      .join('\n');
+
+    // For input fields, just set the value directly
+    if (field) {
+      handleInputChange(field, plainText);
+    } else {
+      // For textareas, insert at cursor position
+      const textarea = e.target;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const currentValue = textarea.value;
+      const newValue = currentValue.substring(0, start) + plainText + currentValue.substring(end);
+
+      // Update the field based on the textarea's id
+      const fieldName = textarea.id;
+      handleInputChange(fieldName, newValue);
+
+      // Restore cursor position after React re-render
+      setTimeout(() => {
+        textarea.selectionStart = textarea.selectionEnd = start + plainText.length;
+      }, 0);
+    }
+  }
+
   function handleAddTag(e) {
     e.preventDefault();
     const tag = tagInput.trim().toLowerCase();
@@ -168,6 +207,37 @@ function CodexEntryForm() {
       ...prev,
       tags: prev.tags.filter(tag => tag !== tagToRemove)
     }));
+  }
+
+  // Strip all HTML tags, code fences, and normalize formatting
+  function handleCleanFormatting() {
+    if (!formData.content) return;
+
+    // Create a temporary DOM element to parse HTML and extract text
+    const temp = document.createElement('div');
+    temp.innerHTML = formData.content;
+
+    // Get text content (strips all HTML tags)
+    let cleanText = temp.textContent || temp.innerText || '';
+
+    // Remove markdown code fences (``` at start/end)
+    cleanText = cleanText
+      .replace(/^```[\w]*\n?/gm, '')    // Remove opening code fences (```js, ```markdown, etc.)
+      .replace(/\n?```$/gm, '')          // Remove closing code fences
+      .replace(/^```$/gm, '');           // Remove standalone code fences
+
+    // Normalize whitespace and fix code-block-causing indentation
+    cleanText = cleanText
+      .replace(/\r\n/g, '\n')           // Normalize line endings
+      .replace(/\r/g, '\n')
+      .split('\n')                       // Process line by line
+      .map(line => line.replace(/^[ \t]+/, ''))  // Remove leading spaces/tabs from each line (prevents code blocks)
+      .join('\n')
+      .replace(/[ \t]+/g, ' ')          // Collapse multiple inline spaces/tabs to single space
+      .replace(/\n{3,}/g, '\n\n')       // Max 2 consecutive newlines
+      .trim();
+
+    handleInputChange('content', cleanText);
   }
 
   async function handleSave() {
@@ -334,6 +404,7 @@ function CodexEntryForm() {
               placeholder="Enter the entry title..."
               value={formData.title}
               onChange={(e) => handleInputChange('title', e.target.value)}
+              onPaste={(e) => handlePlainTextPaste(e, 'title')}
             />
           </motion.section>
 
@@ -350,6 +421,7 @@ function CodexEntryForm() {
               placeholder="Optional subtitle or tagline..."
               value={formData.subtitle}
               onChange={(e) => handleInputChange('subtitle', e.target.value)}
+              onPaste={(e) => handlePlainTextPaste(e, 'subtitle')}
             />
           </motion.section>
 
@@ -463,11 +535,24 @@ function CodexEntryForm() {
 
           {/* Content */}
           <motion.section className="codex-entry-form__section" variants={ITEM_VARIANTS}>
-            <label className="codex-entry-form__label" htmlFor="content">
-              <Icon name="file-text" size={16} />
-              <span>Content</span>
-              <span className="codex-entry-form__required">*</span>
-            </label>
+            <div className="codex-entry-form__label-row">
+              <label className="codex-entry-form__label" htmlFor="content">
+                <Icon name="file-text" size={16} />
+                <span>Content</span>
+                <span className="codex-entry-form__required">*</span>
+              </label>
+              <ActionButton
+                type="button"
+                icon="refresh"
+                onClick={handleCleanFormatting}
+                variant="ghost"
+                size="sm"
+                disabled={!formData.content}
+                title="Strip all formatting and normalize text"
+              >
+                Clean Formatting
+              </ActionButton>
+            </div>
             <p className="codex-entry-form__hint">
               Use <code>[[Entry Name]]</code> to link to other entries
             </p>
@@ -477,6 +562,7 @@ function CodexEntryForm() {
               placeholder="Write your entry content here..."
               value={formData.content}
               onChange={(e) => handleInputChange('content', e.target.value)}
+              onPaste={(e) => handlePlainTextPaste(e)}
               rows={20}
             />
           </motion.section>

@@ -429,6 +429,33 @@
   color: var(--text-primary);
 }
 
+/* Force Lineageweaver styling on ALL content - override any pasted formatting */
+.entry-content__markdown * {
+  font-family: inherit !important;
+  color: inherit !important;
+  background: transparent !important;
+  font-size: inherit !important;
+  line-height: inherit !important;
+  letter-spacing: inherit !important;
+  text-transform: inherit !important;
+}
+
+/* Re-apply specific styles that should differ from inheritance */
+.entry-content__markdown code,
+.entry-content__markdown pre code {
+  font-family: 'Courier New', monospace !important;
+  font-size: 0.9em !important;
+}
+
+.entry-content__markdown pre,
+.entry-content__markdown code {
+  background: var(--bg-tertiary) !important;
+}
+
+.entry-content__markdown pre code {
+  background: transparent !important;
+}
+
 /* Markdown Typography */
 .entry-content__markdown h1,
 .entry-content__markdown h2,

@@ -149,6 +149,13 @@
   color: var(--accent-primary);
 }
 
+.codex-entry-form__label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
 .codex-entry-form__required {
   color: var(--color-error);
 }

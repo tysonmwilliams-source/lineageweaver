@@ -170,8 +170,17 @@ function CodexEntryView() {
 
       setEntry(entryData);
 
+      // DEBUG: Log raw content to see what's stored
+      console.log('📝 RAW CONTENT for', entryData.title, ':', entryData.content?.substring(0, 200));
+      console.log('📝 Content starts with spaces?', entryData.content?.match(/^[ \t]+/));
+      console.log('📝 Content has code fence?', entryData.content?.includes('```'));
+
       // Parse markdown and process wiki-links
       const html = await parseWikiLinks(entryData.content, entryData.id, datasetId);
+
+      // DEBUG: Log parsed HTML
+      console.log('📝 PARSED HTML:', html?.substring(0, 300));
+
       setRenderedContent(html);
 
       // Load backlinks
@@ -185,9 +194,27 @@ function CodexEntryView() {
       }
 
       // Load linked person data for personage entries
-      if (entryData.type === 'personage' && entryData.personId) {
+      if (entryData.type === 'personage') {
         try {
-          const personData = await db.people.get(entryData.personId);
+          let personData = null;
+
+          if (entryData.personId) {
+            // Use explicit personId if available
+            personData = await db.people.get(entryData.personId);
+          } else {
+            // Try to find matching person by title (firstName lastName)
+            const allPeople = await db.people.toArray();
+            const titleLower = entryData.title.toLowerCase().trim();
+            personData = allPeople.find(p => {
+              const fullName = `${p.firstName} ${p.lastName}`.toLowerCase().trim();
+              return fullName === titleLower;
+            });
+
+            if (personData) {
+              console.log(`🔗 Auto-matched codex entry "${entryData.title}" to person ID ${personData.id}`);
+            }
+          }
+
           setLinkedPerson(personData || null);
         } catch (err) {
           console.error('Error loading linked person:', err);
@@ -220,12 +247,14 @@ function CodexEntryView() {
 
   const handleViewInFamilyTree = useCallback(() => {
     // Navigate to tree with person ID for highlighting
-    if (entry?.personId) {
-      navigate(`/tree/${entry.personId}`);
+    // Use explicit personId if available, otherwise use auto-matched linkedPerson
+    const personId = entry?.personId || linkedPerson?.id;
+    if (personId) {
+      navigate(`/tree/${personId}`);
     } else {
       navigate('/tree');
     }
-  }, [navigate, entry?.personId]);
+  }, [navigate, entry?.personId, linkedPerson?.id]);
 
   const handleViewInArmory = useCallback(() => {
     if (entry?.heraldryId) {

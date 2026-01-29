@@ -352,10 +352,30 @@
 
 .browse-tags {
   margin-bottom: var(--space-6);
-  padding: var(--space-4);
   background: var(--bg-secondary);
   border: 1px solid var(--border-primary);
   border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.browse-tags__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-standard);
+}
+
+.browse-tags__header:hover {
+  background: var(--bg-tertiary);
+}
+
+.browse-tags__header svg {
+  color: var(--text-tertiary);
 }
 
 .browse-tags__label {
@@ -366,17 +386,27 @@
   font-size: var(--text-sm);
   font-weight: 600;
   color: var(--text-secondary);
-  margin-bottom: var(--space-3);
 }
 
 .browse-tags__label svg {
   opacity: 0.7;
 }
 
+.browse-tags__count {
+  padding: var(--space-1) var(--space-2);
+  background: var(--accent-primary);
+  color: var(--bg-primary);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
 .browse-tags__list {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
+  padding: 0 var(--space-4) var(--space-4) var(--space-4);
+  overflow: hidden;
 }
 
 .browse-tags__item {
