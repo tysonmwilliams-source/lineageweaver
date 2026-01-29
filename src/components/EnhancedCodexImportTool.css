@@ -322,6 +322,61 @@
   color: var(--text-primary);
 }
 
+/* Empty State */
+.import-tool__empty {
+  padding: var(--space-6);
+  background-color: var(--bg-secondary);
+  border: 2px dashed var(--border-secondary);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-5);
+  text-align: center;
+}
+
+.import-tool__empty-icon {
+  font-size: 3rem;
+  margin-bottom: var(--space-3);
+}
+
+.import-tool__empty-title {
+  margin: 0 0 var(--space-2) 0;
+  font-size: var(--text-xl);
+  font-family: var(--font-heading);
+  color: var(--text-primary);
+}
+
+.import-tool__empty-description {
+  margin: 0 0 var(--space-4) 0;
+  font-size: var(--text-base);
+  color: var(--text-secondary);
+}
+
+.import-tool__empty-archives {
+  text-align: left;
+  padding: var(--space-4);
+  background-color: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  margin-top: var(--space-4);
+}
+
+.import-tool__empty-archives p {
+  margin: 0 0 var(--space-2) 0;
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+}
+
+.import-tool__empty-archives ul {
+  margin: 0;
+  padding-left: var(--space-5);
+  columns: 2;
+  column-gap: var(--space-4);
+}
+
+.import-tool__empty-archives li {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-1);
+}
+
 /* Help Text */
 .import-tool__help {
   padding: var(--space-4);

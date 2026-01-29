@@ -1,31 +1,90 @@
 /**
  * BulkFamilyImport.js - Bulk Family Import Utility
- * 
+ *
  * PURPOSE:
  * Process a family import template with temporary IDs and convert them
  * to real database IDs while maintaining all relationships.
- * 
+ *
+ * SUPPORTS BOTH:
+ * - Temp IDs (strings): For new entities defined in the template
+ * - Existing IDs (numbers): For referencing entities already in the database
+ *
  * WHAT THIS DOES:
- * 1. Validates the template structure
+ * 1. Validates the template structure (including verifying existing IDs)
  * 2. Creates houses first (since people reference them)
  * 3. Creates people with real house IDs
- * 4. Creates relationships with real person IDs
+ * 4. Creates relationships with real person IDs (can link to existing people)
  * 5. Optionally creates Codex entries, heraldry, and dignities
  * 6. Returns a detailed report of what was created
- * 
+ *
  * USAGE:
  * import { processFamilyImport } from './utils/bulkFamilyImport';
- * 
+ *
  * const result = await processFamilyImport(templateData);
  * if (result.success) {
  *   console.log('Created:', result.summary);
  * } else {
  *   console.error('Errors:', result.errors);
  * }
+ *
+ * REFERENCING EXISTING ENTITIES:
+ * - Use numeric IDs to reference existing houses/people
+ * - Example: "houseId": 24  (references existing House Wilfson)
+ * - Example: "person1Id": 343  (references existing Jon Wilfson)
  */
 
 import { getDatabase, addHouse, addPerson, addRelationship } from '../services/database';
 import { createEntry } from '../services/codexService';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// HELPER FUNCTIONS FOR EXISTING ID SUPPORT
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Check if an ID is an existing database ID (number) vs a temp ID (string)
+ */
+function isExistingId(id) {
+  return typeof id === 'number' && Number.isInteger(id) && id > 0;
+}
+
+/**
+ * Check if an ID is a temp ID (string)
+ */
+function isTempId(id) {
+  return typeof id === 'string' && id.length > 0;
+}
+
+/**
+ * Resolve a house ID - returns the real database ID
+ * @param {string|number} id - Either a temp ID or existing database ID
+ * @param {Map} houseIdMap - Map of temp IDs to real IDs
+ * @returns {number|null} - The real database ID or null if not found
+ */
+function resolveHouseId(id, houseIdMap) {
+  if (isExistingId(id)) {
+    return id; // Already a real ID
+  }
+  if (isTempId(id)) {
+    return houseIdMap.get(id) || null;
+  }
+  return null;
+}
+
+/**
+ * Resolve a person ID - returns the real database ID
+ * @param {string|number} id - Either a temp ID or existing database ID
+ * @param {Map} personIdMap - Map of temp IDs to real IDs
+ * @returns {number|null} - The real database ID or null if not found
+ */
+function resolvePersonId(id, personIdMap) {
+  if (isExistingId(id)) {
+    return id; // Already a real ID
+  }
+  if (isTempId(id)) {
+    return personIdMap.get(id) || null;
+  }
+  return null;
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // VALIDATION
@@ -33,15 +92,30 @@ import { createEntry } from '../services/codexService';
 
 /**
  * Validate the template structure before processing
+ * Now supports both temp IDs (strings) and existing database IDs (numbers)
+ *
  * @param {Object} template - The import template
- * @returns {Object} - { valid: boolean, errors: string[] }
+ * @param {Object} options - Validation options
+ * @param {string} options.datasetId - Dataset ID for checking existing entities
+ * @returns {Promise<Object>} - { valid: boolean, errors: string[], existingRefs: object }
  */
-export function validateTemplate(template) {
+export async function validateTemplate(template, options = {}) {
+  const { datasetId = 'default' } = options;
   const errors = [];
-  
-  // Check for required sections
-  if (!template.houses || !Array.isArray(template.houses)) {
-    errors.push('Missing or invalid "houses" array');
+  const warnings = [];
+
+  // Track references to existing entities for the report
+  const existingRefs = {
+    houses: [],
+    people: []
+  };
+
+  // Check for required sections - houses array is now optional if using all existing houses
+  if (!template.houses) {
+    template.houses = []; // Default to empty array
+  }
+  if (!Array.isArray(template.houses)) {
+    errors.push('Invalid "houses" - must be an array');
   }
   if (!template.people || !Array.isArray(template.people)) {
     errors.push('Missing or invalid "people" array');
@@ -49,36 +123,110 @@ export function validateTemplate(template) {
   if (!template.relationships || !Array.isArray(template.relationships)) {
     errors.push('Missing or invalid "relationships" array');
   }
-  
+
   // Early return if structure is fundamentally broken
   if (errors.length > 0) {
-    return { valid: false, errors };
+    return { valid: false, errors, warnings, existingRefs };
   }
-  
+
+  // Get database for checking existing entities
+  const db = getDatabase(datasetId);
+
   // Collect all temp IDs for reference checking
-  const houseTempIds = new Set(template.houses.map(h => h._tempId));
-  const peopleTempIds = new Set(template.people.map(p => p._tempId));
-  
+  const houseTempIds = new Set(template.houses.map((h) => h._tempId).filter(Boolean));
+  const peopleTempIds = new Set(template.people.map((p) => p._tempId).filter(Boolean));
+
+  // Cache for existing entity lookups (avoid repeated DB calls)
+  const existingHouseCache = new Map();
+  const existingPersonCache = new Map();
+
+  /**
+   * Check if a house ID is valid (either temp ID or existing in DB)
+   */
+  async function isValidHouseRef(id) {
+    if (isTempId(id)) {
+      return houseTempIds.has(id);
+    }
+    if (isExistingId(id)) {
+      if (existingHouseCache.has(id)) {
+        return existingHouseCache.get(id);
+      }
+      try {
+        const house = await db.houses.get(id);
+        const exists = !!house;
+        existingHouseCache.set(id, exists);
+        if (exists) {
+          existingRefs.houses.push({ id, name: house.houseName });
+        }
+        return exists;
+      } catch {
+        existingHouseCache.set(id, false);
+        return false;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Check if a person ID is valid (either temp ID or existing in DB)
+   */
+  async function isValidPersonRef(id) {
+    if (isTempId(id)) {
+      return peopleTempIds.has(id);
+    }
+    if (isExistingId(id)) {
+      if (existingPersonCache.has(id)) {
+        return existingPersonCache.get(id);
+      }
+      try {
+        const person = await db.people.get(id);
+        const exists = !!person;
+        existingPersonCache.set(id, exists);
+        if (exists) {
+          existingRefs.people.push({
+            id,
+            name: `${person.firstName} ${person.lastName}`
+          });
+        }
+        return exists;
+      } catch {
+        existingPersonCache.set(id, false);
+        return false;
+      }
+    }
+    return false;
+  }
+
   // Validate houses
-  template.houses.forEach((house, index) => {
+  for (const [index, house] of template.houses.entries()) {
     if (!house._tempId) {
       errors.push(`House at index ${index}: Missing _tempId`);
     }
     if (!house.houseName) {
       errors.push(`House "${house._tempId || index}": Missing houseName`);
     }
-    // Check parentHouseId references
-    if (house.parentHouseId && !houseTempIds.has(house.parentHouseId)) {
-      errors.push(`House "${house._tempId}": parentHouseId "${house.parentHouseId}" not found`);
+    // Check parentHouseId references (can be temp ID or existing ID)
+    if (house.parentHouseId) {
+      const isValid = await isValidHouseRef(house.parentHouseId);
+      if (!isValid) {
+        errors.push(
+          `House "${house._tempId}": parentHouseId "${house.parentHouseId}" not found`
+        );
+      }
     }
-    // Check foundedBy references
-    if (house.foundedBy && !peopleTempIds.has(house.foundedBy)) {
-      errors.push(`House "${house._tempId}": foundedBy "${house.foundedBy}" not found in people`);
+    // Check foundedBy references (can be temp ID or existing ID)
+    if (house.foundedBy) {
+      const isValid = await isValidPersonRef(house.foundedBy);
+      if (!isValid) {
+        errors.push(
+          `House "${house._tempId}": foundedBy "${house.foundedBy}" not found`
+        );
+      }
     }
-  });
-  
+  }
+
   // Validate people
-  template.people.forEach((person, index) => {
+  for (const [index, person] of template.people.entries()) {
     if (!person._tempId) {
       errors.push(`Person at index ${index}: Missing _tempId`);
     }
@@ -91,49 +239,71 @@ export function validateTemplate(template) {
     if (!person.gender) {
       errors.push(`Person "${person._tempId || index}": Missing gender`);
     }
-    if (!person.houseId) {
+    if (person.houseId === undefined || person.houseId === null) {
       errors.push(`Person "${person._tempId || index}": Missing houseId`);
-    } else if (!houseTempIds.has(person.houseId)) {
-      errors.push(`Person "${person._tempId}": houseId "${person.houseId}" not found in houses`);
+    } else {
+      const isValid = await isValidHouseRef(person.houseId);
+      if (!isValid) {
+        errors.push(
+          `Person "${person._tempId}": houseId "${person.houseId}" not found (must be a temp ID from houses array or existing house ID number)`
+        );
+      }
     }
-    
+
     // Validate gender
     if (person.gender && !['male', 'female', 'other'].includes(person.gender)) {
       errors.push(`Person "${person._tempId}": Invalid gender "${person.gender}"`);
     }
-    
+
     // Validate legitimacyStatus
-    if (person.legitimacyStatus && 
-        !['legitimate', 'bastard', 'adopted', 'unknown'].includes(person.legitimacyStatus)) {
-      errors.push(`Person "${person._tempId}": Invalid legitimacyStatus "${person.legitimacyStatus}"`);
+    if (
+      person.legitimacyStatus &&
+      !['legitimate', 'bastard', 'adopted', 'unknown'].includes(person.legitimacyStatus)
+    ) {
+      errors.push(
+        `Person "${person._tempId}": Invalid legitimacyStatus "${person.legitimacyStatus}"`
+      );
     }
-  });
-  
+  }
+
   // Validate relationships
-  template.relationships.forEach((rel, index) => {
-    if (!rel.person1Id) {
+  for (const [index, rel] of template.relationships.entries()) {
+    if (rel.person1Id === undefined || rel.person1Id === null) {
       errors.push(`Relationship at index ${index}: Missing person1Id`);
-    } else if (!peopleTempIds.has(rel.person1Id)) {
-      errors.push(`Relationship ${index}: person1Id "${rel.person1Id}" not found in people`);
+    } else {
+      const isValid = await isValidPersonRef(rel.person1Id);
+      if (!isValid) {
+        errors.push(
+          `Relationship ${index}: person1Id "${rel.person1Id}" not found (must be a temp ID or existing person ID number)`
+        );
+      }
     }
-    
-    if (!rel.person2Id) {
+
+    if (rel.person2Id === undefined || rel.person2Id === null) {
       errors.push(`Relationship at index ${index}: Missing person2Id`);
-    } else if (!peopleTempIds.has(rel.person2Id)) {
-      errors.push(`Relationship ${index}: person2Id "${rel.person2Id}" not found in people`);
+    } else {
+      const isValid = await isValidPersonRef(rel.person2Id);
+      if (!isValid) {
+        errors.push(
+          `Relationship ${index}: person2Id "${rel.person2Id}" not found (must be a temp ID or existing person ID number)`
+        );
+      }
     }
-    
+
     if (!rel.relationshipType) {
       errors.push(`Relationship at index ${index}: Missing relationshipType`);
-    } else if (!['parent', 'spouse', 'adopted-parent', 'foster-parent', 'mentor', 'named-after']
-        .includes(rel.relationshipType)) {
+    } else if (
+      !['parent', 'spouse', 'adopted-parent', 'foster-parent', 'mentor', 'named-after'].includes(
+        rel.relationshipType
+      )
+    ) {
       errors.push(`Relationship ${index}: Invalid relationshipType "${rel.relationshipType}"`);
     }
-  });
-  
+  }
+
   // Validate codex entries if present
   if (template.codexEntries && Array.isArray(template.codexEntries)) {
-    template.codexEntries.forEach((entry, index) => {
+    for (const [index, entry] of template.codexEntries.entries()) {
       if (!entry._tempId) {
         errors.push(`Codex entry at index ${index}: Missing _tempId`);
       }
@@ -143,26 +313,41 @@ export function validateTemplate(template) {
       if (!entry.title) {
         errors.push(`Codex entry "${entry._tempId || index}": Missing title`);
       }
-      
-      // Check auto-link references
+
+      // Check auto-link references (can be temp ID or existing ID)
       if (entry._autoLink) {
-        if (entry._autoLink.entityType === 'house' && 
-            entry._autoLink.entityId && 
-            !houseTempIds.has(entry._autoLink.entityId)) {
-          errors.push(`Codex entry "${entry._tempId}": _autoLink.entityId "${entry._autoLink.entityId}" not found`);
+        if (entry._autoLink.entityType === 'house' && entry._autoLink.entityId) {
+          const isValid = await isValidHouseRef(entry._autoLink.entityId);
+          if (!isValid) {
+            errors.push(
+              `Codex entry "${entry._tempId}": _autoLink.entityId "${entry._autoLink.entityId}" not found`
+            );
+          }
         }
-        if (entry._autoLink.entityType === 'person' && 
-            entry._autoLink.personId && 
-            !peopleTempIds.has(entry._autoLink.personId)) {
-          errors.push(`Codex entry "${entry._tempId}": _autoLink.personId "${entry._autoLink.personId}" not found`);
+        if (entry._autoLink.entityType === 'person' && entry._autoLink.personId) {
+          const isValid = await isValidPersonRef(entry._autoLink.personId);
+          if (!isValid) {
+            errors.push(
+              `Codex entry "${entry._tempId}": _autoLink.personId "${entry._autoLink.personId}" not found`
+            );
+          }
         }
       }
-    });
+    }
   }
-  
+
+  // Add info about existing references found
+  if (existingRefs.houses.length > 0 || existingRefs.people.length > 0) {
+    warnings.push(
+      `Template references ${existingRefs.houses.length} existing house(s) and ${existingRefs.people.length} existing person(s)`
+    );
+  }
+
   return {
     valid: errors.length === 0,
-    errors
+    errors,
+    warnings,
+    existingRefs
   };
 }
 
@@ -193,12 +378,14 @@ export async function processFamilyImport(template, options = {}) {
   // Get the correct database instance for this dataset
   const db = getDatabase(datasetId);
   
-  // Validate first
-  const validation = validateTemplate(template);
+  // Validate first (async - checks existing IDs in database)
+  const validation = await validateTemplate(template, { datasetId });
   if (!validation.valid) {
     return {
       success: false,
       errors: validation.errors,
+      warnings: validation.warnings || [],
+      existingRefs: validation.existingRefs || { houses: [], people: [] },
       summary: null,
       idMappings: null
     };
@@ -247,9 +434,9 @@ export async function processFamilyImport(template, options = {}) {
           notes: house.notes || ''
         };
         
-        // Resolve parentHouseId if present
+        // Resolve parentHouseId if present - supports both temp IDs and existing IDs
         if (house.parentHouseId) {
-          const realParentId = houseIdMap.get(house.parentHouseId);
+          const realParentId = resolveHouseId(house.parentHouseId, houseIdMap);
           if (realParentId) {
             houseData.parentHouseId = realParentId;
           } else {
@@ -276,7 +463,7 @@ export async function processFamilyImport(template, options = {}) {
     for (const house of template.houses) {
       if (house.swornTo) {
         const realId = houseIdMap.get(house._tempId);
-        const realSwornToId = houseIdMap.get(house.swornTo);
+        const realSwornToId = resolveHouseId(house.swornTo, houseIdMap);
         if (realId && realSwornToId) {
           await db.houses.update(realId, { swornTo: realSwornToId });
         }
@@ -287,16 +474,18 @@ export async function processFamilyImport(template, options = {}) {
     // STEP 2: Create People
     // ─────────────────────────────────────────────────────────────────────
     onProgress('people', `Creating ${template.people.length} people...`);
-    
+
     for (const person of template.people) {
       try {
-        // Resolve houseId
-        const realHouseId = houseIdMap.get(person.houseId);
+        // Resolve houseId - supports both temp IDs and existing IDs
+        const realHouseId = resolveHouseId(person.houseId, houseIdMap);
         if (!realHouseId) {
-          errors.push(`Person "${person._tempId}": Could not resolve houseId "${person.houseId}"`);
+          errors.push(
+            `Person "${person._tempId}": Could not resolve houseId "${person.houseId}"`
+          );
           continue;
         }
-        
+
         // Clean the person data
         const personData = {
           firstName: person.firstName,
@@ -312,27 +501,27 @@ export async function processFamilyImport(template, options = {}) {
           epithets: person.epithets || [],
           codexEntryId: null // Will be set if Codex entries are created
         };
-        
+
         // Create the person
         const realId = await addPerson(personData, datasetId);
         personIdMap.set(person._tempId, realId);
-        
+
         created.people.push({
           tempId: person._tempId,
           realId,
           name: `${person.firstName} ${person.lastName}`
         });
-        
       } catch (err) {
         errors.push(`Failed to create person "${person._tempId}": ${err.message}`);
       }
     }
     
     // Update foundedBy references now that people exist
+    // Supports both temp IDs and existing person IDs
     for (const house of template.houses) {
       if (house.foundedBy) {
         const realHouseId = houseIdMap.get(house._tempId);
-        const realFounderId = personIdMap.get(house.foundedBy);
+        const realFounderId = resolvePersonId(house.foundedBy, personIdMap);
         if (realHouseId && realFounderId) {
           await db.houses.update(realHouseId, { foundedBy: realFounderId });
         }
@@ -343,13 +532,13 @@ export async function processFamilyImport(template, options = {}) {
     // STEP 3: Create Relationships
     // ─────────────────────────────────────────────────────────────────────
     onProgress('relationships', `Creating ${template.relationships.length} relationships...`);
-    
+
     for (const rel of template.relationships) {
       try {
-        // Resolve person IDs
-        const realPerson1Id = personIdMap.get(rel.person1Id);
-        const realPerson2Id = personIdMap.get(rel.person2Id);
-        
+        // Resolve person IDs - supports both temp IDs and existing IDs
+        const realPerson1Id = resolvePersonId(rel.person1Id, personIdMap);
+        const realPerson2Id = resolvePersonId(rel.person2Id, personIdMap);
+
         if (!realPerson1Id) {
           errors.push(`Relationship: Could not resolve person1Id "${rel.person1Id}"`);
           continue;
@@ -358,7 +547,7 @@ export async function processFamilyImport(template, options = {}) {
           errors.push(`Relationship: Could not resolve person2Id "${rel.person2Id}"`);
           continue;
         }
-        
+
         // Clean the relationship data
         const relData = {
           person1Id: realPerson1Id,
@@ -369,17 +558,16 @@ export async function processFamilyImport(template, options = {}) {
           divorceDate: rel.divorceDate || null,
           marriageStatus: rel.marriageStatus || null
         };
-        
+
         // Create the relationship
         const realId = await addRelationship(relData, datasetId);
-        
+
         created.relationships.push({
           realId,
           type: rel.relationshipType,
           person1: rel.person1Id,
           person2: rel.person2Id
         });
-        
       } catch (err) {
         errors.push(`Failed to create relationship: ${err.message}`);
       }
@@ -404,16 +592,16 @@ export async function processFamilyImport(template, options = {}) {
             era: entry.era || null
           };
           
-          // Handle auto-linking
+          // Handle auto-linking - supports both temp IDs and existing IDs
           if (entry._autoLink) {
             if (entry._autoLink.entityType === 'house' && entry._autoLink.entityId) {
-              const realHouseId = houseIdMap.get(entry._autoLink.entityId);
+              const realHouseId = resolveHouseId(entry._autoLink.entityId, houseIdMap);
               if (realHouseId) {
                 entryData.houseId = realHouseId;
               }
             }
             if (entry._autoLink.entityType === 'person' && entry._autoLink.personId) {
-              const realPersonId = personIdMap.get(entry._autoLink.personId);
+              const realPersonId = resolvePersonId(entry._autoLink.personId, personIdMap);
               if (realPersonId) {
                 entryData.personId = realPersonId;
               }

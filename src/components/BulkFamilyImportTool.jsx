@@ -67,6 +67,7 @@ function BulkFamilyImportTool() {
   
   // Import state
   const [importing, setImporting] = useState(false);
+  const [validating, setValidating] = useState(false);
   const [progress, setProgress] = useState({ step: '', message: '' });
   const [importResult, setImportResult] = useState(null);
   
@@ -77,35 +78,45 @@ function BulkFamilyImportTool() {
   const handleFileSelect = useCallback(async (event) => {
     const file = event.target.files[0];
     if (!file) return;
-    
+
     setSelectedFile(file);
     setTemplate(null);
     setValidationResult(null);
     setImportResult(null);
-    
+
     try {
       const text = await file.text();
       const parsed = JSON.parse(text);
-      
+
       // Remove template metadata fields before validation
       const cleanTemplate = { ...parsed };
       delete cleanTemplate._template_info;
       delete cleanTemplate._id_system;
       delete cleanTemplate._validation_rules;
-      
+
       setTemplate(cleanTemplate);
-      
-      // Validate the template
-      const validation = validateTemplate(cleanTemplate);
-      setValidationResult(validation);
-      
+
+      // Validate the template (async - checks existing IDs in database)
+      setValidating(true);
+      try {
+        const validation = await validateTemplate(cleanTemplate, {
+          datasetId: activeDataset?.id
+        });
+        setValidationResult(validation);
+      } finally {
+        setValidating(false);
+      }
+
     } catch (err) {
+      setValidating(false);
       setValidationResult({
         valid: false,
-        errors: [`Failed to parse JSON: ${err.message}`]
+        errors: [`Failed to parse JSON: ${err.message}`],
+        warnings: [],
+        existingRefs: { houses: [], people: [] }
       });
     }
-  }, []);
+  }, [activeDataset?.id]);
   
   // ─────────────────────────────────────────────────────────────────────────
   // IMPORT EXECUTION
@@ -239,8 +250,23 @@ function BulkFamilyImportTool() {
       
       {/* Validation Results */}
       <AnimatePresence mode="wait">
-        {validationResult && (
-          <motion.div 
+        {validating && (
+          <motion.div
+            className="bulk-import__section"
+            variants={SECTION_VARIANTS}
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
+          >
+            <h3 className="bulk-import__section-title">
+              <Icon name="loader" size={18} className="bulk-import__spinner" />
+              <span>2. Validating...</span>
+            </h3>
+            <p className="bulk-import__hint">Checking template and verifying existing entity references...</p>
+          </motion.div>
+        )}
+        {!validating && validationResult && (
+          <motion.div
             className="bulk-import__section"
             variants={SECTION_VARIANTS}
             initial="hidden"
@@ -251,17 +277,44 @@ function BulkFamilyImportTool() {
               <Icon name={validationResult.valid ? 'check-circle' : 'alert-triangle'} size={18} />
               <span>2. Validation</span>
             </h3>
-            
+
             {validationResult.valid ? (
               <div className="bulk-import__validation bulk-import__validation--success">
                 <Icon name="check" size={20} />
                 <div className="bulk-import__validation-content">
                   <strong>Template is valid!</strong>
                   <p>
-                    Ready to import {template.houses?.length || 0} houses, {' '}
-                    {template.people?.length || 0} people, and {' '}
+                    Ready to import {template.houses?.length || 0} new houses, {' '}
+                    {template.people?.length || 0} new people, and {' '}
                     {template.relationships?.length || 0} relationships.
                   </p>
+                  {/* Show existing entity references */}
+                  {(validationResult.existingRefs?.houses?.length > 0 ||
+                    validationResult.existingRefs?.people?.length > 0) && (
+                    <div className="bulk-import__existing-refs">
+                      <strong>Linking to existing entities:</strong>
+                      {validationResult.existingRefs.houses?.length > 0 && (
+                        <div className="bulk-import__existing-group">
+                          <span className="bulk-import__existing-label">Houses:</span>
+                          {validationResult.existingRefs.houses.map((h, i) => (
+                            <span key={i} className="bulk-import__existing-item">
+                              {h.name} (#{h.id})
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      {validationResult.existingRefs.people?.length > 0 && (
+                        <div className="bulk-import__existing-group">
+                          <span className="bulk-import__existing-label">People:</span>
+                          {validationResult.existingRefs.people.map((p, i) => (
+                            <span key={i} className="bulk-import__existing-item">
+                              {p.name} (#{p.id})
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             ) : (

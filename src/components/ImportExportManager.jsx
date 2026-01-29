@@ -12,7 +12,7 @@
  * Uses Framer Motion for animations, Lucide icons, and BEM CSS.
  */
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   getAllPeople,
@@ -28,6 +28,14 @@ import {
   CURRENT_VERSION
 } from '../services/database/MigrationHooks';
 import { getAllEntries } from '../services/codexService';
+import {
+  getContextSystemStatus,
+  getContextRegistry,
+  generateAllContexts,
+  downloadContext,
+  exportAllContexts,
+  subscribeToContextUpdates
+} from '../services/contextService';
 import CodexMigrationTool from './CodexMigrationTool';
 import Icon from './icons';
 import './ImportExportManager.css';
@@ -124,6 +132,76 @@ function ImportExportManager() {
   // Progress tracking
   const [progress, setProgress] = useState(0);
   const [progressMessage, setProgressMessage] = useState('');
+
+  // Context Library state
+  const [contextStatus, setContextStatus] = useState(null);
+  const [contextRegistry, setContextRegistry] = useState([]);
+  const [generatingContexts, setGeneratingContexts] = useState(false);
+  const [contextError, setContextError] = useState(null);
+
+  // Load context status
+  const loadContextStatus = useCallback(async () => {
+    const datasetId = activeDataset?.id;
+    try {
+      const [status, registry] = await Promise.all([
+        getContextSystemStatus(datasetId),
+        getContextRegistry(datasetId)
+      ]);
+      setContextStatus(status);
+      setContextRegistry(registry);
+      setContextError(null);
+    } catch (error) {
+      console.error('Error loading context status:', error);
+      setContextError(error.message);
+    }
+  }, [activeDataset?.id]);
+
+  // Load context status on mount and subscribe to updates
+  useEffect(() => {
+    loadContextStatus();
+    const unsubscribe = subscribeToContextUpdates(() => {
+      loadContextStatus();
+    });
+    return unsubscribe;
+  }, [loadContextStatus]);
+
+  // Handle context regeneration
+  const handleRegenerateContexts = async () => {
+    const datasetId = activeDataset?.id;
+    try {
+      setGeneratingContexts(true);
+      setContextError(null);
+      await generateAllContexts(datasetId);
+      await loadContextStatus();
+    } catch (error) {
+      console.error('Error generating contexts:', error);
+      setContextError(error.message);
+    } finally {
+      setGeneratingContexts(false);
+    }
+  };
+
+  // Handle context download
+  const handleDownloadAllContexts = async () => {
+    const datasetId = activeDataset?.id;
+    try {
+      const exportData = await exportAllContexts(datasetId);
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+        type: 'application/json'
+      });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `contexts-all-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading contexts:', error);
+      setContextError(error.message);
+    }
+  };
 
   // ==================== EXPORT FUNCTIONS ====================
 
@@ -767,6 +845,129 @@ function ImportExportManager() {
           Create Codex biography entries for people added before the Tree-Codex integration.
         </p>
         <CodexMigrationTool />
+      </motion.section>
+
+      {/* Context Library Section */}
+      <motion.section
+        className="import-export__section"
+        variants={SECTION_VARIANTS}
+        initial="hidden"
+        animate="visible"
+        transition={{ delay: 0.25 }}
+      >
+        <h2 className="import-export__header">
+          <Icon name="library" size={24} />
+          <span>Context Library</span>
+        </h2>
+        <p className="import-export__description">
+          Auto-generated context files for AI tools. Updates automatically when data changes.
+        </p>
+
+        <motion.div
+          className="import-export__card"
+          variants={CARD_VARIANTS}
+        >
+          {/* Status Display */}
+          {contextStatus && (
+            <div className="import-export__context-status">
+              <div className="import-export__context-status-row">
+                <span className="import-export__context-status-label">Status:</span>
+                <span className={`import-export__context-status-value ${contextStatus.healthy ? 'import-export__context-status-value--healthy' : 'import-export__context-status-value--stale'}`}>
+                  {contextStatus.healthy ? '✓ Current' : '⚠ Needs Update'}
+                </span>
+              </div>
+              <div className="import-export__context-status-row">
+                <span className="import-export__context-status-label">Contexts:</span>
+                <span className="import-export__context-status-value">
+                  {contextStatus.totalContexts || 0} total ({contextStatus.majorHouses || 0} major houses)
+                </span>
+              </div>
+              {contextStatus.pendingChanges > 0 && (
+                <div className="import-export__context-status-row">
+                  <span className="import-export__context-status-label">Pending:</span>
+                  <span className="import-export__context-status-value">
+                    {contextStatus.pendingChanges} changes queued
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Context List */}
+          {contextRegistry.length > 0 && (
+            <div className="import-export__context-list">
+              {contextRegistry.map(ctx => (
+                <div key={ctx.contextId} className="import-export__context-item">
+                  <span className="import-export__context-name">
+                    {ctx.contextId === 'master' ? 'Master Index' :
+                     ctx.contextId === 'minor-houses' ? 'Minor Houses' :
+                     `House ${ctx.contextId.charAt(0).toUpperCase() + ctx.contextId.slice(1)}`}
+                  </span>
+                  <span className="import-export__context-type">{ctx.contextType}</span>
+                  <button
+                    className="import-export__btn import-export__btn--small"
+                    onClick={() => downloadContext(ctx.contextId, activeDataset?.id)}
+                    title="Download this context"
+                  >
+                    <Icon name="download" size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* No contexts yet */}
+          {contextRegistry.length === 0 && !generatingContexts && (
+            <p className="import-export__context-empty">
+              No contexts generated yet. Click "Generate All" to create context files for your data.
+            </p>
+          )}
+
+          {/* Error display */}
+          <AnimatePresence>
+            {contextError && (
+              <motion.div
+                className="import-export__alert import-export__alert--error"
+                variants={ALERT_VARIANTS}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
+              >
+                <Icon name="x-circle" size={18} className="import-export__alert-icon" />
+                <p className="import-export__alert-text">{contextError}</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Actions */}
+          <div className="import-export__context-actions">
+            <button
+              className="import-export__btn import-export__btn--secondary"
+              onClick={handleDownloadAllContexts}
+              disabled={generatingContexts || contextRegistry.length === 0}
+            >
+              <Icon name="download" size={16} />
+              <span>Download All</span>
+            </button>
+            <button
+              className="import-export__btn import-export__btn--primary"
+              onClick={handleRegenerateContexts}
+              disabled={generatingContexts}
+            >
+              {generatingContexts ? (
+                <>
+                  <Icon name="loader" size={16} />
+                  <span>Generating...</span>
+                </>
+              ) : (
+                <>
+                  <Icon name="refresh-cw" size={16} />
+                  <span>Generate All</span>
+                </>
+              )}
+            </button>
+          </div>
+        </motion.div>
       </motion.section>
 
       {/* Best Practices */}
