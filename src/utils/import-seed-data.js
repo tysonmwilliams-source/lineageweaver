@@ -18,6 +18,7 @@ import { createEntry, getAllEntries } from '../services/codexService.js';
 
 /**
  * Import all seed data into The Codex
+ * @deprecated Use unifiedImport() from './unifiedImport.js' instead.
  * @returns {Promise<Object>} - Import results with counts and created IDs
  */
 export async function importSeedData() {

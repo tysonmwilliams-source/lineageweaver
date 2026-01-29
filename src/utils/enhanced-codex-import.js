@@ -40,6 +40,8 @@ import CODEX_SEED_DATA from '../data/codex-seed-data.js';
 
 /**
  * Import codex data from various sources
+ * @deprecated Use unifiedImport() from './unifiedImport.js' for new imports.
+ * This function is kept for backward compatibility with existing import triggers.
  * @param {string|Array|Object} source - Data source(s) to import
  * @param {Object} options - Import options
  * @returns {Promise<Object>} - Import results

@@ -38,7 +38,7 @@ import CadetHouseCeremonyModal from '../components/CadetHouseCeremonyModal';
 import FounderPickerModal from '../components/FounderPickerModal';
 import ImportExportManager from '../components/ImportExportManager';
 import DataHealthDashboard from '../components/DataHealthDashboard';
-import BulkFamilyImportTool from '../components/BulkFamilyImportTool';
+import UnifiedImportTool from '../components/UnifiedImportTool';
 import BastardNameAudit from '../components/BastardNameAudit';
 import MysteriaMigrationTool from '../components/MysteriaMigrationTool';
 import DataMigrationTool from '../components/DataMigrationTool';
@@ -508,7 +508,7 @@ function ManageData() {
                         animate="visible"
                         exit="exit"
                       >
-                        <BulkFamilyImportTool />
+                        <UnifiedImportTool />
                       </motion.div>
                     )}
 
