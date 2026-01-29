@@ -4,7 +4,8 @@ import {
   createHeraldry,
   getHeraldry,
   updateHeraldry,
-  linkHeraldryToEntity
+  linkHeraldryToEntity,
+  getHeraldryLinks
 } from '../services/heraldryService';
 import { getEntryByHeraldryId, createEntry } from '../services/codexService'; // PHASE 5 Batch 3 + Auto-creation
 import { getAllHouses, getHouse, updateHouse } from '../services/database';
@@ -35,7 +36,6 @@ import { useDataset } from '../contexts/DatasetContext';
 import {
   syncAddHeraldry,
   syncUpdateHeraldry,
-  syncAddHeraldryLink,
   syncUpdateHouse,
   syncAddCodexEntry,
   syncUpdateHeraldry as syncUpdateHeraldryForCodex
@@ -1464,6 +1464,17 @@ function HeraldryCreator() {
               console.error('Error loading linked codex entry:', codexError);
             }
           }
+
+          // Restore linked house from heraldryLinks table
+          try {
+            const links = await getHeraldryLinks(heraldry.id, datasetId);
+            const houseLink = links.find(l => l.entityType === 'house' && l.linkType === 'primary');
+            if (houseLink) {
+              setLinkedHouseId(String(houseLink.entityId));
+            }
+          } catch (linkError) {
+            console.error('Error loading linked house:', linkError);
+          }
         }
       }
 
@@ -1671,16 +1682,7 @@ function HeraldryCreator() {
           linkType: 'primary'
         }, user?.uid, datasetId);
 
-        // ☁️ Sync link to cloud
-        if (user?.uid) {
-          syncAddHeraldryLink(user.uid, linkId, {
-            id: linkId,
-            heraldryId: heraldryId,
-            entityType: 'house',
-            entityId: parseInt(linkedHouseId),
-            linkType: 'primary'
-          }, datasetId);
-        }
+        // Note: linkHeraldryToEntity already handles cloud sync internally
 
         const houseUpdates = {
           heraldrySVG: previewSVG,
@@ -1698,7 +1700,7 @@ function HeraldryCreator() {
 
         // ☁️ Sync house update to cloud
         if (user?.uid) {
-          syncUpdateHouse(user.uid, parseInt(linkedHouseId), houseUpdates, datasetId);
+          syncUpdateHouse(user.uid, datasetId, parseInt(linkedHouseId), houseUpdates);
         }
       }
       

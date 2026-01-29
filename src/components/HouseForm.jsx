@@ -20,6 +20,7 @@ import Icon from './icons/Icon';
 import ActionButton from './shared/ActionButton';
 import { HouseholdRolesPanel } from './household';
 import { useDataset } from '../contexts/DatasetContext';
+import { useAuth } from '../contexts/AuthContext';
 import {
   getHeraldry,
   linkHeraldryToEntity,
@@ -68,6 +69,7 @@ function HouseForm({
 }) {
   const navigate = useNavigate();
   const { activeDataset } = useDataset();
+  const { user } = useAuth();
 
   // Form State
   const [formData, setFormData] = useState({
@@ -189,7 +191,7 @@ function HouseForm({
       entityType: 'house',
       entityId: house.id,
       linkType: 'primary'
-    }, datasetId).then(() => {
+    }, user?.uid, datasetId).then(() => {
       setLinkedHeraldry(selectedHeraldry);
       setFormData(prev => ({ ...prev, heraldryId: selectedHeraldry.id }));
       setShowHeraldryPicker(false);
