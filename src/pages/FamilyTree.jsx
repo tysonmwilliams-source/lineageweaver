@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import * as d3 from 'd3';
 import { useGenealogy } from '../contexts/GenealogyContext';
 import Navigation from '../components/Navigation';
@@ -38,6 +38,7 @@ import {
 function FamilyTree() {
   // ==================== URL PARAMETERS ====================
   const { personId: urlPersonId } = useParams();
+  const location = useLocation(); // Track navigation for effect triggering
   
   // Use the global theme system
   const { theme, isDarkTheme } = useTheme();
@@ -91,6 +92,8 @@ function FamilyTree() {
 
   // 🎯 HIGHLIGHTED PERSON
   const [highlightedPersonId, setHighlightedPersonId] = useState(null);
+  const isUrlNavigationRef = useRef(false); // Track URL-based navigation to prevent centreOnPersonId reset
+  const pendingNavigationRef = useRef(null); // Store { personId, houseId } when navigating via URL
 
   // 🧩 FRAGMENT NAVIGATION
   const fragmentBoundsRef = useRef([]);
@@ -289,40 +292,67 @@ function FamilyTree() {
   };
 
   // EFFECTS
-  
+
   useEffect(() => {
-    if (!urlPersonId || people.length === 0 || houses.length === 0) return;
-    
+    if (!urlPersonId || people.length === 0 || houses.length === 0) {
+      console.log(`🎯 URL nav effect skipped: urlPersonId=${urlPersonId}, people=${people.length}, houses=${houses.length}`);
+      return;
+    }
+
     const personId = parseInt(urlPersonId);
     const person = people.find(p => p.id === personId);
-    
+
     if (!person) {
       console.warn(`🎯 Person with ID ${personId} not found`);
       return;
     }
-    
-    console.log(`🎯 Navigating to ${person.firstName} ${person.lastName} (ID: ${personId})`);
-    
-    if (person.houseId && person.houseId !== selectedHouseId) {
+
+    console.log(`🎯 Navigating to ${person.firstName} ${person.lastName} (ID: ${personId}, houseId: ${person.houseId})`);
+
+    // Mark that we're doing URL navigation so the reset effect doesn't clear centreOnPersonId
+    isUrlNavigationRef.current = true;
+
+    // Store the pending navigation target - this is checked by drawTree to prevent rendering wrong house
+    pendingNavigationRef.current = { personId, houseId: person.houseId };
+
+    // Always set the house to ensure correct tree is shown
+    if (person.houseId) {
+      console.log(`🎯 Setting house to ${person.houseId}`);
       setSelectedHouseId(person.houseId);
     }
-    
+
+    // Set centreOnPersonId to this person so the tree roots on them
+    console.log(`🎯 Setting centreOnPersonId to ${personId}`);
+    setCentreOnPersonId(personId);
     setHighlightedPersonId(personId);
-    
+
     const timer = setTimeout(() => {
       setHighlightedPersonId(null);
+      // Clear the URL navigation flags after highlighting ends
+      isUrlNavigationRef.current = false;
+      pendingNavigationRef.current = null; // Failsafe: clear in case it wasn't cleared on draw
     }, 8000);
-    
+
     return () => clearTimeout(timer);
-  }, [urlPersonId, people, houses]);
-  
-  useEffect(() => {
-    if (houses.length > 0 && !selectedHouseId) {
-      setSelectedHouseId(houses[0].id);
-    }
-  }, [houses, selectedHouseId]);
+  }, [urlPersonId, people, houses, location.key]); // location.key forces re-run on navigation
 
   useEffect(() => {
+    // Don't set default house if we're navigating via URL - let the URL nav effect handle it
+    if (urlPersonId) {
+      console.log(`🏠 Skipping default house selection - URL navigation in progress`);
+      return;
+    }
+    if (houses.length > 0 && !selectedHouseId) {
+      console.log(`🏠 Setting default house to ${houses[0].id}`);
+      setSelectedHouseId(houses[0].id);
+    }
+  }, [houses, selectedHouseId, urlPersonId]);
+
+  useEffect(() => {
+    // Don't reset centreOnPersonId if we're navigating via URL - we want to keep the target person
+    if (isUrlNavigationRef.current) {
+      return;
+    }
     setCentreOnPersonId('auto');
   }, [selectedHouseId]);
   
@@ -359,8 +389,25 @@ function FamilyTree() {
   // Redraw tree when data changes
   useEffect(() => {
     // Only draw tree when not in branch view
-    if (selectedHouseId && people.length > 0 && !showBranchView) drawTree();
-  }, [selectedHouseId, people, houses, relationships, showCadetHouses, theme, searchResults, relationshipMap, verticalSpacing, dataVersion, centreOnPersonId, fragmentSeparatorStyle, dignitiesByPerson, highlightedPersonId, isManualMode, effectivePositions, useBlockLayout, branchSpacing, showBranchView]);
+    if (!selectedHouseId || people.length === 0 || showBranchView) return;
+
+    // If navigating via URL, ensure we're drawing the correct house
+    // This check is independent of the ref to avoid any race conditions
+    if (urlPersonId) {
+      const targetPerson = people.find(p => p.id === parseInt(urlPersonId));
+      if (targetPerson && targetPerson.houseId !== selectedHouseId) {
+        console.log(`🎯 Waiting for house update: URL person ${targetPerson.firstName} (house ${targetPerson.houseId}) !== current ${selectedHouseId}`);
+        return; // Skip this render, wait for selectedHouseId to update
+      }
+      if (targetPerson && targetPerson.houseId === selectedHouseId) {
+        console.log(`🎯 House matched for URL navigation, proceeding to draw ${targetPerson.firstName} in house ${selectedHouseId}`);
+        // Clear pending navigation ref now that we're drawing correctly
+        pendingNavigationRef.current = null;
+      }
+    }
+
+    drawTree();
+  }, [selectedHouseId, people, houses, relationships, showCadetHouses, theme, searchResults, relationshipMap, verticalSpacing, dataVersion, centreOnPersonId, fragmentSeparatorStyle, dignitiesByPerson, highlightedPersonId, isManualMode, effectivePositions, useBlockLayout, branchSpacing, showBranchView, urlPersonId]);
 
   const handleSearchResults = (results) => {
     setSearchResults(results);
