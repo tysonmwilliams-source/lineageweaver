@@ -1,0 +1,189 @@
+{
+  "version": "v1.4.0",
+  "exportDate": "2026-01-27T12:00:00.000Z",
+  "metadata": {
+    "source": "The Voice of House Wilfrey markdown document",
+    "description": "New codex entries derived from Wilfrey cultural guide",
+    "datasetId": "local"
+  },
+  "people": [],
+  "houses": [],
+  "relationships": [],
+  "codexEntries": [
+    {
+      "type": "tradition",
+      "title": "The Five Pillars of House Wilfrey",
+      "subtitle": "The Core Values That Define Wilfrey Character",
+      "content": "The **Five Pillars** are the foundational principles that shape every Wilfrey, passed down through generations and reinforced through the [[The Fostering System|fostering system]]. They are not written law but lived practice - the bedrock upon which Wilfrey identity stands.\n\n## The Pillars\n\n### 1. Duty Before Desire\n\nThe Wilfrey way places obligation above personal want. This is not joyless sacrifice - it is the understanding that individual fulfilment comes *through* service to something larger, not despite it.\n\nA Wilfrey does not ask \"what do I want?\" first. They ask \"what is required of me?\" And in meeting that requirement, they find their place, their purpose, their pride.\n\n*This does not mean Wilfreys are unfeeling.* They love, they grieve, they rage. But they channel these through duty rather than letting them override it. The one who cannot master their heart masters nothing.\n\n### 2. Blood and Bond\n\nFamily is everything - but family is more than blood.\n\nThe fostering system means that every Wilfrey heir grows up alongside their cousins from all four seats. They eat together, train together, learn together, form bonds that last lifetimes. A Wilfrey from [[Fourhearth Castle|Fourhearth]] has brothers at [[Bramblehall]], sisters at [[Riverhead]], kin at [[Breakmount Castle|Breakmount]].\n\nThis web of connection is deliberate. It prevents isolation. It makes the family resilient. When one seat falters, the others catch it. When one person wavers, the collective holds them steady.\n\n**The lesson of [[House Wilson]] is taught as:** \"This is what happens when we let one of our own stand alone. Let us be better.\"\n\n### 3. The Weight of History\n\nWilfreys do not forget. They carry their history - triumphs and wounds alike - as a living inheritance.\n\nThe silver mines have flowed for generations. The fostering system has shaped centuries of heirs. The Wilson split remains an open wound, unhealed but not hidden. [[Baudin Wilfson|Baudin's]] choice is remembered. [[Colard Wilfson|Colard's]] terrible duty is honoured.\n\nEvery Wilfrey inherits all of this. The pride and the pain. The glory and the grief. To be Wilfrey is to accept this inheritance fully.\n\n### 4. Loyalty Unbroken\n\n[[House Wilfrey|House Wilfrey's]] commitment to the Crown of Estargenn is absolute. This is not blind obedience - it is principled allegiance, tested and proven.\n\nThe Crown accepted [[Lennis Wilfrey|Lennis]] and [[Nivette Wilfson|Nivette]]. The Crown established [[House Wilson]] on lands outside Wilfrey authority. The Crown holds, in its gift, the power to raise Wilson above Wilfrey should the family ever fall from favour.\n\n**The Wilfreys know this.** They have always known it. And they remain loyal anyway.\n\nThis is the understanding that a great house does not break faith because faith might cost them. They are loyal because loyalty is *what they are*. The alternative - a Wilfrey who calculates when to be faithful and when to defect - is no Wilfrey at all.\n\n### 5. Unity Over Self\n\nWhen things go wrong, it is the family's failure, not merely the individual's. When things go right, it is the family's triumph, not merely the individual's.\n\nA Wilfrey alone is vulnerable. A Wilfrey backed by the four seats, the cadet branches, the fostering bonds, the weight of history - that is strength that cannot easily be broken.\n\nThis is why the councils exist. This is why the fostering system exists. This is why the Wilfreys have endured when other houses have fallen. The whole is greater than its parts, and every part knows it.",
+      "sections": [
+        {
+          "order": 1,
+          "heading": "Duty Before Desire",
+          "content": "Obligation above personal want; fulfilment through service"
+        },
+        {
+          "order": 2,
+          "heading": "Blood and Bond",
+          "content": "Family beyond blood through fostering connections"
+        },
+        {
+          "order": 3,
+          "heading": "The Weight of History",
+          "content": "Carrying triumphs and wounds as living inheritance"
+        },
+        {
+          "order": 4,
+          "heading": "Loyalty Unbroken",
+          "content": "Principled allegiance to the Crown, tested and proven"
+        },
+        {
+          "order": 5,
+          "heading": "Unity Over Self",
+          "content": "Collective strength over individual vulnerability"
+        }
+      ],
+      "category": "Traditions & Customs",
+      "tags": ["wilfrey", "culture", "values", "tradition", "pillars"],
+      "era": "Current Era",
+      "personId": null,
+      "houseId": null,
+      "heraldryId": null,
+      "dignityId": null,
+      "wordCount": 650,
+      "version": 1,
+      "changelog": []
+    },
+    {
+      "type": "culture",
+      "title": "The Wilfrey Voice",
+      "subtitle": "How House Wilfrey Speaks - Formal Speech and Linguistic Character",
+      "content": "The **Wilfrey Voice** refers to the distinctive manner of speech that characterises [[House Wilfrey]] across all four seats. It is a style learned through the [[The Fostering System|fostering system]], refined through ceremony, and passed down through generations.\n\n## Linguistic Character\n\nWilfrey speech is **formal but not flowery**. They use the old forms when appropriate, but they do not hide behind ornate language. There is a directness beneath the formality - a sense that words matter too much to waste on decoration.\n\n### What Wilfreys Sound Like\n\n- **Measured**: They do not rush. They choose words with care.\n- **Direct**: They state hard truths plainly rather than softening them into meaninglessness.\n- **Weighted**: Even simple statements carry the sense of history behind them.\n- **Warm beneath formality**: The ritual language is not cold; it is how they express deep feeling *appropriately*.\n\n### What Wilfreys Do NOT Sound Like\n\n- **Boastful**: They do not list their achievements or demand recognition.\n- **Flowery**: They do not pile adjective upon adjective or reach for elaborate metaphors.\n- **Pleading**: They request, they do not beg. They state, they do not wheedle.\n- **Cruel**: Even in judgement, there is gravity rather than malice.\n\n## The Rhythm of Formal Speech\n\nWilfrey ceremonial language has a particular cadence:\n\n- **Parallelism**: \"In silver and in stone. In blood and in bond.\"\n- **Triplets**: Three-part constructions feel natural and complete.\n- **Call and Response**: Formal exchanges where one party speaks and another answers.\n- **Witnessed Acts**: Important statements are made before witnesses and the act of witnessing is acknowledged.\n\n### Examples\n\n*Weak:* \"We're here to witness this betrothal between these two people who are joining their houses together.\"\n\n*Wilfrey:* \"We stand as witnesses. Let what is spoken be remembered. Let what is promised be kept.\"\n\n---\n\n*Weak:* \"I promise to be loyal to you and do my duty.\"\n\n*Wilfrey:* \"I pledge my faith. I pledge my service. I pledge my blood to your cause and my bones to your earth.\"\n\n## Charter Language vs Personal Speech\n\nThe Codified Charter provides formal legal terminology: Driht, Drihten, Fealty, Ward. This language should be used:\n\n- In **formal ceremonies** (betrothals, investitures, oaths)\n- In **legal contexts** (grants of land, judgements, formal declarations)\n- When **invoking authority** (a lord speaking as lord, not as person)\n- In **written records** meant for posterity\n\nCharter language should NOT dominate:\n\n- Informal conversation between family members\n- Personal letters (though formal letters may use it)\n- Internal thoughts or feelings\n- Moments of genuine emotional breakthrough\n\n**The principle:** Charter language is the voice of the institution. Personal language is the voice of the individual. Both are Wilfrey. Knowing when to use which is part of being Wilfrey.",
+      "sections": [
+        {
+          "order": 1,
+          "heading": "Linguistic Character",
+          "content": "Formal but not flowery; direct beneath formality"
+        },
+        {
+          "order": 2,
+          "heading": "Rhythm of Formal Speech",
+          "content": "Parallelism, triplets, call-and-response, witnessed acts"
+        },
+        {
+          "order": 3,
+          "heading": "Charter vs Personal Language",
+          "content": "When to use institutional voice vs individual voice"
+        }
+      ],
+      "category": "Culture & Society",
+      "tags": ["wilfrey", "culture", "speech", "language", "ceremony"],
+      "era": "Current Era",
+      "personId": null,
+      "houseId": null,
+      "heraldryId": null,
+      "dignityId": null,
+      "wordCount": 520,
+      "version": 1,
+      "changelog": []
+    },
+    {
+      "type": "tradition",
+      "title": "Wilfrey Ceremonial Traditions",
+      "subtitle": "The Structure and Practice of Wilfrey Rites",
+      "content": "**Wilfrey ceremonies** follow patterns established over centuries, creating a sense that participants step into roles older than themselves. Every ceremony - from betrothal to investiture to funeral rite - shares common structural elements while adapting to specific purposes.\n\n## The Five Elements of Ceremony\n\n### 1. Opening (Gathering and Invocation)\n\nThe assembly gathers. The purpose is stated. Those present are acknowledged as witnesses. The weight of what is about to occur is established.\n\n*Example:* \"We gather in this hall where our fathers gathered. We speak words our fathers spoke. Let all present witness what transpires.\"\n\n### 2. Declaration (The Core Purpose)\n\nThe central matter is stated plainly. What is being marked - a betrothal, an oath, a passing - is named without elaborate preamble.\n\n### 3. Exchange (Oaths, Objects, Vows)\n\nThe active portion where binding words are spoken, objects are given, or physical acts are performed. This is where the ceremony does its work.\n\n### 4. Witnessing (Acknowledgment)\n\nThose present formally acknowledge what has occurred. The witnessing transforms a private act into a public one, binding the community to remember.\n\n*Example:* \"We have witnessed. We will remember. Let none say this did not occur.\"\n\n### 5. Closing (Blessing and Charge)\n\nThe ceremony concludes with blessing for those involved and a charge to carry forward what has been established. Participants are released from the ritual space back to ordinary time.\n\n## Historical Continuity\n\nEvery Wilfrey ceremony should feel like it has been performed before and will be performed again. The participants are not creating something new - they are stepping into ancient roles, adding their chapter to an ongoing story.\n\nThis is why the [[The Fostering System|fostering system]] teaches ceremonies from youth. By the time a Wilfrey leads a ceremony, they have witnessed dozens. The words feel familiar. The movements feel natural. The weight feels appropriate.\n\n## Ceremony Types\n\n- **Betrothals**: Witnessed promises between houses, sealed with exchange of tokens\n- **Investitures**: Assumption of titles and responsibilities\n- **Oaths of Fealty**: Binding of lord and vassal\n- **Funerals**: The lighting of flames, the speaking of names, the commitment to memory\n- **Council Openings**: Formal beginning of house deliberations\n\n## The Role of Silence\n\nIn Wilfrey ceremony, silence is not empty. Pauses carry meaning. The moment before an oath is spoken, the quiet after a name is invoked for the last time - these silences are part of the ceremony, not interruptions to it.",
+      "sections": [
+        {
+          "order": 1,
+          "heading": "The Five Elements",
+          "content": "Opening, Declaration, Exchange, Witnessing, Closing"
+        },
+        {
+          "order": 2,
+          "heading": "Historical Continuity",
+          "content": "Stepping into roles older than the participants"
+        },
+        {
+          "order": 3,
+          "heading": "Types of Ceremonies",
+          "content": "Betrothals, investitures, oaths, funerals, councils"
+        }
+      ],
+      "category": "Traditions & Customs",
+      "tags": ["wilfrey", "ceremony", "ritual", "tradition", "culture"],
+      "era": "Current Era",
+      "personId": null,
+      "houseId": null,
+      "heraldryId": null,
+      "dignityId": null,
+      "wordCount": 450,
+      "version": 1,
+      "changelog": []
+    },
+    {
+      "type": "culture",
+      "title": "The Wilson Wound",
+      "subtitle": "The Unhealed Schism and Its Ongoing Impact",
+      "content": "**The Wilson Wound** refers to the ongoing emotional and political impact of the schism that created [[House Wilson]] approximately 250 years ago. While the historical events are documented elsewhere (see [[The Founding of House Wilson]], [[The Old Right]]), this entry addresses how the wound continues to shape [[House Wilfrey]] today.\n\n## The Nature of the Wound\n\nThe Wilson split is not ancient history safely buried. It is:\n\n- **An open question**: House Wilson exists. They share Wilfrey blood. They are not of the council. This ambiguity persists.\n- **A cautionary tale**: Every generation learns what happens when the family fails one of its own.\n- **A political vulnerability**: The Crown holds Wilson as a reminder that Wilfrey loyalty can be rewarded... or punished.\n- **A personal grief**: Somewhere in every Wilfrey's lineage, someone loved [[Lennis Wilfrey|Lennis]] or [[Nivette Wilfson|Nivette]] or [[Baudin Wilfson|Baudin]] or [[Colard Wilfson|Colard]]. The loss echoes.\n\n## How It Is Referenced\n\nWilfreys do not pretend the split didn't happen. Nor do they dwell on it. When it must be referenced:\n\n- State the facts without editorial\n- Do not relitigate or assign blame\n- Do not pretend it didn't happen\n- Move forward without lingering\n\n*Example:* \"House Wilson holds lands by the Crown's grant. They share our blood. They are not of our council.\"\n\nThat is enough. The silence around it says the rest.\n\n## The Lesson Taught\n\nTo every generation of Wilfrey fosterlings, the Wilson story is taught as a lesson in unity:\n\n**\"This is what happens when we let one of our own stand alone. Let us be better.\"**\n\nThe emphasis is not on blame - not Lennis for loving, not the council for refusing, not Baudin for defending, not Colard for killing. The emphasis is on the collective failure that let it come to such a choice at all.\n\n## Phrases That May Invoke It\n\n- \"We have learned, at great cost, the price of division.\"\n- \"The family endures. It has endured worse.\"\n- \"There are branches that have... grown apart.\"\n- \"Even brothers may stand on different sides of duty.\"\n- \"Some choices leave no one whole.\"\n\n## The Unspoken Hope\n\nNo Wilfrey speaks of reconciliation with House Wilson. The wound is too old, the separation too complete, the Crown's involvement too politically sensitive.\n\nBut in the silence, in the way the story is told as tragedy rather than triumph, in the emphasis on \"let us be better\" - there is the faintest acknowledgment that the wound might have been avoided. And if it might have been avoided, then perhaps, someday, in some form, it might be healed.\n\nNo Wilfrey says this. But the silence around it says something.",
+      "sections": [
+        {
+          "order": 1,
+          "heading": "The Nature of the Wound",
+          "content": "An ongoing political, emotional, and familial vulnerability"
+        },
+        {
+          "order": 2,
+          "heading": "How It Is Referenced",
+          "content": "Plainly, without editorial, without dwelling"
+        },
+        {
+          "order": 3,
+          "heading": "The Lesson Taught",
+          "content": "Let us not let our own stand alone"
+        }
+      ],
+      "category": "Culture & Society",
+      "tags": ["wilfrey", "wilson", "schism", "history", "culture", "wound"],
+      "era": "Current Era",
+      "personId": null,
+      "houseId": null,
+      "heraldryId": null,
+      "dignityId": null,
+      "wordCount": 480,
+      "version": 1,
+      "changelog": []
+    },
+    {
+      "type": "culture",
+      "title": "Wilfrey Correspondence",
+      "subtitle": "The Art of Letters Across the Four Seats",
+      "content": "**Wilfrey correspondence** follows distinct conventions depending on the relationship between writer and recipient, the formality of the subject matter, and the purpose of the communication. Understanding these conventions is essential for any Wilfrey - and for those who would write to them.\n\n## Three Registers of Correspondence\n\n### Formal Letters\n\nUsed between houses, to the Crown, for official business, and for any matter that may become part of record.\n\n**Characteristics:**\n- Full titles and proper forms of address\n- Charter language where appropriate (Driht, Drihten, etc.)\n- Clear statement of purpose without preamble\n- Formal closing with house words or appropriate blessing\n- Sealed with house sigil\n\n*Example Opening:* \"From Aldric, Drihten of [[House Wilfrey of Riverhead|Riverhead]], to His Grace the High King - greetings and the loyalty of our house.\"\n\n*Example Closing:* \"Written at [[Riverhead]] under seal, in faithful service.\"\n\n### Family Letters\n\nUsed between Wilfreys across the four seats, for matters both personal and political.\n\n**Characteristics:**\n- Appropriate titles but warmer tone\n- Personal address permitted (\"Cousin,\" \"Brother in fostering,\" etc.)\n- Business mixed with genuine inquiry about wellbeing\n- Closing that acknowledges the bond\n- May be sealed less formally\n\n*Example Opening:* \"To my fostering-brother Osric at [[Bramblehall]] - I hope this finds you well and the harvest abundant.\"\n\n*Example Closing:* \"Until we meet again at [[Breakmount Castle|Breakmount]], I remain your brother in all but blood.\"\n\n### Intimate Letters\n\nUsed between close kin, spouses, or those with deep personal bonds.\n\n**Characteristics:**\n- May drop most formality\n- Genuine emotion permitted and expected\n- Still more structured than modern casual writing\n- The relationship determines the warmth\n- Often kept private, not for record\n\n*Example:* \"My heart - I count the days until your return. The children ask for you. Even the hounds seem to mope. Come home soon.\"\n\n## The Art of Saying Without Saying\n\nWilfrey letters, particularly formal ones, often communicate through what they *don't* say:\n\n- A letter that omits the usual pleasantries signals displeasure\n- A letter that is shorter than custom expects suggests urgency or coldness\n- A letter that includes unusual warmth may be preparing the recipient for difficult news\n- A letter that mentions [[House Wilson]] at all is making a deliberate point\n\n## Letters Across the Four Seats\n\nEach seat has subtle variations:\n\n- **[[Breakmount Castle|Breakmount]]**: Most formal, most careful with precedent\n- **[[Bramblehall]]**: Simpler, more direct, less political calculation\n- **[[Riverhead]]**: May include more practical/economic content\n- **[[Fourhearth Castle|Fourhearth]]**: Most likely to include news from the wider world",
+      "sections": [
+        {
+          "order": 1,
+          "heading": "Three Registers",
+          "content": "Formal, Family, and Intimate correspondence styles"
+        },
+        {
+          "order": 2,
+          "heading": "Saying Without Saying",
+          "content": "How omission and deviation communicate meaning"
+        },
+        {
+          "order": 3,
+          "heading": "Seat Variations",
+          "content": "How each seat's character affects their letters"
+        }
+      ],
+      "category": "Culture & Society",
+      "tags": ["wilfrey", "correspondence", "letters", "communication", "culture"],
+      "era": "Current Era",
+      "personId": null,
+      "houseId": null,
+      "heraldryId": null,
+      "dignityId": null,
+      "wordCount": 470,
+      "version": 1,
+      "changelog": []
+    }
+  ]
+}
