@@ -54,7 +54,8 @@ export function sanitizeSVG(svgContent) {
 export function sanitizeHTML(htmlContent) {
   if (!htmlContent) return '';
 
-  return DOMPurify.sanitize(htmlContent, {
+  // First pass: sanitize with DOMPurify
+  let sanitized = DOMPurify.sanitize(htmlContent, {
     // Allow common HTML elements for rich text
     ALLOWED_TAGS: [
       'p', 'br', 'strong', 'em', 'b', 'i', 'u', 's', 'strike',
@@ -68,13 +69,19 @@ export function sanitizeHTML(htmlContent) {
     ],
     ALLOWED_ATTR: [
       'href', 'src', 'alt', 'title', 'class', 'id',
-      'target', 'rel', 'width', 'height'
+      'target', 'rel', 'width', 'height', 'data-entry-id'
     ],
     // Open links in new tab safely
     ADD_ATTR: ['target'],
     // Ensure links have rel="noopener"
     ALLOW_DATA_ATTR: false,
   });
+
+  // Second pass: strip all class attributes EXCEPT our wiki-link classes
+  // This removes any pasted CSS classes that could affect styling
+  sanitized = sanitized.replace(/\sclass="(?!wiki-link)[^"]*"/g, '');
+
+  return sanitized;
 }
 
 /**

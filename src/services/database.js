@@ -1,5 +1,19 @@
 import Dexie from 'dexie';
 
+// Context notification - lazy loaded to avoid circular deps
+let contextNotify = null;
+async function notifyContextChange(entityType, operation, entity, datasetId) {
+  try {
+    if (!contextNotify) {
+      const { notifyChange } = await import('./contextService.js');
+      contextNotify = notifyChange;
+    }
+    contextNotify(entityType, operation, entity, datasetId);
+  } catch (e) {
+    // Context service not available - silently skip
+  }
+}
+
 /**
  * Database Service for Lineageweaver
  *
@@ -466,6 +480,43 @@ db.version(15).stores({
   // plotThreads: Track narrative threads and their resolution
   plotThreads: '++id, storyPlanId, threadType, status, createdAt, updatedAt'
 });
+
+// Version 16: Add Context Library System
+// Auto-generated, threshold-based context files for AI tools and reference.
+// Dynamically discovers which houses qualify for their own context based on data volume.
+// Tracks changes and auto-regenerates contexts when source data changes.
+db.version(16).stores({
+  people: '++id, firstName, lastName, houseId, dateOfBirth, dateOfDeath, bastardStatus, codexEntryId, heraldryId',
+  houses: '++id, houseName, parentHouseId, houseType, codexEntryId, heraldryId',
+  relationships: '++id, person1Id, person2Id, relationshipType',
+  codexEntries: '++id, type, title, category, *tags, era, created, updated',
+  codexLinks: '++id, sourceId, targetId, type',
+  acknowledgedDuplicates: '++id, person1Id, person2Id, acknowledgedAt',
+  heraldry: '++id, name, category, *tags, created, updated',
+  heraldryLinks: '++id, heraldryId, entityType, entityId, linkType',
+  dignities: '++id, name, shortName, dignityClass, dignityRank, swornToId, currentHolderId, currentHouseId, codexEntryId, created, updated',
+  dignityTenures: '++id, dignityId, personId, dateStarted, dateEnded, acquisitionType, endType, created',
+  dignityLinks: '++id, dignityId, entityType, entityId, linkType, created',
+  bugs: '++id, title, status, priority, system, page, created, resolved',
+  householdRoles: '++id, houseId, roleType, currentHolderId, startDate, created, updated',
+  syncQueue: '++id, entityType, entityId, operation, timestamp, synced',
+  writings: '++id, title, type, status, *tags, createdAt, updatedAt',
+  chapters: '++id, writingId, order, createdAt, updatedAt',
+  writingLinks: '++id, writingId, chapterId, targetType, targetId, createdAt',
+  storyPlans: '++id, writingId, framework, *genre, createdAt, updatedAt',
+  storyArcs: '++id, storyPlanId, type, status, order, createdAt, updatedAt',
+  storyBeats: '++id, storyPlanId, storyArcId, beatType, status, order, createdAt, updatedAt',
+  scenePlans: '++id, storyPlanId, chapterId, povCharacterId, status, order, createdAt, updatedAt',
+  characterArcs: '++id, storyPlanId, characterId, arcType, status, createdAt, updatedAt',
+  plotThreads: '++id, storyPlanId, threadType, status, createdAt, updatedAt',
+  // NEW: Context Library tables
+  // contextRegistry: Master registry of all contexts (one per house that meets threshold, plus master)
+  contextRegistry: '++id, contextId, contextType, houseId, status, lastGenerated, lastSourceChange, *tags',
+  // contextFiles: Individual files within a context (people/breakmount.json, codex/locations.json, etc.)
+  contextFiles: '++id, contextId, filePath, fileType, content, size, itemCount, generatedAt',
+  // contextLog: History of context generation events for auditing
+  contextLog: '++id, contextId, event, trigger, timestamp, duration, stats'
+});
 } // End of applySchema function
 
 /**
@@ -483,6 +534,10 @@ export async function addPerson(personData, datasetId) {
     const database = getDatabase(datasetId);
     const id = await database.people.add(personData);
     console.log('Person added with ID:', id);
+
+    // Notify context system
+    notifyContextChange('person', 'create', { ...personData, id }, datasetId);
+
     return id;
   } catch (error) {
     console.error('Error adding person:', error);
@@ -542,6 +597,11 @@ export async function updatePerson(id, updates, datasetId) {
     const database = getDatabase(datasetId);
     const result = await database.people.update(id, updates);
     console.log('Person updated:', result);
+
+    // Notify context system
+    const person = await database.people.get(id);
+    notifyContextChange('person', 'update', person, datasetId);
+
     return result;
   } catch (error) {
     console.error('Error updating person:', error);
@@ -552,6 +612,9 @@ export async function updatePerson(id, updates, datasetId) {
 export async function deletePerson(id, datasetId) {
   try {
     const database = getDatabase(datasetId);
+
+    // Get person before deleting for context notification
+    const person = await database.people.get(id);
 
     // CASCADE DELETE: Remove all relationships involving this person
     // This prevents orphaned relationships when a person is deleted
@@ -568,6 +631,11 @@ export async function deletePerson(id, datasetId) {
     // Now delete the person
     await database.people.delete(id);
     console.log('Person deleted:', id);
+
+    // Notify context system
+    if (person) {
+      notifyContextChange('person', 'delete', person, datasetId);
+    }
 
     return { deletedRelationships: relationshipsToDelete.length };
   } catch (error) {
@@ -619,6 +687,10 @@ export async function addHouse(houseData, options = {}) {
         console.warn('⚠️ Could not auto-create Codex entry for house:', codexError);
       }
     }
+
+    // Notify context system
+    const house = await database.houses.get(id);
+    notifyContextChange('house', 'create', house, options.datasetId);
 
     return id;
   } catch (error) {
@@ -682,6 +754,11 @@ export async function updateHouse(id, updates, datasetId) {
     const database = getDatabase(datasetId);
     const result = await database.houses.update(id, updates);
     console.log('House updated:', result);
+
+    // Notify context system
+    const house = await database.houses.get(id);
+    notifyContextChange('house', 'update', house, datasetId);
+
     return result;
   } catch (error) {
     console.error('Error updating house:', error);
@@ -702,6 +779,9 @@ export async function deleteHouse(id, options = {}) {
   try {
     const database = getDatabase(options.datasetId);
     let clearedPeopleCount = 0;
+
+    // Get house before deleting for context notification
+    const house = await database.houses.get(id);
 
     // Clear houseId for all people belonging to this house
     // This prevents orphaned references when a house is deleted
@@ -737,6 +817,11 @@ export async function deleteHouse(id, options = {}) {
 
     await database.houses.delete(id);
     console.log('House deleted:', id);
+
+    // Notify context system
+    if (house) {
+      notifyContextChange('house', 'delete', house, options.datasetId);
+    }
 
     return { clearedPeopleCount };
   } catch (error) {
@@ -789,6 +874,10 @@ export async function addRelationship(relationshipData, datasetId) {
 
     const id = await database.relationships.add(relationshipData);
     console.log('Relationship added with ID:', id);
+
+    // Notify context system
+    notifyContextChange('relationship', 'create', { ...relationshipData, id }, datasetId);
+
     return id;
   } catch (error) {
     console.error('Error adding relationship:', error);
@@ -850,8 +939,17 @@ export async function updateRelationship(id, updates, datasetId) {
 export async function deleteRelationship(id, datasetId) {
   try {
     const database = getDatabase(datasetId);
+
+    // Get relationship before deleting for context notification
+    const relationship = await database.relationships.get(id);
+
     await database.relationships.delete(id);
     console.log('Relationship deleted:', id);
+
+    // Notify context system
+    if (relationship) {
+      notifyContextChange('relationship', 'delete', relationship, datasetId);
+    }
   } catch (error) {
     console.error('Error deleting relationship:', error);
     throw error;

@@ -7,6 +7,20 @@
 
 import { getDatabase } from './database.js';
 
+// Context notification - lazy loaded to avoid circular deps
+let contextNotify = null;
+async function notifyContextChange(entityType, operation, entity, datasetId) {
+  try {
+    if (!contextNotify) {
+      const { notifyChange } = await import('./contextService.js');
+      contextNotify = notifyChange;
+    }
+    contextNotify(entityType, operation, entity, datasetId);
+  } catch (e) {
+    // Context service not available - silently skip
+  }
+}
+
 // ==================== CODEX ENTRY OPERATIONS ====================
 
 /**
@@ -53,6 +67,10 @@ export async function createEntry(entryData, datasetId) {
 
     const id = await db.codexEntries.add(entry);
     console.log('Codex entry created with ID:', id);
+
+    // Notify context system of change
+    notifyContextChange('codex', 'create', { ...entry, id }, datasetId);
+
     return id;
   } catch (error) {
     console.error('Error creating codex entry:', error);
@@ -385,6 +403,11 @@ export async function updateEntry(id, updates, datasetId) {
 
     const result = await db.codexEntries.update(id, modifiedUpdates);
     console.log('Codex entry updated:', result);
+
+    // Notify context system of change
+    const updatedEntry = await db.codexEntries.get(id);
+    notifyContextChange('codex', 'update', updatedEntry, datasetId);
+
     return result;
   } catch (error) {
     console.error('Error updating codex entry:', error);
@@ -398,6 +421,10 @@ export async function updateEntry(id, updates, datasetId) {
 export async function deleteEntry(id, datasetId) {
   try {
     const db = getDatabase(datasetId);
+
+    // Get entry before deleting for context notification
+    const entry = await db.codexEntries.get(id);
+
     // Delete the entry
     await db.codexEntries.delete(id);
 
@@ -405,6 +432,11 @@ export async function deleteEntry(id, datasetId) {
     await deleteLinksForEntry(id, datasetId);
 
     console.log('Codex entry deleted:', id);
+
+    // Notify context system of change
+    if (entry) {
+      notifyContextChange('codex', 'delete', entry, datasetId);
+    }
   } catch (error) {
     console.error('Error deleting codex entry:', error);
     throw error;
