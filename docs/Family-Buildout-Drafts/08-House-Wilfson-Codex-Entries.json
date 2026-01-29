@@ -1,0 +1,275 @@
+{
+  "description": "Comprehensive codex entries and dignity updates for House Wilfson lineage - post-Scandal of 1776",
+  "instructions": "These entries should be added to the codex to create bi-directional wiki-links and enrich the narrative. Import via bulk import or manually create through the UI.",
+
+  "codexEntries": [
+    {
+      "type": "event",
+      "title": "The Scandal of 1776",
+      "subtitle": "Kinslaying, Exile, and the Birth of House Wilson",
+      "category": "Historical Events",
+      "tags": ["scandal", "kinslaying", "house-wilson", "house-wilfson", "1776", "baudin", "colard", "lennis", "nivette"],
+      "content": "**The Scandal of 1776** was the defining crisis in [[House Wilfson]]'s history, resulting in the death of [[Baudin Wilfson]], the exile of [[Lennis Wilfrey]] and [[Nivette Wilfson]], the founding of [[House Wilson]], and the eternal marking of House Wilfson as kinslayers.\n\n## Timeline of Events\n\n### 1775 - Death of Lord Faramund\n[[Faramund Wilfson]], Lord of House Wilfson, died peacefully after decades of faithful service. His eldest son [[Baudin Wilfson]] inherited the titles of Lord Wilfson, Master of the Silver Mines, and Castellan of [[Breakmount Castle]].\n\n### 1776 - The Riverhead Council\nThe Lord of [[Riverhead]] died, triggering a mandatory council of all four lords. At this council, [[Lord Constann]] of [[Bramblehall]] raised the matter of his daughter [[Raylegh]]'s dishonor by [[Lennis Wilfrey]], heir to [[Fourhearth Castle]].\n\nThe council investigated and found:\n- Raylegh had disguised herself as a serving wench\n- She had deliberately sought out Lennis\n- She was pregnant and betrothed to an elderly knight\n- She had begged Lennis to marry her to escape her fate\n\nThe council's verdict: Lennis must marry Raylegh or lose his inheritance.\n\n### Baudin's Defiance\n[[Baudin Wilfson]], fostering brother to Lennis, publicly defied the council:\n- Argued no council could command a man's heart\n- Secretly arranged for his sister [[Nivette Wilfson]] to marry Lennis\n- Performed the marriage in defiance of council authority\n\n### The Kinslaying\nWhen the secret marriage was discovered:\n- All three were banished from House Wilfrey lands\n- [[Colard Wilfson]], Baudin's younger brother, challenged him to a duel\n- Colard's blade found Baudin's heart\n- Baudin died having ruled less than two years\n\n### The Aftermath\n- Lennis and Nivette fled north, eventually founding [[House Wilson]] with royal favor\n- Colard became Lord Wilfson, restoring the house to House Wilfrey's favor\n- The kinslaying purchased 250 years of continued service\n- House Wilfson became forever marked as both loyal servants and kinslayers\n\n## The Legacy\n\nThe Scandal of 1776 is taught to every generation of fosterlings as both warning and lesson:\n- The bonds of fostering can both unite and destroy\n- Loyalty to the main house is rewarded with continuity\n- Defiance, even for love, ends in death\n- Some choices leave no one whole\n\n## See Also\n- [[Baudin Wilfson]]: The brother who chose love over duty\n- [[Colard Wilfson]]: The Kinslayer who saved his house\n- [[Lennis Wilfrey]]: Founder of House Wilson\n- [[Nivette Wilfson]]: Co-founder of House Wilson\n- [[House Wilfson]]: The house that survived through kinslaying\n- [[House Wilson]]: The house born of exile",
+      "sections": [
+        {"heading": "The Riverhead Council", "content": "Council demands Lennis marry Raylegh", "order": 1},
+        {"heading": "Baudin's Defiance", "content": "Secret marriage in defiance of council authority", "order": 2},
+        {"heading": "The Kinslaying", "content": "Colard kills Baudin in duel", "order": 3},
+        {"heading": "The Legacy", "content": "250 years of loyal service purchased with blood", "order": 4}
+      ]
+    },
+
+    {
+      "type": "personage",
+      "title": "Ermeline Wilfson",
+      "subtitle": "Wife of Lord Faramund, Mother of Tragedy",
+      "category": "Historical Figures",
+      "tags": ["ermeline", "wilfson", "scandal-1776", "faramund", "baudin", "colard", "nivette"],
+      "content": "**Ermeline Wilfson** (née Wilfrey of Riverhead, 1726-1780) was the wife of [[Faramund Wilfson]] and mother of [[Baudin Wilfson]], [[Nivette Wilfson]], [[Adelise Wilfrey]], and [[Colard Wilfson]].\n\n## Marriage Under The Old Right\n\nErmeline was a daughter of [[House Wilfrey of Riverhead]], given to House Wilfson under [[The Old Right]] practice - the ancient tradition where prominent cadet houses had rights to marry daughters of the ruling Wilfrey family.\n\n## The Mother of Tragedy\n\nErmeline outlived her husband [[Faramund Wilfson]] by five years (d. 1780), long enough to witness:\n- Her eldest son [[Baudin Wilfson]] defy the council for his fostering brother\n- Her daughter [[Nivette Wilfson]] married in secret to [[Lennis Wilfrey]]\n- Her younger son [[Colard Wilfson]] kill his brother in a duel\n- Her daughter [[Adelise Wilfrey]] watch her family torn apart\n\nShe saw one son kill another. The weight of that witnessing can only be imagined.\n\n## Legacy\n\nErmeline represents the human cost of [[The Scandal of 1776]] beyond the principals. While history remembers Baudin, Colard, and Nivette, it often forgets the mother who had to bury one son while knowing another had killed him.\n\n## See Also\n- [[Faramund Wilfson]]: Her husband\n- [[Baudin Wilfson]]: Her eldest son, killed by Colard\n- [[Colard Wilfson]]: Her younger son, the Kinslayer\n- [[Nivette Wilfson]]: Her daughter, exiled to found House Wilson\n- [[Adelise Wilfrey]]: Her daughter who married into Breakmount\n- [[The Scandal of 1776]]: The tragedy she witnessed",
+      "sections": [
+        {"heading": "The Old Right Marriage", "content": "Given to House Wilfson under ancient tradition", "order": 1},
+        {"heading": "The Witness", "content": "Saw one son kill another", "order": 2}
+      ]
+    },
+
+    {
+      "type": "personage",
+      "title": "Giseline Wilfson",
+      "subtitle": "Wife of the Kinslayer",
+      "category": "Historical Figures",
+      "tags": ["giseline", "wilfson", "colard", "scandal-aftermath", "bramblehall"],
+      "content": "**Giseline Wilfson** (née Wilfrey of Bramblehall, 1758-1820) was the wife of [[Colard Wilfson]], the Kinslayer. Their marriage in 1778, two years after [[The Scandal of 1776]], was a gesture of reconciliation.\n\n## A Marriage of Forgiveness\n\nGiseline was born to [[House Wilfrey of Bramblehall]] - the very seat where [[Raylegh]]'s seduction of [[Lennis Wilfrey]] had occurred, triggering the entire scandal. Her marriage to Colard carried profound symbolic weight:\n\n- Bramblehall had suffered embarrassment from the scandal originating at their seat\n- By giving a daughter to the man who had restored House Wilfson's loyalty, they signaled forgiveness\n- The marriage represented House Wilfrey's acceptance that Colard had done what was necessary\n\n## Mother of the Redemption\n\nGiseline bore Colard several children, including:\n- [[Baudric Wilfson]] - heir, controversially named in memory of his slain uncle Baudin\n- [[Farelin Goff]] - second son, married into House Goff\n- [[Beraline Wilfern]] - daughter, married into House Wilfern\n\nThrough her children, she helped establish the new generation that would carry House Wilfson forward from the scandal.\n\n## The Weight of Marriage\n\nWhat was it like to be married to the man who had killed his own brother? The histories do not say. But Giseline remained with Colard for 42 years until her death in 1820, outliving him by eight years.\n\n## See Also\n- [[Colard Wilfson]]: Her husband, the Kinslayer\n- [[Baudric Wilfson]]: Her eldest son\n- [[The Scandal of 1776]]: The tragedy her marriage helped heal\n- [[Bramblehall]]: Her birth house",
+      "sections": [
+        {"heading": "The Reconciliation Marriage", "content": "Bramblehall forgives the chaos through marriage", "order": 1},
+        {"heading": "The Weight of Marriage", "content": "42 years with the Kinslayer", "order": 2}
+      ]
+    },
+
+    {
+      "type": "personage",
+      "title": "Baudric Wilfson",
+      "subtitle": "Third Lord - Named for the Slain",
+      "category": "Lords of House Wilfson",
+      "tags": ["baudric", "wilfson", "lord", "scandal-aftermath", "naming-controversy"],
+      "content": "**Baudric Wilfson** (1780-1848) was the third Lord of [[House Wilfson]], ruling from 1812 to 1848. His very name was controversial - a variant of [[Baudin Wilfson|Baudin]], the uncle his father had killed.\n\n## The Controversial Name\n\n[[Colard Wilfson]] named his heir Baudric - unmistakably derived from Baudin. This choice divided House Wilfson:\n\n**Those who approved:**\n- Saw it as honoring the dead\n- Believed it showed Colard's guilt and desire for redemption\n- Viewed it as keeping Baudin's memory alive\n\n**Those who disapproved:**\n- Called it tempting fate\n- Saw it as inappropriate given the kinslaying\n- Believed some names should be left to rest\n\nBaudric himself never discussed the matter publicly. The weight of his name was his to bear alone.\n\n## First Marriage Outside the Wilfrey Web\n\nBaudric married [[Aveline Wilfson|Aveline]] of [[House Salter of the Scorch]] - the first Lord Wilfson since the scandal to marry outside the Wilfrey family network. This deliberate choice brought fresh blood after the trauma and began a pattern of alternating between Wilfrey marriages and outside alliances.\n\n## Reign (1812-1848)\n\nBaudric's 36-year reign was marked by:\n- Steady, dedicated service to House Wilfrey\n- Rebuilding trust after his father's necessary but damning act\n- Establishing the pattern of alternating marriage alliances\n- Raising children who would continue the redemption\n\n## Children\n\n- [[Coland Wilfson]] - heir, name echoing Colard (his grandfather)\n- [[Ermette Wilfrey]] - daughter, married into House Wilfrey of Fourhearth\n- [[Gisel Wilfson]] - son, became Fosterreeve for 30 years\n\n## Legacy\n\nBaudric represents the second generation after the kinslaying - born in its shadow, bearing a name that constantly reminded everyone of what had been lost, yet living a life of quiet redemption through service.\n\n## See Also\n- [[Colard Wilfson]]: His father, the Kinslayer\n- [[Giseline Wilfson]]: His mother\n- [[Baudin Wilfson]]: The uncle for whom he was named\n- [[Aveline Wilfson]]: His wife\n- [[Coland Wilfson]]: His heir",
+      "sections": [
+        {"heading": "The Controversial Name", "content": "Named for the uncle his father killed", "order": 1},
+        {"heading": "First Outside Marriage", "content": "Breaking the Wilfrey web after the scandal", "order": 2},
+        {"heading": "36 Years of Service", "content": "Quiet redemption through dedication", "order": 3}
+      ]
+    },
+
+    {
+      "type": "personage",
+      "title": "Coland Wilfson",
+      "subtitle": "Fourth Lord - The Name Redeemed",
+      "category": "Lords of House Wilfson",
+      "tags": ["coland", "wilfson", "lord", "third-generation"],
+      "content": "**Coland Wilfson** (1805-1878) was the fourth Lord of [[House Wilfson]], ruling from 1848 to 1878. His name was a variant of [[Colard Wilfson|Colard]] - the Kinslayer redeemed through generations of loyal service.\n\n## The Name's Meaning\n\nThree generations after [[The Scandal of 1776]], the name Coland/Colard had transformed:\n- No longer just \"the Kinslayer\"\n- Now also \"the one who saved the house\"\n- A name that could be borne with a measure of pride\n\nColand represented the third generation - far enough removed that the stain had begun to fade, close enough that the lesson was not forgotten.\n\n## Marriage to House Thornbury\n\nColand married [[Helewise Wilfson|Helewise]] of [[House Thornbury]] - a Drith-level landed family from the eastern reaches, known for horse breeding. This continued the pattern established by his father of seeking appropriate matches outside the immediate Wilfrey web.\n\n## Children\n\n- [[Berin Wilfson]] - heir, would return to traditional Wilfrey alliance\n- [[Audeline Athelmere]] - daughter, married into House Athelmere (establishing the connection that continues to present day)\n- [[Colwin Wilfson]] - son, served as Fosterbookman\n\n## The Athelmere Connection\n\n[[Audeline Athelmere|Audeline's]] marriage into [[House Athelmere]] established a relationship that would echo through generations, eventually leading to [[Jon Wilfson]]'s marriage to [[Alisse Wilfson|Alisse]] (née Dundas) in the present day.\n\n## See Also\n- [[Baudric Wilfson]]: His father\n- [[Aveline Wilfson]]: His mother\n- [[Helewise Wilfson]]: His wife\n- [[Berin Wilfson]]: His heir\n- [[Colard Wilfson]]: The ancestor whose name he bore",
+      "sections": [
+        {"heading": "The Redeemed Name", "content": "Colard's name could now be borne with pride", "order": 1},
+        {"heading": "The Athelmere Connection", "content": "Audeline's marriage creates lasting bond", "order": 2}
+      ]
+    },
+
+    {
+      "type": "personage",
+      "title": "Berin Wilfson",
+      "subtitle": "Fifth Lord - Return to Tradition",
+      "category": "Lords of House Wilfson",
+      "tags": ["berin", "wilfson", "lord", "fourth-generation", "riverhead"],
+      "content": "**Berin Wilfson** (1830-1905) was the fifth Lord of [[House Wilfson]], ruling from 1878 to 1905. His marriage to [[Celisse Wilfson|Celisse]] of [[Riverhead]] marked a return to traditional Wilfrey alliances.\n\n## Return to the Wilfrey Web\n\nFour generations after [[The Scandal of 1776]], Berin's marriage to a daughter of [[House Wilfrey of Riverhead]] signaled:\n- House Wilfson's full rehabilitation within the Wilfrey family\n- Trust restored after decades of loyal service\n- The scandal's immediate stain finally fading\n\n## Children\n\n- [[Farmund Wilfson]] - heir, named to honor ancestor Faramund\n- [[Celina Goff]] - daughter, married into House Goff\n- [[Aldwyn Wilfson]] - son, pursued military career\n\n## The Naming Pattern\n\nBerin named his heir [[Farmund Wilfson|Farmund]] - a variant of [[Faramund Wilfson]], the last lord before the scandal. This continued the pattern of honoring ancestors through naming:\n- Baudric honored Baudin\n- Coland honored Colard\n- Farmund honored Faramund\n\n## See Also\n- [[Coland Wilfson]]: His father\n- [[Helewise Wilfson]]: His mother\n- [[Celisse Wilfson]]: His wife\n- [[Farmund Wilfson]]: His heir",
+      "sections": [
+        {"heading": "Return to Tradition", "content": "Marriage to Riverhead restores full trust", "order": 1},
+        {"heading": "The Naming Pattern", "content": "Honoring ancestors through names", "order": 2}
+      ]
+    },
+
+    {
+      "type": "personage",
+      "title": "Farmund Wilfson",
+      "subtitle": "Sixth Lord - Honoring the Ancestor",
+      "category": "Lords of House Wilfson",
+      "tags": ["farmund", "wilfson", "lord", "fifth-generation"],
+      "content": "**Farmund Wilfson** (1858-1932) was the sixth Lord of [[House Wilfson]], ruling from 1905 to 1932. His name honored [[Faramund Wilfson]], the last lord before [[The Scandal of 1776]].\n\n## The Name's Weight\n\nFive generations after the scandal, Farmund's name connected directly to the pre-scandal era:\n- Faramund had died peacefully, succeeded by Baudin\n- Baudin's defiance led to the kinslaying\n- By naming an heir Farmund, the family reached back to the time before the tragedy\n\n## Marriage to House Cawdry\n\nFarmund married [[Roseline Wilfson|Roseline]] of [[House Cawdry]], a minor house. This practical match reflected the reality of cadet house marriages:\n- Not every generation could secure a prestigious Wilfrey alliance\n- Minor house marriages maintained appropriate standing\n- Economic and practical considerations balanced prestige\n\n## Children\n\n- [[Colbert Wilfson]] - heir, continuing the naming tradition\n- [[Rosmund Eldwick]] - daughter, married into House Eldwick\n- [[Bertelin Wilfson]] - son, died young at 24 (likely in war or accident)\n\n## See Also\n- [[Berin Wilfson]]: His father\n- [[Celisse Wilfson]]: His mother\n- [[Roseline Wilfson]]: His wife\n- [[Colbert Wilfson]]: His heir\n- [[Faramund Wilfson]]: The ancestor for whom he was named",
+      "sections": [
+        {"heading": "Honoring the Past", "content": "Name reaches back to pre-scandal era", "order": 1},
+        {"heading": "Practical Marriage", "content": "Minor house match maintains standing", "order": 2}
+      ]
+    },
+
+    {
+      "type": "personage",
+      "title": "Colbert Wilfson",
+      "subtitle": "Seventh Lord - The Steady Hand",
+      "category": "Lords of House Wilfson",
+      "tags": ["colbert", "wilfson", "lord", "sixth-generation"],
+      "content": "**Colbert Wilfson** (1885-1960) was the seventh Lord of [[House Wilfson]], ruling from 1932 to 1960. His name combined elements of both Colard and his father Berin - Col + bert.\n\n## A Time of Stability\n\nSix generations after [[The Scandal of 1776]], House Wilfson had achieved stability. The kinslaying was now distant history, and the house focused on its hereditary duties:\n- Master of the Silver Mines\n- Castellan of [[Breakmount Castle]]\n\n## Marriage to House Parlin\n\nColbert married [[Maelisse Wilfson|Maelisse]] of [[House Parlin]], another minor house. Like his father's marriage to House Cawdry, this was a practical match maintaining appropriate standing for a cadet branch.\n\n## Children\n\n- [[Bauric Wilfson]] - heir, whose name would carry special significance\n- [[Maeline Wentburn]] - daughter, married into House Wentburn\n- [[Parris Wilfson]] - son, served as Fostersteward\n\n## The Name Bauric\n\nColbert named his heir Bauric - yet another variant of Baudin. Seven generations after the kinslaying, the family was still honoring the slain brother. This persistence of memory demonstrates how deeply [[The Scandal of 1776]] marked House Wilfson's identity.\n\n## See Also\n- [[Farmund Wilfson]]: His father\n- [[Roseline Wilfson]]: His mother\n- [[Maelisse Wilfson]]: His wife\n- [[Bauric Wilfson]]: His heir\n- [[Parris Wilfson]]: His son, the Fostersteward",
+      "sections": [
+        {"heading": "Six Generations of Service", "content": "The scandal now distant history", "order": 1},
+        {"heading": "Continuing the Names", "content": "Bauric honors Baudin yet again", "order": 2}
+      ]
+    },
+
+    {
+      "type": "personage",
+      "title": "Bauric Wilfson",
+      "subtitle": "Eighth Lord - Full Restoration",
+      "category": "Lords of House Wilfson",
+      "tags": ["bauric", "wilfson", "lord", "seventh-generation", "restoration", "breakmount"],
+      "content": "**Bauric Wilfson** (1915-1985) was the eighth Lord of [[House Wilfson]], ruling from 1960 to 1985. His marriage to [[Loveline Wilfson|Loveline]] of [[House Wilfrey of Breakmount]] represented the full restoration of House Wilfson's position.\n\n## The Restoration Marriage\n\nSeven generations after [[The Scandal of 1776]], a daughter of the main Breakmount line was given to House Wilfson. This was not merely a practical alliance - it was a statement:\n\n- House Wilfson was no longer marked by the kinslaying\n- The generations of loyal service had earned full trust\n- The premier cadet branch had truly been restored\n\nThe marriage to Breakmount - not Riverhead, not Bramblehall, not Fourhearth, but the **principal seat** - demonstrated that House Wilfson had emerged from the shadow of the scandal.\n\n## Children\n\n- [[Jon Wilfson]] - heir, current Lord\n- [[Betts Wilfson]] - daughter, married into House Ironfell\n- [[Lovine Ferncross]] - daughter, married into House Ferncross\n\n## Legacy\n\nBauric's reign marked the culmination of seven generations of redemption:\n- From kinslayer to trusted servant\n- From scandal to restoration\n- From stain to honor\n\nThe name Bauric - echoing Baudin - could finally be spoken without the weight of tragedy. The debt had been paid.\n\n## See Also\n- [[Colbert Wilfson]]: His father\n- [[Maelisse Wilfson]]: His mother\n- [[Loveline Wilfson]]: His wife from Breakmount\n- [[Jon Wilfson]]: His heir, current Lord\n- [[The Scandal of 1776]]: The shadow finally lifted",
+      "sections": [
+        {"heading": "The Breakmount Marriage", "content": "Daughter of the principal seat given to House Wilfson", "order": 1},
+        {"heading": "Seven Generations of Redemption", "content": "The debt finally paid", "order": 2}
+      ]
+    },
+
+    {
+      "type": "personage",
+      "title": "Jon Wilfson",
+      "subtitle": "Ninth Lord - The Present Day",
+      "category": "Lords of House Wilfson",
+      "tags": ["jon", "wilfson", "lord", "current", "drithling"],
+      "content": "**Jon Wilfson** (b. 1953) is the current and ninth Lord of [[House Wilfson]], having succeeded his father [[Bauric Wilfson]] in 1985. He holds the hereditary titles of Drithling of House Wilfson, Master of the Silver Mines, and Castellan of [[Breakmount Castle]].\n\n## The Inherited Position\n\nJon inherited a house fully restored to honor after seven generations of redemption following [[The Scandal of 1776]]. His father's marriage to [[Loveline Wilfson|Loveline]] of Breakmount had demonstrated that the kinslaying's stain had finally been erased.\n\n## Marriage to House Dundas\n\nJon married [[Alisse Wilfson|Alisse]] of [[House Dundas]], a minor house. This practical match reflects the alternating pattern established after the scandal - prestigious Wilfrey alliance one generation, practical outside match the next.\n\n## Children\n\n- [[Baudin Wilfson]] (b. 2004) - heir, bearing the name finally reclaimed\n- [[Saelind Wilfson]] (b. 2007) - daughter, named for her mother\n\n## The Name Reclaimed\n\nJon named his heir Baudin - not Baudric, not Bauric, but **Baudin** itself. 250 years after [[The Scandal of 1776]], the original name is finally reclaimed:\n\n- No longer feared as tempting fate\n- No longer requiring a variant to soften its weight\n- The name of the brother who died for love, spoken without shame\n\nThis represents the final healing of House Wilfson's ancient wound.\n\n## Current Dignities\n\n- **Drithling of House Wilfson** - sworn to the Paramount Driht of House Wilfrey\n- **Master of the Silver Mines** - hereditary control of Breakmount's wealth\n- **Castellan of Breakmount** - day-to-day governance of the principal seat\n\n## See Also\n- [[Bauric Wilfson]]: His father\n- [[Loveline Wilfson]]: His mother\n- [[Alisse Wilfson]]: His wife\n- [[Baudin Wilfson]]: His heir\n- [[House Wilfson]]: The house he leads\n- [[The Scandal of 1776]]: The shadow finally lifted",
+      "sections": [
+        {"heading": "The Inherited Honor", "content": "House fully restored after seven generations", "order": 1},
+        {"heading": "The Name Reclaimed", "content": "Baudin spoken without shame after 250 years", "order": 2},
+        {"heading": "Current Dignities", "content": "Drithling, Master of Mines, Castellan", "order": 3}
+      ]
+    },
+
+    {
+      "type": "personage",
+      "title": "Baudin Wilfson (Heir)",
+      "subtitle": "The Name Finally Reclaimed",
+      "category": "Current Generation",
+      "tags": ["baudin", "wilfson", "heir", "current", "name-reclaimed"],
+      "content": "**Baudin Wilfson** (b. 2004) is the heir to [[House Wilfson]], son of [[Jon Wilfson]] and [[Alisse Wilfson]]. He is the first person in 250 years to bear the name Baudin without variant or alteration.\n\n## The Name's Significance\n\n250 years after [[The Scandal of 1776]], the name Baudin is finally reclaimed:\n\n**The original Baudin** (1748-1776):\n- Chose his fostering brother over council authority\n- Died defending his sister's secret marriage\n- His name became too heavy to speak directly\n\n**The intervening generations** used variants:\n- Baudric (3rd Lord)\n- Bauric (8th Lord)\n\n**Now, young Baudin** bears the full name:\n- A sign that House Wilfson has fully processed the trauma\n- No longer fearing the name as ill-omened\n- Honoring the ancestor while looking forward\n\n## The Weight of a Name\n\nTo be named Baudin Wilfson is to carry 250 years of history:\n- The memory of a brother who chose love over duty\n- The kinslaying that saved the house\n- Seven generations of redemption\n- The final healing of an ancient wound\n\nWhether young Baudin feels this weight, or whether the name has finally become simply a name, remains to be seen.\n\n## See Also\n- [[Jon Wilfson]]: His father\n- [[Alisse Wilfson]]: His mother\n- [[Baudin Wilfson]]: His ancestor and namesake\n- [[The Scandal of 1776]]: The tragedy his name honors",
+      "sections": [
+        {"heading": "250 Years of Waiting", "content": "First to bear the full name since the original", "order": 1},
+        {"heading": "The Weight of History", "content": "What does it mean to carry this name?", "order": 2}
+      ]
+    },
+
+    {
+      "type": "personage",
+      "title": "Gisel Wilfson",
+      "subtitle": "Fosterreeve for Thirty Years",
+      "category": "Fostering System",
+      "tags": ["gisel", "wilfson", "fosterreeve", "fostering-system", "administrator"],
+      "content": "**Gisel Wilfson** (b. 1812) was the third child of [[Baudric Wilfson]], named to honor his grandmother [[Giseline Wilfson]]. He never married and devoted his life to service, becoming [[Fosterreeve]] for 30 years.\n\n## The Fosterreeve Role\n\nThe Fosterreeve manages all financial matters pertaining to [[The Fostering System]]:\n- Fostering fees from noble families\n- Equipment and provision costs\n- Staff wages and administration\n- Meticulous accounts separate from Breakmount's general ledgers\n\n## Thirty Years of Service\n\nGisel's three decades as Fosterreeve demonstrated House Wilfson's commitment to House Wilfrey beyond the hereditary titles:\n- Not just Master of Mines and Castellan\n- But active participants in the fostering system that binds the realm\n- Trusted with the finances that keep the system running\n\n## The Unmarried Life\n\nWhy Gisel never married remains unknown. Possibilities include:\n- Devotion to his administrative duties\n- Personal choice or circumstance\n- The shadow of the family scandal making him cautious about dynasty\n\n## See Also\n- [[Baudric Wilfson]]: His father\n- [[Giseline Wilfson]]: His grandmother, namesake\n- [[The Fostering System]]: The institution he served\n- [[Fosterreeve]]: The dignity he held",
+      "sections": [
+        {"heading": "The Fosterreeve", "content": "Financial steward of the fostering system", "order": 1},
+        {"heading": "Thirty Years", "content": "A life devoted to service", "order": 2}
+      ]
+    },
+
+    {
+      "type": "personage",
+      "title": "Colwin Wilfson",
+      "subtitle": "Fosterbookman - Keeper of Learning",
+      "category": "Fostering System",
+      "tags": ["colwin", "wilfson", "fosterbookman", "fostering-system", "scholar"],
+      "content": "**Colwin Wilfson** (b. 1837) was the third child of [[Coland Wilfson]], his name a variant honoring his great-grandfather [[Colard Wilfson]] while remaining distinct. He never married and served as [[Fosterbookman]] in the fostering system.\n\n## The Fosterbookman Role\n\nThe Fosterbookman directs all academic instruction within [[The Fostering System]]:\n- Literacy, numeracy, history, heraldry, law\n- Administrative knowledge expected of future lords\n- Identifying individual talents for specialist instruction\n- Maintaining teaching materials and educational records\n\n## A Scholar's Life\n\nLike his distant cousin [[Gisel Wilfson]], Colwin never married, devoting himself to scholarly pursuits and the education of noble youth. Two Wilfson men of different generations, both finding purpose in the fostering system rather than in continuing their own lines.\n\n## The Name's Echo\n\nColwin's name echoed Colard - the Kinslayer. Yet by his generation, the name could be borne by a gentle scholar, a man who taught children rather than killed brothers. This transformation exemplifies House Wilfson's redemption.\n\n## See Also\n- [[Coland Wilfson]]: His father\n- [[Colard Wilfson]]: His great-grandfather, namesake origin\n- [[The Fostering System]]: The institution he served\n- [[Fosterbookman]]: The dignity he held\n- [[Gisel Wilfson]]: His cousin, another unmarried servant of the system",
+      "sections": [
+        {"heading": "The Fosterbookman", "content": "Director of academic instruction", "order": 1},
+        {"heading": "The Transformed Name", "content": "From kinslayer to gentle scholar", "order": 2}
+      ]
+    },
+
+    {
+      "type": "personage",
+      "title": "Parris Wilfson",
+      "subtitle": "Fostersteward - Keeper of Household",
+      "category": "Fostering System",
+      "tags": ["parris", "wilfson", "fostersteward", "fostering-system"],
+      "content": "**Parris Wilfson** (b. 1922) is the third child of [[Colbert Wilfson]], brother to [[Bauric Wilfson]]. Unmarried, he served as [[Fostersteward]] in the fostering system.\n\n## The Fostersteward Role\n\nThe Fostersteward ensures the practical machinery of [[The Fostering System]] runs smoothly:\n- Housing assignments and meal provision\n- Clothing, medical care, daily necessities\n- Balancing expectations of noble-born children\n- Coordinating ceremonial occasions\n\n## The Third Unmarried Servant\n\nParris represents the third generation of Wilfson men who devoted themselves to the fostering system rather than continuing their own lines:\n- [[Gisel Wilfson]] (b. 1812) - Fosterreeve\n- [[Colwin Wilfson]] (b. 1837) - Fosterbookman\n- Parris Wilfson (b. 1922) - Fostersteward\n\nThis pattern of service demonstrates House Wilfson's deep commitment to the institutions that bind House Wilfrey together.\n\n## See Also\n- [[Colbert Wilfson]]: His father\n- [[Bauric Wilfson]]: His brother, 8th Lord\n- [[The Fostering System]]: The institution he served\n- [[Fostersteward]]: The dignity he held\n- [[Gisel Wilfson]], [[Colwin Wilfson]]: His predecessors in unmarried service",
+      "sections": [
+        {"heading": "The Fostersteward", "content": "Practical administrator of fosterling care", "order": 1},
+        {"heading": "Three Generations of Service", "content": "Unmarried Wilfsons devoted to the system", "order": 2}
+      ]
+    },
+
+    {
+      "type": "personage",
+      "title": "Alisse Wilfson",
+      "subtitle": "Lady of House Wilfson",
+      "category": "Current Generation",
+      "tags": ["alisse", "wilfson", "dundas", "current", "lady"],
+      "content": "**Alisse Wilfson** (née Dundas, b. 1965) is the wife of [[Jon Wilfson]], current Lord of [[House Wilfson]], and mother of [[Baudin Wilfson (Heir)|Baudin]] and [[Saelind Wilfson]].\n\n## Marriage to House Wilfson\n\nAlisse was a daughter of [[House Dundas]], a minor house. Her marriage to Jon continued the pattern established after [[The Scandal of 1776]]:\n- Prestigious Wilfrey alliance one generation (Bauric's marriage to Breakmount)\n- Practical outside match the next (Jon's marriage to Dundas)\n\n## The Lady of the Castellan\n\nAs wife of the Castellan of [[Breakmount Castle]], Alisse manages the household of the premier cadet branch:\n- Supporting Jon's duties as Master of the Silver Mines\n- Maintaining relationships with the main Wilfrey house\n- Raising the next generation of House Wilfson\n\n## Mother of the Heir\n\nAlisse bore Jon two children:\n- [[Baudin Wilfson (Heir)|Baudin]] (b. 2004) - the heir who finally bears the reclaimed name\n- [[Saelind Wilfson]] (b. 2007) - daughter named as a variation of her mother's name\n\n## See Also\n- [[Jon Wilfson]]: Her husband\n- [[Baudin Wilfson (Heir)]]: Her son and heir\n- [[Saelind Wilfson]]: Her daughter\n- [[House Dundas]]: Her birth house\n- [[House Wilfson]]: The house she married into",
+      "sections": [
+        {"heading": "The Practical Marriage", "content": "Minor house match continuing the pattern", "order": 1},
+        {"heading": "Mother of the Future", "content": "Raising the next generation", "order": 2}
+      ]
+    },
+
+    {
+      "type": "personage",
+      "title": "Adelise Wilfrey",
+      "subtitle": "The Sister Who Stayed",
+      "category": "Historical Figures",
+      "tags": ["adelise", "wilfrey", "wilfson", "breakmount", "scandal-1776"],
+      "content": "**Adelise Wilfrey** (née Wilfson, 1750-1815) was the daughter of [[Faramund Wilfson]] who married into [[House Wilfrey of Breakmount]] before [[The Scandal of 1776]], maintaining a Wilfson connection to the main house untainted by the kinslaying.\n\n## The Fortunate Timing\n\nAdelise married Aldric Wilfrey of Breakmount before the scandal erupted. When her brother [[Baudin Wilfson]] defied the council and was killed by [[Colard Wilfson]], Adelise was already safely established in the main house.\n\n## The Untainted Connection\n\nAdelise represented House Wilfson's continued presence within the Breakmount line:\n- Not directly involved in the kinslaying\n- Her children were Wilfreys, not Wilfsons\n- A bridge between the disgraced cadet branch and the main house\n\n## Witness to Aftermath\n\nAdelise lived until 1815, witnessing:\n- Her brother Baudin's death in 1776\n- Her brother Colard's difficult reign as the Kinslayer\n- Her nephew Baudric's controversial naming\n- 39 years of House Wilfson's slow redemption\n\n## See Also\n- [[Faramund Wilfson]]: Her father\n- [[Ermeline Wilfson]]: Her mother\n- [[Baudin Wilfson]]: Her brother, killed in the scandal\n- [[Colard Wilfson]]: Her brother, the Kinslayer\n- [[Nivette Wilfson]]: Her sister, exiled to found House Wilson\n- [[The Scandal of 1776]]: The tragedy that split her family",
+      "sections": [
+        {"heading": "The Fortunate Marriage", "content": "Safely in Breakmount before the scandal", "order": 1},
+        {"heading": "The Bridge", "content": "Untainted connection between houses", "order": 2}
+      ]
+    }
+  ],
+
+  "dignityUpdates": {
+    "description": "The following dignity holder connections should be noted. Current holders are already set in the system - these are historical notes.",
+    "notes": [
+      {
+        "dignity": "Drithling of House Wilfson (id: 23)",
+        "currentHolder": "Jon Wilfson (id: 343)",
+        "note": "Correct - Jon is the current 9th Lord",
+        "historicalHolders": [
+          "Faramund Wilfson (1st Lord, d. 1775)",
+          "Baudin Wilfson (2nd Lord, 1775-1776)",
+          "Colard Wilfson (3rd Lord, 1776-1812)",
+          "Baudric Wilfson (4th Lord, 1812-1848)",
+          "Coland Wilfson (5th Lord, 1848-1878)",
+          "Berin Wilfson (6th Lord, 1878-1905)",
+          "Farmund Wilfson (7th Lord, 1905-1932)",
+          "Colbert Wilfson (8th Lord, 1932-1960)",
+          "Bauric Wilfson (9th Lord, 1960-1985)",
+          "Jon Wilfson (10th Lord, 1985-present)"
+        ]
+      },
+      {
+        "dignity": "Fosterreeve (id: 28)",
+        "note": "Currently vacant. Gisel Wilfson (id: 380) served for 30 years historically.",
+        "historicalService": "Gisel Wilfson, 30 years of service"
+      },
+      {
+        "dignity": "Fosterbookman (id: 26)",
+        "note": "Currently vacant. Colwin Wilfson (id: 384) served historically.",
+        "historicalService": "Colwin Wilfson"
+      },
+      {
+        "dignity": "Fostersteward (id: 27)",
+        "currentHolder": "Lochlann Dunwilfrey (id: 51)",
+        "note": "Lochlann Dunwilfrey is the current holder. Parris Wilfson (id: 396) served historically.",
+        "historicalService": "Parris Wilfson"
+      }
+    ]
+  },
+
+  "existingEntriesToUpdate": {
+    "description": "The following existing codex entries should have cross-references added",
+    "updates": [
+      {
+        "entry": "House Wilfson (id: 4)",
+        "addToContent": "Add reference to [[The Scandal of 1776]] and the succession of lords: [[Faramund Wilfson]], [[Baudin Wilfson]], [[Colard Wilfson]], [[Baudric Wilfson]], [[Coland Wilfson]], [[Berin Wilfson]], [[Farmund Wilfson]], [[Colbert Wilfson]], [[Bauric Wilfson]], [[Jon Wilfson]]"
+      },
+      {
+        "entry": "The Fostering System (id: 26)",
+        "addToContent": "Add reference to House Wilfson members who served: [[Gisel Wilfson]] (Fosterreeve), [[Colwin Wilfson]] (Fosterbookman), [[Parris Wilfson]] (Fostersteward)"
+      },
+      {
+        "entry": "Colard Wilfson (id: 24)",
+        "addToContent": "Add reference to wife [[Giseline Wilfson]] and heir [[Baudric Wilfson]]"
+      }
+    ]
+  }
+}

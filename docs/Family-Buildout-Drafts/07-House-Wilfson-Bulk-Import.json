@@ -1,0 +1,867 @@
+{
+  "_template_info": {
+    "name": "House Wilfson Complete Lineage Import",
+    "version": "2.0",
+    "created": "2026-01-27",
+    "description": "9 generations of House Wilfson from Faramund (~1722) to Jon's children (2004-present). Uses existing entity references for House Wilfson (24), Jon Wilfson (343), Betts Wilfson (366), Saelis Athelmere (78), and other existing houses."
+  },
+
+  "houses": [
+    {
+      "_tempId": "house_thornbury",
+      "houseName": "House Thornbury",
+      "houseType": "minor",
+      "colorCode": "#8B7355",
+      "motto": "",
+      "notes": "Drith-level landed family from the eastern reaches, known for horse breeding. Outside the Wilfrey web but of respectable standing."
+    }
+  ],
+
+  "people": [
+    {
+      "_tempId": "person_faramund",
+      "_generation": 0,
+      "firstName": "Faramund",
+      "lastName": "Wilfson",
+      "gender": "male",
+      "houseId": 24,
+      "dateOfBirth": "1722",
+      "dateOfDeath": "1775",
+      "legitimacyStatus": "legitimate",
+      "notes": "Lord of House Wilfson. Father of Baudin, Adelise, Nivette, and Colard. Died peacefully with clean succession to Baudin, but Baudin died shortly after in The Scandal of 1776."
+    },
+    {
+      "_tempId": "person_ermeline",
+      "_generation": 0,
+      "firstName": "Ermeline",
+      "lastName": "Wilfson",
+      "maidenName": "Wilfrey",
+      "gender": "female",
+      "houseId": 24,
+      "dateOfBirth": "1726",
+      "dateOfDeath": "1780",
+      "legitimacyStatus": "legitimate",
+      "notes": "Wife of Lord Faramund Wilfson. Born to House Wilfrey of Riverhead as 2nd daughter under The Old Right practice. Outlived her husband and witnessed the tragedy of The Scandal. Saw one son kill another."
+    },
+    {
+      "_tempId": "person_baudin_gen0",
+      "_generation": 0,
+      "firstName": "Baudin",
+      "lastName": "Wilfson",
+      "gender": "male",
+      "houseId": 24,
+      "dateOfBirth": "1748",
+      "dateOfDeath": "1776",
+      "legitimacyStatus": "legitimate",
+      "notes": "Eldest son of Faramund. Briefly Lord of House Wilfson after his father's death. Killed by his younger brother Colard in a duel during The Scandal of 1776. His death led to the founding of House Wilson by his sister Nivette."
+    },
+    {
+      "_tempId": "person_adelise",
+      "_generation": 0,
+      "firstName": "Adelise",
+      "lastName": "Wilfrey",
+      "maidenName": "Wilfson",
+      "gender": "female",
+      "houseId": 5,
+      "dateOfBirth": "1750",
+      "dateOfDeath": "1815",
+      "legitimacyStatus": "legitimate",
+      "notes": "Daughter of Faramund Wilfson. Married Aldric Wilfrey of Breakmount before The Scandal, maintaining a Wilfson connection to the main house untainted by the kinslaying. Lived long and witnessed the aftermath."
+    },
+    {
+      "_tempId": "person_nivette",
+      "_generation": 0,
+      "firstName": "Nivette",
+      "lastName": "Wilson",
+      "maidenName": "Wilfson",
+      "gender": "female",
+      "houseId": 75,
+      "dateOfBirth": "1752",
+      "dateOfDeath": null,
+      "legitimacyStatus": "legitimate",
+      "notes": "Daughter of Faramund Wilfson. Fled with her betrothed Lennis of Fourhearth after The Scandal of 1776 to found House Wilson. Co-founder of the broken branch that received Crown recognition in 1685 to break from Wilfrey Drith authority."
+    },
+    {
+      "_tempId": "person_colard",
+      "_generation": 1,
+      "firstName": "Colard",
+      "lastName": "Wilfson",
+      "gender": "male",
+      "houseId": 24,
+      "dateOfBirth": "1754",
+      "dateOfDeath": "1812",
+      "legitimacyStatus": "legitimate",
+      "notes": "The Kinslayer. Younger son of Faramund who killed his brother Baudin in a duel during The Scandal of 1776. Became Lord and preserved the house through 36 years of grim, dedicated service. Named his heir Baudric - a variant of Baudin - a controversial choice that divided the house."
+    },
+    {
+      "_tempId": "person_giseline",
+      "_generation": 1,
+      "firstName": "Giseline",
+      "lastName": "Wilfson",
+      "maidenName": "Wilfrey",
+      "gender": "female",
+      "houseId": 24,
+      "dateOfBirth": "1758",
+      "dateOfDeath": "1820",
+      "legitimacyStatus": "legitimate",
+      "notes": "Wife of Colard Wilfson. Born to House Wilfrey of Bramblehall. Their marriage in 1778, two years after The Scandal, was a gesture of reconciliation - Bramblehall forgave the chaos that originated from their seat."
+    },
+    {
+      "_tempId": "person_baudric",
+      "_generation": 1,
+      "firstName": "Baudric",
+      "lastName": "Wilfson",
+      "gender": "male",
+      "houseId": 24,
+      "dateOfBirth": "1780",
+      "dateOfDeath": "1848",
+      "legitimacyStatus": "legitimate",
+      "notes": "Lord of House Wilfson 1812-1848. Named in memory of his uncle Baudin - a controversial choice. Some saw it as honoring the dead; others as tempting fate. Never discussed the matter publicly. First lord to marry outside the Wilfrey web after The Scandal."
+    },
+    {
+      "_tempId": "person_farelin",
+      "_generation": 1,
+      "firstName": "Farelin",
+      "lastName": "Goff",
+      "maidenName": "Wilfson",
+      "gender": "male",
+      "houseId": 16,
+      "dateOfBirth": "1783",
+      "dateOfDeath": "1855",
+      "legitimacyStatus": "legitimate",
+      "notes": "Second son of Colard. The 'spare heir' - married into House Goff. His line continues but not in direct succession. Named to honor his grandfather Faramund."
+    },
+    {
+      "_tempId": "person_beraline",
+      "_generation": 1,
+      "firstName": "Beraline",
+      "lastName": "Wilfern",
+      "maidenName": "Wilfson",
+      "gender": "female",
+      "houseId": 72,
+      "dateOfBirth": "1786",
+      "dateOfDeath": null,
+      "legitimacyStatus": "legitimate",
+      "notes": "Daughter of Colard Wilfson. Married into House Wilfern, the Breakmount cadet branch."
+    },
+    {
+      "_tempId": "person_aveline",
+      "_generation": 2,
+      "firstName": "Aveline",
+      "lastName": "Wilfson",
+      "maidenName": "Salter",
+      "gender": "female",
+      "houseId": 24,
+      "dateOfBirth": "1785",
+      "dateOfDeath": "1855",
+      "legitimacyStatus": "legitimate",
+      "notes": "Wife of Lord Baudric Wilfson. Born to House Salter of the Scorch - a deliberate choice to bring fresh blood from outside the Wilfrey web after The Scandal. This began a pattern of alternating between Wilfrey marriages and outside alliances."
+    },
+    {
+      "_tempId": "person_coland",
+      "_generation": 2,
+      "firstName": "Coland",
+      "lastName": "Wilfson",
+      "gender": "male",
+      "houseId": 24,
+      "dateOfBirth": "1805",
+      "dateOfDeath": "1878",
+      "legitimacyStatus": "legitimate",
+      "notes": "Lord of House Wilfson 1848-1878. His name was a variant of Colard - the kinslayer redeemed through generations of loyal service. Third generation after The Scandal."
+    },
+    {
+      "_tempId": "person_ermette",
+      "_generation": 2,
+      "firstName": "Ermette",
+      "lastName": "Wilfrey",
+      "maidenName": "Wilfson",
+      "gender": "female",
+      "houseId": 22,
+      "dateOfBirth": "1808",
+      "dateOfDeath": null,
+      "legitimacyStatus": "legitimate",
+      "notes": "Daughter of Baudric Wilfson. Named to honor grandmother Ermeline. Married into House Wilfrey of Fourhearth, restoring connection to Lennis's old seat - a symbolic gesture given that Lennis's departure created House Wilson."
+    },
+    {
+      "_tempId": "person_gisel",
+      "_generation": 2,
+      "firstName": "Gisel",
+      "lastName": "Wilfson",
+      "gender": "male",
+      "houseId": 24,
+      "dateOfBirth": "1812",
+      "dateOfDeath": null,
+      "legitimacyStatus": "legitimate",
+      "notes": "Third child of Baudric Wilfson. Named to honor his mother Giseline. Never married. Became a noted administrator, served as Fosterreeve for 30 years."
+    },
+    {
+      "_tempId": "person_helewise",
+      "_generation": 3,
+      "firstName": "Helewise",
+      "lastName": "Wilfson",
+      "maidenName": "Thornbury",
+      "gender": "female",
+      "houseId": 24,
+      "dateOfBirth": "1810",
+      "dateOfDeath": "1885",
+      "legitimacyStatus": "legitimate",
+      "notes": "Wife of Lord Coland Wilfson. Born to House Thornbury of the eastern reaches - a Drith-level landed family known for horse breeding. Marriage represented diversification outside the Wilfrey web while maintaining appropriate standing for a cadet house."
+    },
+    {
+      "_tempId": "person_berin",
+      "_generation": 3,
+      "firstName": "Berin",
+      "lastName": "Wilfson",
+      "gender": "male",
+      "houseId": 24,
+      "dateOfBirth": "1830",
+      "dateOfDeath": "1905",
+      "legitimacyStatus": "legitimate",
+      "notes": "Lord of House Wilfson 1878-1905. Fourth generation after The Scandal. Returned to traditional Wilfrey alliance by marrying into Riverhead."
+    },
+    {
+      "_tempId": "person_audeline",
+      "_generation": 3,
+      "firstName": "Audeline",
+      "lastName": "Athelmere",
+      "maidenName": "Wilfson",
+      "gender": "female",
+      "houseId": 19,
+      "dateOfBirth": "1833",
+      "dateOfDeath": null,
+      "legitimacyStatus": "legitimate",
+      "notes": "Daughter of Coland Wilfson. Married into House Athelmere, establishing the connection that continues to the present day with Jon Wilfson's marriage to Saelis Athelmere."
+    },
+    {
+      "_tempId": "person_colwin",
+      "_generation": 3,
+      "firstName": "Colwin",
+      "lastName": "Wilfson",
+      "gender": "male",
+      "houseId": 24,
+      "dateOfBirth": "1837",
+      "dateOfDeath": null,
+      "legitimacyStatus": "legitimate",
+      "notes": "Third child of Coland Wilfson. Named as a variant honoring grandfather Colard while remaining distinct. Never married. Served as Fosterbookman in the fostering system."
+    },
+    {
+      "_tempId": "person_celisse",
+      "_generation": 4,
+      "firstName": "Celisse",
+      "lastName": "Wilfson",
+      "maidenName": "Wilfrey",
+      "gender": "female",
+      "houseId": 24,
+      "dateOfBirth": "1835",
+      "dateOfDeath": "1910",
+      "legitimacyStatus": "legitimate",
+      "notes": "Wife of Lord Berin Wilfson. Born to House Wilfrey of Riverhead - a return to traditional alliance four generations after The Scandal."
+    },
+    {
+      "_tempId": "person_farmund",
+      "_generation": 4,
+      "firstName": "Farmund",
+      "lastName": "Wilfson",
+      "gender": "male",
+      "houseId": 24,
+      "dateOfBirth": "1858",
+      "dateOfDeath": "1932",
+      "legitimacyStatus": "legitimate",
+      "notes": "Lord of House Wilfson 1905-1932. Named to honor the ancestral founder Faramund with slightly varied spelling. Fifth generation after The Scandal."
+    },
+    {
+      "_tempId": "person_celina",
+      "_generation": 4,
+      "firstName": "Celina",
+      "lastName": "Goff",
+      "maidenName": "Wilfson",
+      "gender": "female",
+      "houseId": 16,
+      "dateOfBirth": "1861",
+      "dateOfDeath": null,
+      "legitimacyStatus": "legitimate",
+      "notes": "Daughter of Berin Wilfson. Named after her mother Celisse. Married into House Goff."
+    },
+    {
+      "_tempId": "person_aldwyn",
+      "_generation": 4,
+      "firstName": "Aldwyn",
+      "lastName": "Wilfson",
+      "gender": "male",
+      "houseId": 24,
+      "dateOfBirth": "1865",
+      "dateOfDeath": null,
+      "legitimacyStatus": "legitimate",
+      "notes": "Third child of Berin Wilfson. Pursued a military career, never inherited."
+    },
+    {
+      "_tempId": "person_roseline",
+      "_generation": 5,
+      "firstName": "Roseline",
+      "lastName": "Wilfson",
+      "maidenName": "Cawdry",
+      "gender": "female",
+      "houseId": 24,
+      "dateOfBirth": "1862",
+      "dateOfDeath": "1940",
+      "legitimacyStatus": "legitimate",
+      "notes": "Wife of Lord Farmund Wilfson. Born to House Cawdry, a minor house - an appropriate practical match for a cadet branch."
+    },
+    {
+      "_tempId": "person_colbert",
+      "_generation": 5,
+      "firstName": "Colbert",
+      "lastName": "Wilfson",
+      "gender": "male",
+      "houseId": 24,
+      "dateOfBirth": "1885",
+      "dateOfDeath": "1960",
+      "legitimacyStatus": "legitimate",
+      "notes": "Lord of House Wilfson 1932-1960. Sixth generation after The Scandal."
+    },
+    {
+      "_tempId": "person_rosmund",
+      "_generation": 5,
+      "firstName": "Rosmund",
+      "lastName": "Eldwick",
+      "maidenName": "Wilfson",
+      "gender": "female",
+      "houseId": 20,
+      "dateOfBirth": "1888",
+      "dateOfDeath": null,
+      "legitimacyStatus": "legitimate",
+      "notes": "Daughter of Farmund Wilfson. Married into House Eldwick (motto: 'What Was, Remains') - a practical match for a cadet daughter."
+    },
+    {
+      "_tempId": "person_bertelin",
+      "_generation": 5,
+      "firstName": "Bertelin",
+      "lastName": "Wilfson",
+      "gender": "male",
+      "houseId": 24,
+      "dateOfBirth": "1892",
+      "dateOfDeath": "1916",
+      "legitimacyStatus": "legitimate",
+      "notes": "Third child of Farmund Wilfson. Died young at 24 - likely in war or by accident."
+    },
+    {
+      "_tempId": "person_maelisse",
+      "_generation": 6,
+      "firstName": "Maelisse",
+      "lastName": "Wilfson",
+      "maidenName": "Parlin",
+      "gender": "female",
+      "houseId": 24,
+      "dateOfBirth": "1890",
+      "dateOfDeath": "1965",
+      "legitimacyStatus": "legitimate",
+      "notes": "Wife of Lord Colbert Wilfson. Born to House Parlin, a minor house - another practical match maintaining appropriate standing."
+    },
+    {
+      "_tempId": "person_bauric",
+      "_generation": 6,
+      "firstName": "Bauric",
+      "lastName": "Wilfson",
+      "gender": "male",
+      "houseId": 24,
+      "dateOfBirth": "1915",
+      "dateOfDeath": "1985",
+      "legitimacyStatus": "legitimate",
+      "notes": "Lord of House Wilfson 1960-1985. Seventh generation after The Scandal. Father of Jon Wilfson. His marriage to Loveline of Breakmount represented full restoration of House Wilfson's position - no longer marked by kinslaying, fully trusted."
+    },
+    {
+      "_tempId": "person_maeline",
+      "_generation": 6,
+      "firstName": "Maeline",
+      "lastName": "Wentburn",
+      "maidenName": "Wilfson",
+      "gender": "female",
+      "houseId": 8,
+      "dateOfBirth": "1918",
+      "dateOfDeath": null,
+      "legitimacyStatus": "legitimate",
+      "notes": "Daughter of Colbert Wilfson. Married into House Wentburn."
+    },
+    {
+      "_tempId": "person_parris",
+      "_generation": 6,
+      "firstName": "Parris",
+      "lastName": "Wilfson",
+      "gender": "male",
+      "houseId": 24,
+      "dateOfBirth": "1922",
+      "dateOfDeath": null,
+      "legitimacyStatus": "legitimate",
+      "notes": "Third child of Colbert Wilfson. Unmarried. Served in the fostering system as Fostersteward."
+    },
+    {
+      "_tempId": "person_loveline",
+      "_generation": 7,
+      "firstName": "Loveline",
+      "lastName": "Wilfson",
+      "maidenName": "Wilfrey",
+      "gender": "female",
+      "houseId": 24,
+      "dateOfBirth": "1925",
+      "dateOfDeath": "2005",
+      "legitimacyStatus": "legitimate",
+      "notes": "Wife of Lord Bauric Wilfson. Born to House Wilfrey of Breakmount - this marriage represented the full restoration of House Wilfson's position after generations of rebuilding trust following The Scandal."
+    },
+    {
+      "_tempId": "person_lovine",
+      "_generation": 7,
+      "firstName": "Lovine",
+      "lastName": "Ferncross",
+      "maidenName": "Wilfson",
+      "gender": "female",
+      "houseId": 74,
+      "dateOfBirth": "1958",
+      "dateOfDeath": null,
+      "legitimacyStatus": "legitimate",
+      "notes": "Daughter of Bauric Wilfson, sister of Jon and Betts. Married into House Ferncross, a minor house."
+    },
+    {
+      "_tempId": "person_baudin_gen8",
+      "_generation": 8,
+      "firstName": "Baudin",
+      "lastName": "Wilfson",
+      "gender": "male",
+      "houseId": 24,
+      "dateOfBirth": "2004",
+      "dateOfDeath": null,
+      "legitimacyStatus": "legitimate",
+      "notes": "Heir of Jon Wilfson. Named for the ancestor who died in The Scandal of 1776 - 250 years later, the name is finally reclaimed. A sign that House Wilfson has fully processed the trauma of the kinslaying."
+    },
+    {
+      "_tempId": "person_saelind",
+      "_generation": 8,
+      "firstName": "Saelind",
+      "lastName": "Wilfson",
+      "gender": "female",
+      "houseId": 24,
+      "dateOfBirth": "2007",
+      "dateOfDeath": null,
+      "legitimacyStatus": "legitimate",
+      "notes": "Daughter of Jon Wilfson and Saelis Athelmere. Named as a variation of her mother's name."
+    }
+  ],
+
+  "relationships": [
+    {
+      "_comment": "Generation 0: Faramund's marriages",
+      "person1Id": "person_faramund",
+      "person2Id": "person_ermeline",
+      "relationshipType": "spouse",
+      "marriageStatus": "widowed"
+    },
+    {
+      "_comment": "Adelise married Aldric Wilfrey (existing person #317)",
+      "person1Id": "person_adelise",
+      "person2Id": 317,
+      "relationshipType": "spouse",
+      "marriageStatus": "married"
+    },
+    {
+      "_comment": "Generation 1: Colard's marriage",
+      "person1Id": "person_colard",
+      "person2Id": "person_giseline",
+      "relationshipType": "spouse",
+      "marriageStatus": "widowed"
+    },
+    {
+      "_comment": "Generation 2: Baudric's marriage",
+      "person1Id": "person_baudric",
+      "person2Id": "person_aveline",
+      "relationshipType": "spouse",
+      "marriageStatus": "widowed"
+    },
+    {
+      "_comment": "Generation 3: Coland's marriage",
+      "person1Id": "person_coland",
+      "person2Id": "person_helewise",
+      "relationshipType": "spouse",
+      "marriageStatus": "widowed"
+    },
+    {
+      "_comment": "Generation 4: Berin's marriage",
+      "person1Id": "person_berin",
+      "person2Id": "person_celisse",
+      "relationshipType": "spouse",
+      "marriageStatus": "widowed"
+    },
+    {
+      "_comment": "Generation 5: Farmund's marriage",
+      "person1Id": "person_farmund",
+      "person2Id": "person_roseline",
+      "relationshipType": "spouse",
+      "marriageStatus": "widowed"
+    },
+    {
+      "_comment": "Generation 6: Colbert's marriage",
+      "person1Id": "person_colbert",
+      "person2Id": "person_maelisse",
+      "relationshipType": "spouse",
+      "marriageStatus": "widowed"
+    },
+    {
+      "_comment": "Generation 7: Bauric's marriage",
+      "person1Id": "person_bauric",
+      "person2Id": "person_loveline",
+      "relationshipType": "spouse",
+      "marriageStatus": "widowed"
+    },
+    {
+      "_comment": "Generation 8: Jon (existing #343) married to Saelis (existing #78)",
+      "person1Id": 343,
+      "person2Id": 78,
+      "relationshipType": "spouse",
+      "marriageStatus": "married"
+    },
+
+    {
+      "_comment": "Generation 0: Faramund + Ermeline -> children",
+      "person1Id": "person_faramund",
+      "person2Id": "person_baudin_gen0",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "person1Id": "person_ermeline",
+      "person2Id": "person_baudin_gen0",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "person1Id": "person_faramund",
+      "person2Id": "person_adelise",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "person1Id": "person_ermeline",
+      "person2Id": "person_adelise",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "person1Id": "person_faramund",
+      "person2Id": "person_nivette",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "person1Id": "person_ermeline",
+      "person2Id": "person_nivette",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "person1Id": "person_faramund",
+      "person2Id": "person_colard",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "person1Id": "person_ermeline",
+      "person2Id": "person_colard",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+
+    {
+      "_comment": "Generation 1: Colard + Giseline -> children",
+      "person1Id": "person_colard",
+      "person2Id": "person_baudric",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "person1Id": "person_giseline",
+      "person2Id": "person_baudric",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "person1Id": "person_colard",
+      "person2Id": "person_farelin",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "person1Id": "person_giseline",
+      "person2Id": "person_farelin",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "person1Id": "person_colard",
+      "person2Id": "person_beraline",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "person1Id": "person_giseline",
+      "person2Id": "person_beraline",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+
+    {
+      "_comment": "Generation 2: Baudric + Aveline -> children",
+      "person1Id": "person_baudric",
+      "person2Id": "person_coland",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "person1Id": "person_aveline",
+      "person2Id": "person_coland",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "person1Id": "person_baudric",
+      "person2Id": "person_ermette",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "person1Id": "person_aveline",
+      "person2Id": "person_ermette",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "person1Id": "person_baudric",
+      "person2Id": "person_gisel",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "person1Id": "person_aveline",
+      "person2Id": "person_gisel",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+
+    {
+      "_comment": "Generation 3: Coland + Helewise -> children",
+      "person1Id": "person_coland",
+      "person2Id": "person_berin",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "person1Id": "person_helewise",
+      "person2Id": "person_berin",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "person1Id": "person_coland",
+      "person2Id": "person_audeline",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "person1Id": "person_helewise",
+      "person2Id": "person_audeline",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "person1Id": "person_coland",
+      "person2Id": "person_colwin",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "person1Id": "person_helewise",
+      "person2Id": "person_colwin",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+
+    {
+      "_comment": "Generation 4: Berin + Celisse -> children",
+      "person1Id": "person_berin",
+      "person2Id": "person_farmund",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "person1Id": "person_celisse",
+      "person2Id": "person_farmund",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "person1Id": "person_berin",
+      "person2Id": "person_celina",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "person1Id": "person_celisse",
+      "person2Id": "person_celina",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "person1Id": "person_berin",
+      "person2Id": "person_aldwyn",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "person1Id": "person_celisse",
+      "person2Id": "person_aldwyn",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+
+    {
+      "_comment": "Generation 5: Farmund + Roseline -> children",
+      "person1Id": "person_farmund",
+      "person2Id": "person_colbert",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "person1Id": "person_roseline",
+      "person2Id": "person_colbert",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "person1Id": "person_farmund",
+      "person2Id": "person_rosmund",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "person1Id": "person_roseline",
+      "person2Id": "person_rosmund",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "person1Id": "person_farmund",
+      "person2Id": "person_bertelin",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "person1Id": "person_roseline",
+      "person2Id": "person_bertelin",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+
+    {
+      "_comment": "Generation 6: Colbert + Maelisse -> children",
+      "person1Id": "person_colbert",
+      "person2Id": "person_bauric",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "person1Id": "person_maelisse",
+      "person2Id": "person_bauric",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "person1Id": "person_colbert",
+      "person2Id": "person_maeline",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "person1Id": "person_maelisse",
+      "person2Id": "person_maeline",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "person1Id": "person_colbert",
+      "person2Id": "person_parris",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "person1Id": "person_maelisse",
+      "person2Id": "person_parris",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+
+    {
+      "_comment": "Generation 7: Bauric + Loveline -> children (Jon #343, Betts #366, Lovine)",
+      "person1Id": "person_bauric",
+      "person2Id": 343,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "person1Id": "person_loveline",
+      "person2Id": 343,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "person1Id": "person_bauric",
+      "person2Id": 366,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "person1Id": "person_loveline",
+      "person2Id": 366,
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "person1Id": "person_bauric",
+      "person2Id": "person_lovine",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "person1Id": "person_loveline",
+      "person2Id": "person_lovine",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+
+    {
+      "_comment": "Generation 8: Jon (existing #343) + Saelis (existing #78) -> children",
+      "person1Id": 343,
+      "person2Id": "person_baudin_gen8",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "person1Id": 78,
+      "person2Id": "person_baudin_gen8",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "person1Id": 343,
+      "person2Id": "person_saelind",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    },
+    {
+      "person1Id": 78,
+      "person2Id": "person_saelind",
+      "relationshipType": "parent",
+      "biologicalParent": true
+    }
+  ],
+
+  "codexEntries": [],
+  "heraldry": [],
+  "dignities": []
+}
